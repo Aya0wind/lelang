@@ -1,10 +1,39 @@
 [package]
-name = "llvm-rs"
+name = "lelang"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+exclude = ["benches"]
+
+[dev-dependencies]
+criterion = "0.3.5"
+
+[[bench]]
+name="lexer"
+harness=false
+#[lib]
+#name = "lelang"
 [dependencies]
-inkwell = { features = ["llvm12-0"] }
+criterion = { version = "0.3.5" ,features=["html_reports"]}
+inkwell = {version = "0.1.0-beta.4", features = ["llvm12-0"] }
 logos = "0.12.0"
+thiserror = "1.0.30"
+strum = "0.24.0"
+strum_macros = "0.24.0"
+anyhow = "1.0.55"
+lazy_static = "1.4.0"
+nom = "7.1.0"
+enum_dispatch = "0.3.8"
+
+[release]
+opt-level = 3
+#debug=false
+lto = true
+overflow-checks = false
+rpath = false
+
+[profile.release]
+debug=true
