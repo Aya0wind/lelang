@@ -1,26 +1,24 @@
-
-use inkwell::values::{AnyValue, AnyValueEnum};
 use crate::ast::{Annotation, CodeBlock};
 use crate::lexer::{Number, Operator};
+
 pub type BExpr = Box<Expr>;
+
 #[derive(Debug)]
-pub struct BinaryOperatorNode{
-    pub op:Operator,
+pub struct BinaryOperatorNode {
+    pub op: Operator,
     pub left: BExpr,
     pub right: BExpr,
 }
 
 #[derive(Debug)]
-pub struct CallExpressionNode{
-
-}
+pub struct CallExpressionNode {}
 
 #[derive(Debug)]
-pub struct FunctionNode{
-    pub name:String,
-    pub params:Vec<Annotation>,
-    pub return_type:String,
-    pub code_block:CodeBlock,
+pub struct FunctionNode {
+    pub name: String,
+    pub params: Vec<Annotation>,
+    pub return_type: String,
+    pub code_block: CodeBlock,
 }
 
 #[derive(Debug)]
@@ -33,22 +31,23 @@ impl NumberLiteralNode {
         Self { number }
     }
 }
+
 #[derive(Debug)]
-pub struct UnaryOperatorNode{
-    pub op:Operator,
+pub struct UnaryOperatorNode {
+    pub op: Operator,
     pub param: BExpr,
 }
 
 #[derive(Debug)]
-pub struct VariableNode{
-    pub type_name:String,
-    pub name:String,
-    pub value: BExpr
+pub struct VariableNode {
+    pub type_name: String,
+    pub name: String,
+    pub value: BExpr,
 }
 
 #[derive(Debug)]
-pub struct IdentifierNode{
-    pub name:String,
+pub struct IdentifierNode {
+    pub name: String,
 }
 
 

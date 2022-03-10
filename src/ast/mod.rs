@@ -1,10 +1,8 @@
+pub use ast::Ast;
+pub use nodes::*;
+pub use parser::*;
+
 mod nodes;
 mod parser;
 mod ast;
-pub use nodes::*;
-pub use parser::*;
-pub use ast::Ast;
-
-
-
 

@@ -1,10 +1,12 @@
-use std::collections::HashMap;
-use anyhow::Result;
-use crate::ast::{FunctionNode, VariableNode};
-use crate::ast::parser::{parse_function, parse_variable_declaration};
-use crate::error::{SyntaxError, TokenType};
-use crate::lexer::{KeyWord, LEToken, LELexer};
 
+use std::collections::HashMap;
+
+use anyhow::Result;
+
+use crate::ast::{FunctionNode, parse_statement, Statement, VariableNode};
+use crate::ast::parser::{parse_function};
+use crate::error::{SyntaxError, TokenType};
+use crate::lexer::{KeyWord, LELexer, LEToken};
 
 #[derive(Debug)]
 pub struct Ast {
@@ -21,20 +23,22 @@ impl Ast {
     }
 
     fn parse(&mut self, mut tokens: LELexer) -> Result<()> {
-        loop{
-            let next_token = tokens.next();
+        loop {
+            let next_token = tokens.current();
             match next_token {
-                None => {break;}
+                None => { break; }
                 Some(token) => {
                     if let LEToken::KeyWord(keyword) = token {
-                        if KeyWord::FunctionDeclare == keyword {
+                        if &KeyWord::FunctionDeclare == keyword {
                             let function = parse_function(&mut tokens)?;
-                            self.functions.insert(function.name.clone(),function );
-                        } else if KeyWord::VariableDeclare == keyword {
-                            let variable = parse_variable_declaration(&mut tokens)?;
-                            self.globals.insert(variable.name.clone(), variable);
+                            self.functions.insert(function.name.clone(), function);
+                        } else if &KeyWord::VariableDeclare == keyword {
+                            let variable = parse_statement(&mut tokens)?;
+                            if let Statement::VariableDeclare(variable) = variable {
+                                self.globals.insert(variable.name.clone(), variable);
+                            }
                         } else {
-                            return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, tokens.current().clone(), tokens.line()).into());
+                            return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, tokens.current_result()?.clone(), tokens.line()).into());
                         }
                     }
                 }

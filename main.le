@@ -1,3 +1,33 @@
+
 le main(a:i32)->i32{
-    ret a+1*5/3;
+    if(a==10){
+        var b:i32=20;
+    }el{
+        var c:i64=30;
+    }
+    ret a+10;
+}
+
+le main1(ab:i32,sss:f64)->i64{
+    if(a==10){
+        var b:i32=20;
+    }el{
+        var c:i64=30;
+    }
+    ret a+10;
+}
+
+le main2(a:i32)->i32{
+    var b:i32=20;
+    b=a;
+    ret b+10+20;
+}
+
+le main3(a:i32)->i32{
+    if(a==10){
+        var b:i32=20;
+    }el{
+        var c:i64=30;
+    }
+    ret a+10;
 }

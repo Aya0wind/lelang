@@ -1,121 +1,76 @@
-use std::str::{from_utf8, FromStr};
-use logos::Lexer;
-use super::token_iterator::Number;
 extern crate nom;
+
+use anyhow::Result;
+use logos::Lexer;
 use nom::{
+    bytes::complete::tag,
     IResult,
-    bytes::complete::{tag, take_while_m_n},
-    combinator::map_res,
-    multi::many0,
-    branch::alt,
-    sequence::tuple
+    sequence::tuple,
 };
-use nom::character::is_digit;
-use crate::lexer::{LEToken, LogosToken};
+use nom::bytes::streaming::take_while;
+use nom::character::complete::char;
+use nom::combinator::opt;
 
-type ParseResult<'a> = Option<(&'a [u8], &'a [u8])>;
+use crate::error::TokenParserError;
+use crate::lexer::LogosToken;
 
-pub trait Parser<'a> {
-    fn parse(&mut self, input: &'a [u8]) -> ParseResult<'a>;
+use super::token_iterator::Number;
+
+fn unsigned_integer(input: &str) -> IResult<&str, u64> {
+    let i = input.parse::<u64>().unwrap();
+    Ok(("", i))
 }
 
-impl<'a, F> Parser<'a> for F
-    where
-        F: FnMut(&'a [u8]) -> ParseResult,
-{
-    fn parse(&mut self, input: &'a [u8]) -> ParseResult<'a> {
-        self(input)
+fn unsigned_float(input: &str) -> IResult<&str, f64> {
+    let x: (&str, (&str, char, &str)) = tuple((take_while(|x: char| x.is_digit(10)), char('.'), take_while(|x: char| x.is_digit(10))))(input)?;
+    let result = format!("{}.{}", x.1.0, x.1.2).parse::<f64>().unwrap();
+    Ok((x.0, result))
+}
+
+
+fn integer(input: &str) -> IResult<&str, (u64, bool)> {
+    let result = opt(tag("-"))(input)?;
+    let mut negative = false;
+    if let Some(_) = result.1 {
+        negative = true;
     }
+    let integer = unsigned_integer(result.0)?;
+    Ok((integer.0, (integer.1, negative)))
 }
 
-fn option<'a, P: Parser<'a>>(mut parser: P) -> impl FnMut(&'a [u8]) -> ParseResult {
-    move |input: &'a [u8]| match parser.parse(input) {
-        Some(out) => Some(out),
-        None => Some((input, &input[0..0])),
+fn float(input: &str) -> IResult<&str, (f64, bool)> {
+    let result = opt(tag("-"))(input)?;
+    let mut negative = false;
+    if result.1.is_some() {
+        negative = true;
     }
+    let float = unsigned_float(result.0)?;
+    Ok((float.0, (float.1, negative)))
 }
 
-fn alt2<'a, P1: Parser<'a>, P2: Parser<'a>>(
-    (mut parser1, mut parser2): (P1, P2),
-) -> impl FnMut(&'a [u8]) -> ParseResult {
-    move |input: &[u8]| match parser1.parse(input) {
-        Some(out) => Some(out),
-        None => parser2.parse(input),
-    }
-}
-
-fn alt3<'a, P1: Parser<'a>, P2: Parser<'a>, P3: Parser<'a>>(
-    (mut parser1, mut parser2, mut parser3): (P1, P2, P3),
-) -> impl FnMut(&'a [u8]) -> ParseResult {
-    move |input: &[u8]| match parser1.parse(input) {
-        Some(out) => Some(out),
-        None => match parser2.parse(input) {
-            Some(out) => Some(out),
-            None => parser3.parse(input),
-        },
-    }
-}
-
-fn operator(input: &[u8]) -> ParseResult {
-    let first = input.first()?;
-    if *first == b'-' || *first == b'+' {
-        Some((&input[1..], &input[0..1]))
+fn parse(input: &str) -> Result<(Number, usize)> {
+    if let Ok((remain, (number, signed))) = float(input) {
+        Ok((Number::Float(number, signed), remain.len()))
+    } else if let Ok((remain, (number, signed))) = integer(input) {
+        Ok((Number::Integer(number, signed), remain.len()))
     } else {
-        None
+        Err(TokenParserError::unrecognized_token().into())
     }
 }
 
-fn dot(input: &[u8]) -> ParseResult {
-    let first = input.first()?;
-    if *first == b'.' {
-        Some((&input[1..], &input[0..1]))
-    } else {
-        None
-    }
+pub fn parse_number(input: &mut Lexer<LogosToken>) -> Result<Number> {
+    let result = parse(input.slice())?;
+    Ok(result.0)
 }
 
-fn num(input: &[u8]) -> ParseResult {
-    let mut counter = 0;
-    for byte in input {
-        if byte.is_ascii_digit() {
-            counter += 1;
-        } else {
-            break;
+#[allow(unused)]
+mod test {
+    use crate::lexer::number_parser::parse;
+
+    #[test]
+    fn test_parse_number() {
+        for num in ["-2.33 abc", "100000 sfsdas", "-", "3.14", "4.1", "-0.9", "210", "0", "3e+7", "-1.2759877"] {
+            eprintln!("{:?}", parse(num))
         }
     }
-    if counter > 0 {
-        Some((&input[counter..], &input[0..counter]))
-    } else {
-        None
-    }
 }
-
-fn interger(input: &[u8]) -> ParseResult {
-    num(option(operator)(input)?.0)
-}
-
-fn decimal<'a>(input: &'a [u8]) -> ParseResult<'a> {
-    let first = move |i: &'a [u8]| num(dot(num(i)?.0)?.0);
-    let second = move |i: &'a [u8]| dot(num(i)?.0);
-    let third = move |i: &'a [u8]| num(dot(i)?.0);
-    alt3((first, second, third))(option(operator)(input)?.0)
-}
-
-
-
-pub fn parse_number(input: &mut Lexer<LogosToken>) -> Number {
-    let (int,exclude) = interger(input.slice().as_bytes()).unwrap();
-    input.bump(int.len());
-    Number::I32( 1)
-}
-
-// mod test{
-//     use crate::tokenlizer::number_parser::parse_number;
-//
-//     #[test]
-//     fn test_parse_number(){
-//         for num in ["2", "0089", "-0.1", "+3.14", "4.", "-.9", "2e10", "-90E3", "3e+7", "+6e-1", "53.5e93", "-123.456e789"]{
-//             eprintln!("{:?}",parse_number(num.as_bytes()));
-//         }
-//     }
-// }
