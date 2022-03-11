@@ -1,79 +1,81 @@
+
 use anyhow::Result;
 
-use crate::ast::{BExpr, BinaryOperatorNode, CodeBlock, IdentifierNode, NumberLiteralNode, Param, parse_statement, VParseResult};
+use crate::ast::{BExpr, BinaryOperatorNode, CodeBlock, Expr, FunctionCallNode, get_operator_precedence, IdentifierNode, NumberLiteralNode, Param, parse_statement, parse_variable_annotation, VParseResult};
 use crate::ast::Expr::{BinaryOperator, Identifier, NumberLiteral};
-use crate::error::{SyntaxError, TokenType};
-use crate::lexer::{LELexer, LEToken};
+use crate::error::{SyntaxError, TokenParserError, TokenType};
+use crate::lexer::{LELexer, LEToken, Operator};
 
-pub fn parse_call_param_list(lexer: &mut LELexer) -> Result<Vec<Param>> {
-    lexer.consume_left_little_brace()?;
+pub fn parse_call_expression(lexer: &mut LELexer, function_name: String) -> Result<BExpr> {
+    lexer.next_result()?;
     let mut params = vec![];
     loop {
-        let value = lexer.next_result()?;
-        if let LEToken::Identifier(identifier) = value {
-            params.push(Param::Identifier(identifier));
-        } else if let LEToken::NumberLiteral(number) = value {
-            params.push(Param::Number(number));
-        } else {
-            return Err(SyntaxError::unexpect_token(TokenType::Identifier, value, lexer.line()).into());
-        }
-        let expect_comma = lexer.next_result()?;
-        if expect_comma != LEToken::Comma {
-            return if expect_comma == LEToken::RightLittleBrace {
-                Ok(params)
-            } else {
-                Err(SyntaxError::unexpect_token(TokenType::RightLittleBrace, expect_comma, lexer.line()).into())
-            };
+        let current_token = lexer.current_result()?;
+        match current_token {
+            LEToken::RightLittleBrace => {
+                lexer.next_result()?;
+                return Ok(Box::new(Expr::CallExpression(FunctionCallNode {
+                    function_name,
+                    params,
+                })));
+            }
+            LEToken::Comma => {
+                lexer.next_result()?;
+            }
+            _ => {
+                params.push(parse_expression(lexer)?);
+            }
         }
     }
 }
 
 
-pub fn parse_unary(lexer: &mut LELexer) -> VParseResult {
-    unimplemented!()
-}
-
-pub fn parse_binary(lexer: &mut LELexer, lhs: BExpr) -> VParseResult {
-    unimplemented!()
-}
-
-
-pub fn parse_call_expression(lexer: &mut LELexer, function_name: &str) -> VParseResult {
-    unimplemented!()
+pub fn parse_binary_ops(lexer: &mut LELexer, mut lhs: BExpr, expression_precedence: usize) -> VParseResult {
+    loop {
+        if let LEToken::Operator(op) = lexer.own_current()? {
+            let precedence = get_operator_precedence(&op);
+            if precedence < expression_precedence {
+                return Ok(lhs);
+            }
+            lexer.next_result()?;
+            let mut rhs = parse_primary_expression(lexer)?;
+            rhs = parse_binary_ops(lexer, rhs, precedence + 1)?;
+            lhs = Box::new(BinaryOperator(BinaryOperatorNode {
+                op,
+                left: lhs,
+                right: rhs,
+            }))
+        } else {
+            return Ok(lhs);
+        }
+    }
 }
 
 pub fn parse_identifier_expression(lexer: &mut LELexer) -> VParseResult {
     let identifier = lexer.consume_identifier()?;
-    if let LEToken::Operator(op) = lexer.current_result()? {
-        let op = op.clone();
-        lexer.next_result()?;
-        Ok(Box::new(BinaryOperator(BinaryOperatorNode {
-            op,
-            left: Box::new(Identifier(IdentifierNode { name: identifier })),
-            right: parse_expression(lexer)?,
-        })))
-    } else {
-        Ok(Box::new(Identifier(IdentifierNode { name: identifier })))
+    match lexer.current_result()? {
+        LEToken::LeftLittleBrace => {
+            Ok(parse_call_expression(lexer, identifier)?)
+        }
+        _ => {
+            Ok(Box::new(Identifier(IdentifierNode { name: identifier })))
+        }
     }
 }
 
 pub fn parse_number_expression(lexer: &mut LELexer) -> VParseResult {
     let number = lexer.consume_number_literal()?;
-    if let LEToken::Operator(op) = lexer.current_result()? {
-        let op = op.clone();
-        lexer.next_result()?;
-        Ok(Box::new(BinaryOperator(BinaryOperatorNode {
-            op,
-            left: Box::new(NumberLiteral(NumberLiteralNode::new(number))),
-            right: parse_expression(lexer)?,
-        })))
-    } else {
-        Ok(Box::new(NumberLiteral(NumberLiteralNode::new(number))))
-    }
+    Ok(Box::new(NumberLiteral(NumberLiteralNode { number })))
 }
 
+pub fn parse_little_brace_expression(lexer: &mut LELexer) -> VParseResult {
+    lexer.consume_left_little_brace()?;
+    let expression = parse_expression(lexer)?;
+    lexer.consume_right_little_brace()?;
+    Ok(expression)
+}
 
-pub fn parse_expression(lexer: &mut LELexer) -> VParseResult {
+pub fn parse_primary_expression(lexer: &mut LELexer) -> VParseResult {
     let next = lexer.own_current()?;
     match next {
         LEToken::NumberLiteral(_) => {
@@ -87,19 +89,19 @@ pub fn parse_expression(lexer: &mut LELexer) -> VParseResult {
     }
 }
 
-pub fn parse_little_brace_expression(lexer: &mut LELexer) -> VParseResult {
-    lexer.consume_left_little_brace()?;
-    let primary_expression = parse_expression(lexer)?;
-    lexer.consume_right_little_brace()?;
-    Ok(primary_expression)
+pub fn parse_expression(lexer: &mut LELexer) -> VParseResult {
+    let primary = parse_primary_expression(lexer)?;
+    parse_binary_ops(lexer, primary, 0)
 }
-
 
 pub fn parse_code_block(lexer: &mut LELexer) -> Result<CodeBlock> {
     lexer.consume_left_big_brace()?;
     let mut block = CodeBlock { statements: vec![] };
-    while let Ok(statement) = parse_statement(lexer) {
-        block.statements.push(statement);
+    while let Ok(current)=lexer.current_result(){
+        if current==&LEToken::RightBigBrace{
+            break;
+        }
+        block.statements.push(parse_statement(lexer)?);
     }
     lexer.consume_right_big_brace()?;
     Ok(block)

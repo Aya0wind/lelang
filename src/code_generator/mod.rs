@@ -1,19 +1,17 @@
 use std::collections::HashMap;
 
-use inkwell::types::{AnyTypeEnum};
-use inkwell::values::AnyValueEnum;
+use inkwell::types::AnyTypeEnum;
+use inkwell::values::{AnyValueEnum, FunctionValue};
 
 pub use generator::*;
 
 mod generator;
+mod optimizer;
 
-pub type VariableTable<'s> = HashMap<String, AnyValueEnum<'s>>;
-pub type TypeTable<'s> = HashMap<String, AnyTypeEnum<'s>>;
-
-#[derive(Default)]
-struct GlobalSymbolTable<'s> {
-    variables: VariableTable<'s>,
-    types: TypeTable<'s>,
-    function_table: TypeTable<'s>,
+pub enum Symbol<'s>{
+    Type(AnyTypeEnum<'s>),
+    Variable(AnyValueEnum<'s>),
+    Function(FunctionValue<'s>)
 }
 
+pub type SymbolTable<'s> = HashMap<String,Symbol<'s>>;

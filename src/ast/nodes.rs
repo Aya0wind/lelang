@@ -1,7 +1,6 @@
-use crate::ast::{Annotation, CodeBlock};
 use crate::lexer::{Number, Operator};
 
-pub type BExpr = Box<Expr>;
+
 
 #[derive(Debug)]
 pub struct BinaryOperatorNode {
@@ -11,7 +10,21 @@ pub struct BinaryOperatorNode {
 }
 
 #[derive(Debug)]
-pub struct CallExpressionNode {}
+pub struct FunctionCallNode {
+    pub function_name:String,
+    pub params:Vec<BExpr>
+}
+
+
+
+
+
+#[derive(Debug)]
+pub struct ForLoop{
+    pub init_statement:BExpr,
+    pub condition:BExpr,
+    pub iterate:BExpr,
+}
 
 #[derive(Debug)]
 pub struct FunctionNode {
@@ -19,6 +32,31 @@ pub struct FunctionNode {
     pub params: Vec<Annotation>,
     pub return_type: String,
     pub code_block: CodeBlock,
+}
+
+#[derive(Debug)]
+pub struct Annotation {
+    pub identifier: String,
+    pub type_name: String,
+}
+
+#[derive(Debug)]
+pub enum Param {
+    Identifier(String),
+    Number(Number),
+}
+
+#[derive(Debug)]
+pub struct CodeBlock {
+    pub statements: Vec<Statement>,
+}
+
+
+#[derive(Debug)]
+pub struct IfCondition {
+    pub cond: BExpr,
+    pub then_block: CodeBlock,
+    pub else_block: Option<CodeBlock>,
 }
 
 #[derive(Debug)]
@@ -51,13 +89,24 @@ pub struct IdentifierNode {
 }
 
 
+
 #[derive(Debug)]
 pub enum Expr {
     BinaryOperator(BinaryOperatorNode),
     NumberLiteral(NumberLiteralNode),
     UnaryOperator(UnaryOperatorNode),
     Identifier(IdentifierNode),
-    CallExpression(CallExpressionNode),
+    CallExpression(FunctionCallNode),
 }
 
 
+pub type BExpr = Box<Expr>;
+
+#[derive(Debug)]
+pub enum Statement {
+    Expressions(BExpr),
+    VariableDeclare(VariableNode),
+    Return(BExpr),
+    If(IfCondition),
+    ForLoop(ForLoop),
+}

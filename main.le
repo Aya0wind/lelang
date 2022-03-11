@@ -1,33 +1,3 @@
-
-le main(a:i32)->i32{
-    if(a==10){
-        var b:i32=20;
-    }el{
-        var c:i64=30;
-    }
-    ret a+10;
-}
-
-le main1(ab:i32,sss:f64)->i64{
-    if(a==10){
-        var b:i32=20;
-    }el{
-        var c:i64=30;
-    }
-    ret a+10;
-}
-
-le main2(a:i32)->i32{
-    var b:i32=20;
-    b=a;
-    ret b+10+20;
-}
-
-le main3(a:i32)->i32{
-    if(a==10){
-        var b:i32=20;
-    }el{
-        var c:i64=30;
-    }
-    ret a+10;
+le main(a:i32,b:i32)->i32{
+    ret 1+10*5+(321*20+(2222+1));
 }

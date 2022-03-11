@@ -6,15 +6,16 @@ use inkwell::module::Module;
 use inkwell::passes::PassManagerBuilder;
 use inkwell::types::{AnyType, AnyTypeEnum, BasicMetadataTypeEnum};
 use inkwell::values::{AnyValue, AnyValueEnum, FunctionValue, GlobalValue};
+use nom::Parser;
 
-use crate::ast::{Ast, BinaryOperatorNode, CallExpressionNode, CodeBlock, Expr, IdentifierNode, NumberLiteralNode, Statement, UnaryOperatorNode, VariableNode};
-use crate::code_generator::{GlobalSymbolTable, VariableTable};
+use crate::ast::{Ast, BinaryOperatorNode, FunctionCallNode, CodeBlock, Expr, IdentifierNode, NumberLiteralNode, Statement, UnaryOperatorNode, VariableNode};
+use crate::code_generator::{Symbol, SymbolTable};
 use crate::error::CompileError;
 use crate::lexer::{LELexer, Number, Operator};
 
 #[derive(Default)]
 struct CompilerContext<'s> {
-    local_variables: VariableTable<'s>,
+    symbol_table: SymbolTable<'s>,
 }
 
 
@@ -22,7 +23,7 @@ pub struct ModuleCodeGenerator<'s> {
     pub context: &'s Context,
     pub builder: Builder<'s>,
     pub optimizer: PassManagerBuilder,
-    symbol_table: GlobalSymbolTable<'s>,
+    global_symbol_table: SymbolTable<'s>,
     compiler_context: CompilerContext<'s>,
 }
 
@@ -30,9 +31,8 @@ pub struct ModuleCodeGenerator<'s> {
 impl<'s> ModuleCodeGenerator<'s> {
     pub fn compile_module(&mut self, module: &Module<'s>, mut tokens: LELexer) -> Result<()> {
         let ast = Ast::from_tokens(tokens)?;
-        //self.generate(module, &ast)?;
-        // eprintln!("{:#?}", ast);
-        //module.print_to_file("out.ll").unwrap();
+        self.generate(module, &ast)?;
+        module.print_to_file("out.ll").unwrap();
         Ok(())
         // let i64_type = self.context.i64_type();
         // let fn_type = i64_type.fn_type(&[i64_type.into(), i64_type.into(), i64_type.into()], false);
@@ -83,13 +83,7 @@ impl<'s> ModuleCodeGenerator<'s> {
     }
     fn generate_identifier_expression_node(&self, value: &IdentifierNode) -> Result<AnyValueEnum> {
         let name = &value.name;
-        if let Some(&value) = self.compiler_context.local_variables.get(name) {
-            Ok(value)
-        } else if let Some(&value) = self.symbol_table.variables.get(name) {
-            Ok(value)
-        } else {
-            unreachable!()
-        }
+        self.get_variable(name)
     }
 
     fn generate_number_literal_node(&self, value: &NumberLiteralNode) -> Result<AnyValueEnum> {
@@ -111,29 +105,83 @@ impl<'s> ModuleCodeGenerator<'s> {
         self.generate_value(&value.value)
     }
 
-    fn generate_call_expression_node(&self, value: &CallExpressionNode) -> Result<AnyValueEnum> {
-        unimplemented!()
+    fn generate_call_expression_node(&self, value: &FunctionCallNode) -> Result<AnyValueEnum> {
+        let function = self.ge
+        self.builder.build_call(value.)
     }
 
 
     fn get_type(&self, type_name: &str) -> Result<AnyTypeEnum<'s>> {
-        Ok(*self
+        let function_symbol = match self
+            .compiler_context
             .symbol_table
-            .types
-            .get(type_name)
-            .ok_or_else(|| CompileError::UnknownType(type_name.into()))?)
+            .get(type_name) {
+            Some(s) => {s}
+            None => {
+                match self.global_symbol_table.get(type_name) {
+                    None => {return Err(CompileError::identifier_is_not_type(type_name.into()).into())}
+                    Some(s) => {s}
+                }
+            }
+        };
+        if let Symbol::Type(t) = function_symbol{
+            Ok(*t)
+        }else{
+            Err(CompileError::identifier_is_not_type(type_name.into()).into())
+        }
     }
+
+    fn get_variable(&self, variable_name: &str) -> Result<AnyValueEnum<'s>> {
+        let variable = match self
+            .compiler_context
+            .symbol_table
+            .get(variable_name) {
+            Some(s) => {s}
+            None => {
+                match self.global_symbol_table.get(variable_name) {
+                    None => {return Err(CompileError::identifier_is_not_variable(variable_name.into()).into())}
+                    Some(s) => {s}
+                }
+            }
+        };
+        if let Symbol::Variable(v) = variable{
+            Ok(*v)
+        }else{
+            Err(CompileError::IdentifierIsNotType { identifier: variable_name.into() }.into())
+        }
+    }
+
+    fn get_function(&self, function_name: &str) -> Result<FunctionValue<'s>> {
+        let variable = match self
+            .global_symbol_table
+            .get(variable_name) {
+            Some(s) => {s}
+            None => {
+                match self.global_symbol_table.get(variable_name) {
+                    None => {return Err(CompileError::identifier_is_not_variable(variable_name.into()).into())}
+                    Some(s) => {s}
+                }
+            }
+        };
+        if let Symbol::Variable(v) = variable{
+            Ok(*v)
+        }else{
+            Err(CompileError::IdentifierIsNotType { identifier: variable_name.into() }.into())
+        }
+    }
+
+
 
     fn generate_functions(&mut self, module: &Module<'s>, ast: &Ast) -> Result<()> {
         for (name, function_node) in ast.functions.iter() {
-            let variable_table = VariableTable::new();
+            let function_symbol_table = SymbolTable::new();
             let param_types = function_node.params.iter().map(|a| {
                 BasicMetadataTypeEnum::from(self.get_type(&a.type_name).unwrap().into_int_type())
             }).collect::<Vec<_>>();
             let return_type = self.get_type(&function_node.return_type)?.into_int_type();
             let fn_type = return_type.fn_type(&param_types, false);
             let function_value = module.add_function(name, fn_type, None);
-            self.compiler_context.local_variables = variable_table;
+            self.compiler_context.symbol_table = function_symbol_table;
             self.build_function_block(function_value, &function_node.code_block)?;
         }
         Ok(())

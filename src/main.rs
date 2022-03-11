@@ -8,8 +8,7 @@ use crate::code_generator::ModuleCodeGenerator;
 
 mod lexer;
 mod code_generator;
-mod jit_compiler;
-mod optimizer;
+mod jit;
 mod error;
 mod ast;
 

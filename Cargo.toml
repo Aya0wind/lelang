@@ -24,9 +24,9 @@ thiserror = "1.0.30"
 strum = "0.24.0"
 strum_macros = "0.24.0"
 anyhow = "1.0.55"
-lazy_static = "1.4.0"
 nom = "7.1.0"
 enum_dispatch = "0.3.8"
+clap = "3.1.1"
 
 [release]
 opt-level = 3

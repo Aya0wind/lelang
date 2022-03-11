@@ -68,10 +68,22 @@ pub enum SyntaxError {
 #[allow(unused)]
 #[derive(Debug, Error)]
 pub enum CompileError {
-    #[error("unknown_identifier")]
-    UnknownIdentifier(String),
-    #[error("unknown_type")]
-    UnknownType(String),
+    #[error("unknown identifier:{identifier}")]
+    UnknownIdentifier{
+        identifier:String,
+    },
+    #[error("expect a type name, but identifier {identifier} is not a type")]
+    IdentifierIsNotType{
+        identifier:String,
+    },
+    #[error("expect a type name, but identifier {identifier} is not a variable")]
+    IdentifierIsNotVariable{
+        identifier:String,
+    },
+    #[error("expect a type name, but identifier {identifier} is not a type")]
+    TypeMismatched{
+        identifier:String,
+    }
 }
 
 impl TokenParserError {
@@ -81,11 +93,13 @@ impl TokenParserError {
 }
 
 impl CompileError {
-    pub fn unknown_type(name: String) -> Self {
-        Self::UnknownType(name)
-    }
+    pub fn identifier_is_not_type(name: String) -> Self {
+        Self::IdentifierIsNotType{ identifier: name }}
     pub fn unknown_identifier(name: String) -> Self {
-        Self::UnknownIdentifier(name)
+        Self::UnknownIdentifier{ identifier: name }
+    }
+    pub fn identifier_is_not_variable(name: String) -> Self {
+        Self::IdentifierIsNotVariable{ identifier: name }
     }
 }
 

@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::ast::{parse_expression, parse_variable_annotation, VariableNode};
+use crate::ast::{parse_expression, parse_primary_expression, parse_variable_annotation, VariableNode};
 use crate::error::SyntaxError;
 use crate::error::TokenType;
 use crate::lexer::{LELexer, LEToken, Operator};

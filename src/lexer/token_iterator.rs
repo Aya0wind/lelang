@@ -27,6 +27,9 @@ pub enum LogosToken {
     #[token("le")]
     FunctionDeclare,
 
+    #[token("for")]
+    For,
+
     #[token("var")]
     VariableDeclare,
 
@@ -78,6 +81,18 @@ pub enum LogosToken {
     #[token("==")]
     Equal,
 
+    #[token(">")]
+    GreaterThan,
+
+    #[token("<")]
+    LessThan,
+
+    #[token(">=")]
+    GreaterOrEqualThan,
+
+    #[token("<=")]
+    LessOrEqualThan,
+
     #[token("->")]
     ReturnTypeAllow,
 
@@ -111,6 +126,8 @@ pub enum KeyWord {
     VariableDeclare,
 
     Return,
+
+    For,
 }
 
 #[derive(Debug, PartialEq, Display, Clone)]
@@ -126,6 +143,14 @@ pub enum Operator {
     Assign,
 
     Equal,
+
+    GreaterThan,
+
+    LessThan,
+
+    GreaterOrEqualThan,
+
+    LessOrEqualThan,
 }
 
 #[derive(Debug, PartialEq, Display, Clone)]
@@ -178,6 +203,7 @@ impl From<LogosToken> for LEToken {
         match logos_token {
             LogosToken::If => { Self::KeyWord(KeyWord::If) }
             LogosToken::Else => { Self::KeyWord(KeyWord::Else) }
+            LogosToken::For =>{Self::KeyWord(KeyWord::For)}
             LogosToken::FunctionDeclare => { Self::KeyWord(KeyWord::FunctionDeclare) }
             LogosToken::VariableDeclare => { Self::KeyWord(KeyWord::VariableDeclare) }
             LogosToken::Return => { Self::KeyWord(KeyWord::Return) }
@@ -201,6 +227,10 @@ impl From<LogosToken> for LEToken {
             LogosToken::NumberLiteral(num) => { Self::NumberLiteral(num) }
             LogosToken::Identifier(identifier) => { Self::Identifier(identifier) }
             LogosToken::Error => { Self::Error("unknown character".into()) }
+            LogosToken::GreaterThan => {Self::Operator(Operator::GreaterThan) }
+            LogosToken::LessThan => {Self::Operator(Operator::LessThan) }
+            LogosToken::GreaterOrEqualThan => {Self::Operator(Operator::GreaterOrEqualThan) }
+            LogosToken::LessOrEqualThan => {Self::Operator(Operator::LessOrEqualThan) }
             _ => { unreachable!("unknown character handling not implement yet") }
         }
     }
