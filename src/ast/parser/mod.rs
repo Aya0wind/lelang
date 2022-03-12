@@ -18,21 +18,10 @@ pub use while_loop::*;
 
 use std::collections::HashMap;
 use anyhow::Result;
-use lazy_static::lazy_static;
+
 use crate::ast::{BExpr, FunctionNode};
 use crate::lexer::Operator;
 
-
-lazy_static! {
-    pub static ref BINOP_PRECEDENCE:HashMap<&'static str,usize> = HashMap::from([
-        ("+",20),
-        ("-",20),
-        ("*",40),
-        ("/",40),
-        (">",10),
-        ("<",10),
-    ]);
-}
 
 pub fn get_operator_precedence(op:&Operator)->usize{
     match op {

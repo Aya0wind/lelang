@@ -46,13 +46,13 @@ impl Display for TokenType {
 #[allow(unused)]
 #[derive(Debug, Error)]
 pub enum SyntaxError {
-    #[error("[line {line}]Unexpected token: '{found}', expect: '{expect}'")]
+    #[error("[line {line}]Unexpected token: `{found}`, expect: `{expect}`")]
     UnexpectToken {
         expect: TokenType,
         found: LEToken,
         line: usize,
     },
-    #[error("[line {line}] Missing token:\'{expect}\'")]
+    #[error("[line {line}] Missing token:`{expect}`")]
     MissingToken {
         expect: TokenType,
         line: usize,
@@ -72,15 +72,19 @@ pub enum CompileError {
     UnknownIdentifier{
         identifier:String,
     },
-    #[error("expect a type name, but identifier {identifier} is not a type")]
+    #[error("expect a type name, but identifier `{identifier}` is not a type")]
     IdentifierIsNotType{
         identifier:String,
     },
-    #[error("expect a type name, but identifier {identifier} is not a variable")]
+    #[error("expect a variable, but identifier `{identifier}` is not a variable")]
     IdentifierIsNotVariable{
         identifier:String,
     },
-    #[error("expect a type name, but identifier {identifier} is not a type")]
+    #[error("expect a function name, but identifier `{identifier}` is not a variable")]
+    IdentifierIsNotFunction{
+        identifier:String,
+    },
+    #[error("expect a type name, but identifier `{identifier}` is not a type")]
     TypeMismatched{
         identifier:String,
     }
@@ -100,6 +104,9 @@ impl CompileError {
     }
     pub fn identifier_is_not_variable(name: String) -> Self {
         Self::IdentifierIsNotVariable{ identifier: name }
+    }
+    pub fn identifier_is_not_function(name: String) -> Self {
+        Self::IdentifierIsNotFunction{ identifier: name }
     }
 }
 
