@@ -1,36 +1,32 @@
 use anyhow::Result;
-use inkwell::AddressSpace;
+use inkwell::{AddressSpace, IntPredicate, OptimizationLevel};
+use inkwell::basic_block::BasicBlock;
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
-use inkwell::passes::PassManagerBuilder;
-use inkwell::types::{AnyTypeEnum, BasicMetadataTypeEnum, BasicType, BasicTypeEnum};
-use inkwell::values::{BasicMetadataValueEnum, BasicValue, BasicValueEnum, FunctionValue, GlobalValue, IntValue};
+use inkwell::object_file::Symbol;
+use inkwell::passes::{PassManager, PassManagerBuilder};
+use inkwell::types::{AnyTypeEnum, BasicMetadataTypeEnum, BasicType, BasicTypeEnum, IntType};
+use inkwell::values::{BasicMetadataValueEnum, BasicValue, BasicValueEnum, FunctionValue, GlobalValue, IntValue, PointerValue};
 
-
-use crate::ast::{Ast, BinaryOperatorNode, CodeBlock, Expr, FunctionCallNode, IdentifierNode, NumberLiteralNode, Statement, VariableNode};
-use crate::code_generator::{Symbol, SymbolTable};
+use crate::ast::{Ast, BinaryOperatorNode, CodeBlock, Expr, FunctionCallNode, IdentifierNode, IfStatement, NumberLiteralNode, Statement, VariableNode};
+use crate::code_generator::SymbolTable;
 use crate::error::CompileError;
 use crate::lexer::{LELexer, Number, Operator};
-
-#[derive(Default)]
-struct CompilerContext<'s> {
-    symbol_table: SymbolTable<'s>,
-}
-
 
 pub struct ModuleCodeGenerator<'s> {
     pub context: &'s Context,
     pub builder: Builder<'s>,
     pub optimizer: PassManagerBuilder,
-    global_symbol_table: SymbolTable<'s>,
-    compiler_context: CompilerContext<'s>,
+    global_symbols: SymbolTable<'s>,
+    local_symbols: SymbolTable<'s>,
 }
 
 
 impl<'s> ModuleCodeGenerator<'s> {
     pub fn compile_module(&mut self, module: &Module<'s>, mut tokens: LELexer) -> Result<()> {
         let ast = Ast::from_tokens(tokens)?;
+        eprintln!("{:?}",ast);
         self.generate(module, &ast)?;
         module.print_to_file("out.ll").unwrap();
         Ok(())
@@ -53,7 +49,7 @@ impl<'s> ModuleCodeGenerator<'s> {
         // let main_fn = self.module.add_function("main", main_fn_type, None);
         // let basic_block = self.context.append_basic_block(main_fn, "entry");
         // self.builder.position_at_end(basic_block);
-        // self.builder.build_return(Some(&i32_type.const_zero()));
+        // self.builder.build_return(Some(&i32_type.const_zero());
     }
 
 
@@ -70,8 +66,6 @@ impl<'s> ModuleCodeGenerator<'s> {
     // fn upcast_number_value(&self,lhs:&BasicValueEnum,rhs:&BasicValueEnum)->BasicTypeEnum{}
 
 
-
-
     fn generate_binary_operator_node(&self, value: &BinaryOperatorNode) -> Result<BasicValueEnum> {
         let lhs = &value.left;
         let rhs = &value.right;
@@ -80,35 +74,46 @@ impl<'s> ModuleCodeGenerator<'s> {
             Operator::Plus => {
                 let left = self.generate_value(lhs)?.into_int_value();
                 let right = self.generate_value(rhs)?.into_int_value();
-                Ok(self.builder.build_int_add::<IntValue>(left, right, "addtemp").as_basic_value_enum())
+                Ok(self.builder.build_int_add::<IntValue>(left, right, "").as_basic_value_enum())
             }
             Operator::Sub => {
                 let left = self.generate_value(lhs)?.into_int_value();
                 let right = self.generate_value(rhs)?.into_int_value();
-                Ok(self.builder.build_int_sub::<IntValue>(left, right, "addtemp").as_basic_value_enum())
+                Ok(self.builder.build_int_sub::<IntValue>(left, right, "").as_basic_value_enum())
             }
             Operator::Mul => {
                 let left = self.generate_value(lhs)?.into_int_value();
                 let right = self.generate_value(rhs)?.into_int_value();
-                Ok(self.builder.build_int_mul::<IntValue>(left, right, "addtemp").as_basic_value_enum())
+                Ok(self.builder.build_int_mul::<IntValue>(left, right, "").as_basic_value_enum())
             }
             Operator::Div => {
                 let left = self.generate_value(lhs)?.into_int_value();
                 let right = self.generate_value(rhs)?.into_int_value();
-                Ok(self.builder.build_int_signed_div::<IntValue>(left, right, "addtemp").as_basic_value_enum())
+                Ok(self.builder.build_int_signed_div::<IntValue>(left, right, "").as_basic_value_enum())
             }
-            // Operator::Assign => {}
+            Operator::Assign => {
+                if let Expr::Identifier(identifier) = lhs.as_ref(){
+                    let left_value = self.get_variable(&identifier.name)?;
+                    let value = self.generate_value(lhs.as_ref())?;
+                    self.builder.build_store(left_value,value);
+                    Ok(value)
+                }else{
+                    Err(CompileError::can_only_assign_variable(format!("{:?}",lhs)).into())
+                }
+            }
             Operator::Equal => {
                 let left = self.generate_value(lhs)?.into_int_value();
                 let right = self.generate_value(rhs)?.into_int_value();
-                Ok(self.builder.build_int_add::<IntValue>(left, right, "addtemp").as_basic_value_enum())
+                Ok(self.builder.build_int_compare(IntPredicate::EQ, left, right, "").as_basic_value_enum())
             }
             _ => { unimplemented!() }
         }
     }
+
     fn generate_identifier_expression_node(&self, value: &IdentifierNode) -> Result<BasicValueEnum> {
         let name = &value.name;
-        self.get_variable(name)
+        let pointer_value = self.get_variable(name)?;
+        Ok(self.builder.build_load(pointer_value,""))
     }
 
     fn generate_number_literal_node(&self, value: &NumberLiteralNode) -> Result<BasicValueEnum> {
@@ -138,96 +143,131 @@ impl<'s> ModuleCodeGenerator<'s> {
 
 
     fn get_type(&self, type_name: &str) -> Result<BasicTypeEnum<'s>> {
-        let function_symbol = match self
-            .compiler_context
-            .symbol_table
+        match self
+            .local_symbols
+            .types
             .get(type_name) {
-            Some(s) => { s }
+            Some(s) => { Ok(*s) }
             None => {
-                match self.global_symbol_table.get(type_name) {
-                    None => { return Err(CompileError::identifier_is_not_type(type_name.into()).into()); }
-                    Some(s) => { s }
+                match self.global_symbols.types.get(type_name) {
+                    None => { Err(CompileError::identifier_is_not_type(type_name.into()).into()) }
+                    Some(s) => { Ok(*s) }
                 }
             }
-        };
-        if let Symbol::Type(t) = function_symbol {
-            Ok(*t)
-        } else {
-            Err(CompileError::identifier_is_not_type(type_name.into()).into())
         }
     }
 
-    fn get_variable(&self, variable_name: &str) -> Result<BasicValueEnum<'s>> {
-        let variable = match self
-            .compiler_context
-            .symbol_table
+    fn get_variable(&self, variable_name: &str) -> Result<PointerValue<'s>> {
+        match self
+            .local_symbols
+            .variables
             .get(variable_name) {
-            Some(s) => { s }
+            Some(s) => { Ok(*s) }
             None => {
-                match self.global_symbol_table.get(variable_name) {
-                    None => { return Err(CompileError::identifier_is_not_variable(variable_name.into()).into()); }
-                    Some(s) => { s }
+                match self.global_symbols.variables.get(variable_name) {
+                    None => { Err(CompileError::identifier_is_not_variable(variable_name.into()).into()) }
+                    Some(s) => { Ok(*s) }
                 }
             }
-        };
-        if let Symbol::Variable(v) = variable {
-            Ok(*v)
-        } else {
-            Err(CompileError::IdentifierIsNotType { identifier: variable_name.into() }.into())
         }
     }
 
     fn get_function(&self, function_name: &str) -> Result<FunctionValue<'s>> {
-        let variable = match self
-            .global_symbol_table
+        match self
+            .local_symbols
+            .functions
             .get(function_name) {
-            Some(s) => { s }
+            Some(s) => { Ok(*s) }
             None => {
-                return Err(CompileError::unknown_identifier(function_name.into()).into());
+                match self.global_symbols.functions.get(function_name) {
+                    None => { Err(CompileError::identifier_is_not_variable(function_name.into()).into()) }
+                    Some(s) => { Ok(*s) }
+                }
             }
-        };
-        if let Symbol::Function(v) = variable {
-            Ok(*v)
-        } else {
-            Err(CompileError::identifier_is_not_function(function_name.into()).into())
         }
     }
 
 
     fn generate_functions(&mut self, module: &Module<'s>, ast: &Ast) -> Result<()> {
+        let pass_manager = PassManager::create(module);
+        self.optimizer.populate_function_pass_manager(&pass_manager);
         for (name, function_node) in ast.functions.iter() {
-            let mut function_symbol_table = SymbolTable::new();
+            self.local_symbols = SymbolTable::default();
             let param_types = function_node.params.iter().map(|a| {
                 BasicMetadataTypeEnum::from(self.get_type(&a.type_name).unwrap().into_int_type())
             }).collect::<Vec<_>>();
             let return_type = self.get_type(&function_node.return_type)?;
             let fn_type = return_type.fn_type(&param_types, false);
             let function_value = module.add_function(name, fn_type, None);
-            for (index,param) in function_value.get_param_iter().enumerate(){
-                function_symbol_table.insert(function_node.params[index].identifier.clone(),Symbol::Variable(param));
+            let entry = self.context.append_basic_block(function_value,"");
+            self.builder.position_at_end(entry);
+            for (index, param) in function_value.get_param_iter().enumerate() {
+                let pointer_value = self.builder.build_alloca(param.get_type(), "");
+                self.builder.build_store(pointer_value,param);
+                self.local_symbols.variables.insert(function_node.params[index].identifier.clone(), pointer_value);
             }
-            self.compiler_context.symbol_table = function_symbol_table;
-            self.build_function_block(function_value, &function_node.code_block)?;
+            self.generate_local_variables(&function_node.code_block.variables)?;
+            self.generate_code_block_without_variables(&function_node.code_block)?;
+            pass_manager.run_on(&function_value);
         }
         Ok(())
     }
 
-    fn build_function_block(&self, function_value: FunctionValue, code_block: &CodeBlock) -> Result<()> {
-        let entry_block = self.context.append_basic_block(function_value, "entry");
-        self.builder.position_at_end(entry_block);
-        match &code_block.statements[0] {
-            Statement::Expressions(expr) => {
-                let value = self.generate_value(expr)?.as_instruction_value().unwrap();
-                self.builder.insert_instruction(&value,None);
-            }
-            Statement::VariableDeclare(_) => {}
-            Statement::Return(expr) => {
-                let value = self.generate_value(expr)?;
-                self.builder.build_return(Some(&value));
-            }
-            Statement::If(_) => {}
-            _ => { unimplemented!() }
+    fn generate_local_variables(&mut self, variables: &[VariableNode]) -> Result<()> {
+        for variable in variables {
+            let pointer_value = self.builder.build_alloca(self.get_type(&variable.type_name)?, "");
+            self.builder.build_store(pointer_value,self.generate_value(variable.value.as_ref())?);
+            self.local_symbols.variables.insert(variable.name.clone(), pointer_value);
         }
+        Ok(())
+    }
+
+
+    fn generate_code_block_without_variables(&self,code_block:&CodeBlock)->Result<bool>{
+        let mut is_return_block = false;
+        for statement in code_block.expression.iter() {
+            match statement {
+                Statement::Expressions(expr) => {
+                    self.generate_value(expr)?;
+                }
+                Statement::Return(expr) => {
+                    let value = self.generate_value(expr)?;
+                    self.builder.build_return(Some(&value));
+                    is_return_block=true;
+                }
+                Statement::If(if_expr) => {
+                    self.generate_if_statement(if_expr)?;
+                    is_return_block=false;
+                }
+                _ => { unimplemented!()}
+            }
+        }
+        Ok(is_return_block)
+    }
+
+
+
+    fn generate_if_statement(&self, statement: &IfStatement) -> Result<()> {
+        let cond_value = self.generate_value(statement.cond.as_ref())?;
+        let then_block = self.context.insert_basic_block_after(self.builder.get_insert_block().unwrap(),"");
+        let else_block = self.context.insert_basic_block_after(then_block,"");
+        let merge_block = self.context.insert_basic_block_after(else_block,"");
+        let cond_boolean = self.builder.build_int_cast(cond_value.into_int_value(), self.context.bool_type(), "");
+        self.builder.build_conditional_branch(cond_boolean,then_block,else_block);
+        self.builder.position_at_end(then_block);
+        let mut is_return_block = self.generate_code_block_without_variables(&statement.then_block)?;
+        if !is_return_block{
+            self.builder.build_unconditional_branch(merge_block);
+        }
+        is_return_block=false;
+        self.builder.position_at_end(else_block);
+        if let Some(el) = &statement.else_block{
+            is_return_block = self.generate_code_block_without_variables(el)?;
+        }
+        if !is_return_block{
+            self.builder.build_unconditional_branch(merge_block);
+        }
+        self.builder.position_at_end(merge_block);
         Ok(())
     }
 
@@ -250,24 +290,26 @@ impl<'s> ModuleCodeGenerator<'s> {
         Ok(module.add_global(self.get_type(type_name)?.into_int_type(), Some(AddressSpace::Global), name))
     }
 
+
     pub fn create(context: &'s Context) -> Self {
         let mut s = Self {
             context,
             builder: context.create_builder(),
             optimizer: PassManagerBuilder::create(),
-            global_symbol_table: SymbolTable::default(),
-            compiler_context: CompilerContext::default(),
+            global_symbols: SymbolTable::default(),
+            local_symbols: SymbolTable::default(),
         };
-        s.global_symbol_table.insert("i8".into(), Symbol::Type(context.i8_type().as_basic_type_enum()));
-        s.global_symbol_table.insert("i16".into(), Symbol::Type(context.i16_type().as_basic_type_enum()));
-        s.global_symbol_table.insert("i32".into(), Symbol::Type(context.i32_type().as_basic_type_enum()));
-        s.global_symbol_table.insert("i64".into(), Symbol::Type(context.i64_type().as_basic_type_enum()));
-        s.global_symbol_table.insert("u8".into(), Symbol::Type(context.i8_type().as_basic_type_enum()));
-        s.global_symbol_table.insert("u16".into(), Symbol::Type(context.i16_type().as_basic_type_enum()));
-        s.global_symbol_table.insert("u32".into(), Symbol::Type(context.i32_type().as_basic_type_enum()));
-        s.global_symbol_table.insert("u64".into(), Symbol::Type(context.i64_type().as_basic_type_enum()));
-        s.global_symbol_table.insert("f32".into(), Symbol::Type(context.f32_type().as_basic_type_enum()));
-        s.global_symbol_table.insert("f64".into(), Symbol::Type(context.f64_type().as_basic_type_enum()));
+        s.optimizer.set_optimization_level(OptimizationLevel::None);
+        s.global_symbols.types.insert("i8".into(), context.i8_type().as_basic_type_enum());
+        s.global_symbols.types.insert("i16".into(), context.i16_type().as_basic_type_enum());
+        s.global_symbols.types.insert("i32".into(), context.i32_type().as_basic_type_enum());
+        s.global_symbols.types.insert("i64".into(), context.i64_type().as_basic_type_enum());
+        s.global_symbols.types.insert("u8".into(), context.i8_type().as_basic_type_enum());
+        s.global_symbols.types.insert("u16".into(), context.i16_type().as_basic_type_enum());
+        s.global_symbols.types.insert("u32".into(), context.i32_type().as_basic_type_enum());
+        s.global_symbols.types.insert("u64".into(), context.i64_type().as_basic_type_enum());
+        s.global_symbols.types.insert("f32".into(), context.f32_type().as_basic_type_enum());
+        s.global_symbols.types.insert("f64".into(), context.f64_type().as_basic_type_enum());
         s
     }
 }

@@ -1,10 +1,10 @@
 
 use anyhow::Result;
 
-use crate::ast::{BExpr, BinaryOperatorNode, CodeBlock, Expr, FunctionCallNode, get_operator_precedence, IdentifierNode, NumberLiteralNode, Param, parse_statement, parse_variable_annotation, VParseResult};
+use crate::ast::{BExpr, BinaryOperatorNode, CodeBlock, Expr, FunctionCallNode, get_operator_precedence, IdentifierNode, NumberLiteralNode, Param, parse_statement, parse_variable_annotation, parse_variable_declaration, VParseResult};
 use crate::ast::Expr::{BinaryOperator, Identifier, NumberLiteral};
 use crate::error::{SyntaxError, TokenParserError, TokenType};
-use crate::lexer::{LELexer, LEToken, Operator};
+use crate::lexer::{KeyWord, LELexer, LEToken, Operator};
 
 pub fn parse_call_expression(lexer: &mut LELexer, function_name: String) -> Result<BExpr> {
     lexer.next_result()?;
@@ -96,12 +96,15 @@ pub fn parse_expression(lexer: &mut LELexer) -> VParseResult {
 
 pub fn parse_code_block(lexer: &mut LELexer) -> Result<CodeBlock> {
     lexer.consume_left_big_brace()?;
-    let mut block = CodeBlock { statements: vec![] };
+    let mut block = CodeBlock { expression: vec![],variables:vec![] };
     while let Ok(current)=lexer.current_result(){
         if current==&LEToken::RightBigBrace{
             break;
+        }else if current==&LEToken::KeyWord(KeyWord::VariableDeclare){
+            block.variables.push(parse_variable_declaration(lexer)?);
+        }else{
+            block.expression.push(parse_statement(lexer)?);
         }
-        block.statements.push(parse_statement(lexer)?);
     }
     lexer.consume_right_big_brace()?;
     Ok(block)

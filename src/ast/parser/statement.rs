@@ -11,7 +11,6 @@ pub fn parse_statement(lexer: &mut LELexer) -> Result<Statement> {
     let res: Result<Statement, anyhow::Error> = match next_token {
         LEToken::KeyWord(keyword) => {
             match keyword {
-                KeyWord::VariableDeclare => Ok(Statement::VariableDeclare(parse_variable_declaration(lexer)?)),
                 KeyWord::Return => {
                     lexer.consume_keyword()?;
                     Ok(Statement::Return(parse_expression(lexer)?))

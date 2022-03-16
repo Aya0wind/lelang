@@ -87,7 +87,12 @@ pub enum CompileError {
     #[error("expect a type name, but identifier `{identifier}` is not a type")]
     TypeMismatched{
         identifier:String,
+    },
+    #[error("expect a variable, but identifier `{identifier}` is not a variable")]
+    CanOnlyAssignVariable {
+        identifier:String,
     }
+
 }
 
 impl TokenParserError {
@@ -99,6 +104,8 @@ impl TokenParserError {
 impl CompileError {
     pub fn identifier_is_not_type(name: String) -> Self {
         Self::IdentifierIsNotType{ identifier: name }}
+    pub fn can_only_assign_variable(name: String) -> Self {
+        Self::CanOnlyAssignVariable { identifier: name }}
     pub fn unknown_identifier(name: String) -> Self {
         Self::UnknownIdentifier{ identifier: name }
     }

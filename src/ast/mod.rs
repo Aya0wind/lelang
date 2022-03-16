@@ -36,14 +36,11 @@ impl Ast {
                         if &KeyWord::FunctionDeclare == keyword {
                             let function = parse_function(&mut tokens)?;
                             self.functions.insert(function.name.clone(), function);
-                        } else if &KeyWord::VariableDeclare == keyword {
-                            let variable = parse_statement(&mut tokens)?;
-                            if let Statement::VariableDeclare(variable) = variable {
-                                self.globals.insert(variable.name.clone(), variable);
-                            }
                         } else {
                             return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, tokens.current_result()?.clone(), tokens.line()).into());
                         }
+                    } else {
+                        return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, tokens.current_result()?.clone(), tokens.line()).into());
                     }
                 }
             }

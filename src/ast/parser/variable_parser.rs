@@ -11,6 +11,7 @@ pub fn parse_variable_declaration(lexer: &mut LELexer) -> Result<VariableNode> {
     let equal_op = lexer.consume_operator()?;
     if Operator::Assign == equal_op {
         let initial_value = parse_expression(lexer)?;
+        lexer.consume_semicolon()?;
         Ok(VariableNode { type_name: anno.type_name, name: anno.identifier, value: initial_value })
     } else {
         Err(SyntaxError::unexpect_token(TokenType::Operator, LEToken::Operator(equal_op), lexer.line()).into())

@@ -21,9 +21,10 @@ pub struct FunctionCallNode {
 
 #[derive(Debug)]
 pub struct ForLoop{
-    pub init_statement:BExpr,
+    pub init_statement:VariableNode,
     pub condition:BExpr,
-    pub iterate:BExpr,
+    pub iterate:Box<Statement>,
+    pub code_block:CodeBlock,
 }
 
 #[derive(Debug)]
@@ -48,12 +49,13 @@ pub enum Param {
 
 #[derive(Debug)]
 pub struct CodeBlock {
-    pub statements: Vec<Statement>,
+    pub expression: Vec<Statement>,
+    pub variables:Vec<VariableNode>
 }
 
 
 #[derive(Debug)]
-pub struct IfCondition {
+pub struct IfStatement {
     pub cond: BExpr,
     pub then_block: CodeBlock,
     pub else_block: Option<CodeBlock>,
@@ -105,8 +107,7 @@ pub type BExpr = Box<Expr>;
 #[derive(Debug)]
 pub enum Statement {
     Expressions(BExpr),
-    VariableDeclare(VariableNode),
     Return(BExpr),
-    If(IfCondition),
+    If(IfStatement),
     ForLoop(ForLoop),
 }

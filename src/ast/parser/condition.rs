@@ -1,10 +1,10 @@
 use anyhow::Result;
 
-use crate::ast::{BExpr, CodeBlock, IfCondition, parse_code_block, parse_little_brace_expression};
+use crate::ast::{BExpr, CodeBlock, IfStatement, parse_code_block, parse_little_brace_expression};
 use crate::lexer::{KeyWord, LELexer, LEToken};
 
 
-pub fn parse_if_condition(lexer: &mut LELexer) -> Result<IfCondition> {
+pub fn parse_if_condition(lexer: &mut LELexer) -> Result<IfStatement> {
     lexer.next_result()?;
     let cond_value = parse_little_brace_expression(lexer)?;
     let then_block = parse_code_block(lexer)?;
@@ -12,13 +12,13 @@ pub fn parse_if_condition(lexer: &mut LELexer) -> Result<IfCondition> {
     if let &LEToken::KeyWord(KeyWord::Else) = current {
         lexer.next_result()?;
         let else_block = parse_code_block(lexer)?;
-        Ok(IfCondition {
+        Ok(IfStatement {
             cond: cond_value,
             then_block,
             else_block: Some(else_block),
         })
     } else {
-        Ok(IfCondition {
+        Ok(IfStatement {
             cond: cond_value,
             then_block,
             else_block: None,
