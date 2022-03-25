@@ -1,6 +1,6 @@
 # lelang
-# leang使用Rust与LLVM(inkwell safe binding library)实现
-+ 基本的函数
+leang使用Rust与LLVM(inkwell safe binding library)实现，有：
++ 基本的函数定义，调用，声明外部函数语法
 + 外部链接
 + 变量定义
 + 静态，编译期检查类型
