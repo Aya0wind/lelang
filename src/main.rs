@@ -1,13 +1,17 @@
+#![allow(unused)]
+
 use std::fs::File;
 use std::io::Read;
 
 use anyhow::Result;
 use inkwell::context::Context;
+use inkwell::OptimizationLevel;
 
-use crate::code_generator::ModuleCodeGenerator;
+use crate::code_gen::ModuleCodeGenerator;
+use crate::jit::JITCompiler;
 
 mod lexer;
-mod code_generator;
+mod code_gen;
 mod jit;
 mod error;
 mod ast;
@@ -20,7 +24,8 @@ pub fn compile_with_error_handling(code: &str) -> Result<()> {
     let context = Context::create();
     let mut code_generator = ModuleCodeGenerator::create(&context);
     let module = context.create_module("main");
-    code_generator.compile_module(&module, tokens)?;
+    code_generator.compile_module(&module, tokens, OptimizationLevel::None)?;
+    module.print_to_file("out.ll").unwrap();
     Ok(())
 }
 

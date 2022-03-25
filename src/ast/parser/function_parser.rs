@@ -1,27 +1,25 @@
 use anyhow::Result;
 
-use crate::ast::{Annotation, FParseResult, FunctionNode, parse_code_block, Statement};
+use crate::ast::{FunctionDefinition, ExternFunction, parse_code_block};
+use crate::ast::parser::common::FParseResult;
 use crate::error::{SyntaxError, TokenType};
 use crate::lexer::{LELexer, LEToken, Number};
 
-
-pub fn parse_variable_annotation(lexer: &mut LELexer) -> Result<Annotation> {
+pub fn parse_variable_annotation(lexer: &mut LELexer) -> Result<(String, String)> {
     let identifier = lexer.consume_identifier()?;
     lexer.consume_colon()?;
     let type_name = lexer.consume_identifier()?;
-    Ok(Annotation { identifier, type_name })
+    Ok((identifier, type_name))
 }
 
-// pub fn parse_param_list(lexer: &mut LELexer) -> Result<Vec<Annotation>> {}
 
-
-pub fn parse_function_params(lexer: &mut LELexer) -> Result<Vec<Annotation>> {
-    lexer.consume_left_little_brace()?;
+pub fn parse_function_params(lexer: &mut LELexer) -> Result<Vec<(String, String)>> {
+    lexer.consume_left_par()?;
     let mut params = vec![];
     loop {
         let current_token = lexer.own_current()?;
         match current_token {
-            LEToken::RightLittleBrace => {
+            LEToken::RightPar => {
                 lexer.next_result()?;
                 return Ok(params);
             }
@@ -32,9 +30,55 @@ pub fn parse_function_params(lexer: &mut LELexer) -> Result<Vec<Annotation>> {
                 lexer.next_result()?;
             }
             _ => {
-                return Err(SyntaxError::unexpect_token(TokenType::RightLittleBrace, current_token, lexer.line()).into());
+                return Err(SyntaxError::unexpect_token(TokenType::RightPar, current_token, lexer.line()).into());
             }
         }
+    }
+}
+
+pub fn parse_type_list(lexer: &mut LELexer) -> Result<Vec<String>> {
+    lexer.consume_left_par()?;
+    let mut params = vec![];
+    loop {
+        let current_token = lexer.own_current()?;
+        match current_token {
+            LEToken::RightPar => {
+                lexer.next_result()?;
+                return Ok(params);
+            }
+            LEToken::Identifier(ident) => {
+                params.push(ident);
+                lexer.next_result()?;
+            }
+            LEToken::Comma => {
+                lexer.next_result()?;
+            }
+            _ => {
+                return Err(SyntaxError::unexpect_token(TokenType::RightPar, current_token, lexer.line()).into());
+            }
+        }
+    }
+}
+
+
+pub fn parse_function_prototype(lexer: &mut LELexer) -> Result<ExternFunction> {
+    lexer.consume_keyword()?;
+    let name = lexer.consume_identifier()?;
+    let param_types = parse_type_list(lexer)?;
+    let return_type = parse_function_return_type(lexer)?;
+    Ok(ExternFunction {
+        name,
+        param_types,
+        return_type,
+    })
+}
+
+pub fn parse_function_return_type(lexer: &mut LELexer) -> Result<Option<String>> {
+    if let LEToken::ReturnTypeAllow = lexer.current_result()? {
+        lexer.next_result()?;
+        Ok(Some(lexer.consume_identifier()?))
+    } else {
+        Ok(None)
     }
 }
 
@@ -43,13 +87,21 @@ pub fn parse_function(lexer: &mut LELexer) -> FParseResult {
     lexer.consume_keyword()?;
     let name = lexer.consume_identifier()?;
     let params = parse_function_params(lexer)?;
-    lexer.consume_return_type_allow()?;
-    let return_type = lexer.consume_identifier()?;
+    let return_type = parse_function_return_type(lexer)?;
     let code_block = parse_code_block(lexer)?;
-    let function = FunctionNode {
-        name,
-        params,
-        return_type,
+    let mut param_names = Vec::with_capacity(params.len());
+    let mut param_types = Vec::with_capacity(params.len());
+    params.into_iter().for_each(|anno| {
+        param_types.push(anno.1);
+        param_names.push(anno.0);
+    });
+    let function = FunctionDefinition {
+        prototype: ExternFunction {
+            name,
+            param_types,
+            return_type,
+        },
+        param_names,
         code_block,
     };
     Ok(function)

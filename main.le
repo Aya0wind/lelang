@@ -1,16 +1,21 @@
-le main(a:i32,b:i32)->i32{
-    var c:i32 = 100+a;
-    if(c==100){
-        a=10;
-        if(b==2000){
-            c=100;
-            ret a;
-        }
+decl le print_num(i32);
+
+le func23(a:i32,b:i32)->i32{
+    if(a==1000){
+       ret a+b+(b*10+2);
     }el{
-        a=20;
+       ret a+b+(b*20);
     }
-    for(var e:i32 = 100;e>10;e=e-1;){
-        a=a+1;
-    }
-    ret a+1*b+(b*1111+2);
+
 }
+
+le main()->i32{
+    var f:i32 = func23(10,20);
+    print_num(f);
+    for(var i:i32=10;i<100;i=i+1;){
+        print_num(9999);
+    }
+    ret f;
+}
+
+

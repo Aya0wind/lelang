@@ -1,33 +1,43 @@
 use anyhow::Result;
-use crate::ast::{BExpr, ForLoop, parse_primary_expression, parse_little_brace_expression, parse_variable_declaration, Statement, VariableNode, parse_expression, parse_identifier_expression};
+
+use crate::ast::{BExpr, ForLoop, parse_expression, parse_identifier_expression, parse_little_par_expression, parse_primary_expression, parse_variable_declaration, parse_while_loop, Statement, VariableNode};
 use crate::ast::parser::condition::parse_if_condition;
 use crate::ast::parser::for_loop::parse_for_loop;
 use crate::error::{SyntaxError, TokenType};
 use crate::lexer::{KeyWord, LELexer, LEToken};
 
-
 pub fn parse_statement(lexer: &mut LELexer) -> Result<Statement> {
     let next_token = lexer.current_result()?;
-    let res: Result<Statement, anyhow::Error> = match next_token {
+    match next_token {
         LEToken::KeyWord(keyword) => {
             match keyword {
                 KeyWord::Return => {
                     lexer.consume_keyword()?;
-                    Ok(Statement::Return(parse_expression(lexer)?))
+                    let return_expression = parse_expression(lexer)?;
+                    lexer.consume_semicolon()?;
+                    Ok(Statement::Return(return_expression))
+                }
+                KeyWord::VariableDeclare => {
+                    let variable_node = parse_variable_declaration(lexer)?;
+                    lexer.consume_semicolon()?;
+                    Ok(Statement::VariableDefinition(variable_node))
                 }
                 KeyWord::If => Ok(Statement::If(parse_if_condition(lexer)?)),
                 KeyWord::For => Ok(Statement::ForLoop(parse_for_loop(lexer)?)),
+                KeyWord::While => Ok(Statement::WhileLoop(parse_while_loop(lexer)?)),
                 _ => { Err(SyntaxError::unexpect_token(TokenType::Identifier, lexer.current_result()?.clone(), lexer.line()).into()) }
             }
         }
-        _ => { Ok(Statement::Expressions(parse_expression(lexer)?)) }
-    };
-    let statement = res?;
-    match statement {
-        Statement::If(_) | Statement::ForLoop(_) => {}
-        _ => { lexer.consume_semicolon()?; }
+        LEToken::Semicolon => {
+            lexer.consume_semicolon()?;
+            Ok(Statement::Void)
+        }
+        _ => {
+            let expr = parse_expression(lexer)?;
+            lexer.consume_semicolon();
+            Ok(Statement::Expressions(expr))
+        }
     }
-    Ok(statement)
 }
 
 

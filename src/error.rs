@@ -23,12 +23,12 @@ pub enum TokenType {
     Return,
     Colon,
     Semicolon,
-    LeftLittleBrace,
-    RightLittleBrace,
-    LeftMiddleBrace,
-    RightMiddleBrace,
-    RightBigBrace,
-    LeftBigBrace,
+    LeftPar,
+    RightPar,
+    LeftBracket,
+    RightBracket,
+    RightBrace,
+    LeftBrace,
     Comma,
     Operator,
     ReturnTypeAllow,
@@ -69,30 +69,34 @@ pub enum SyntaxError {
 #[derive(Debug, Error)]
 pub enum CompileError {
     #[error("unknown identifier:{identifier}")]
-    UnknownIdentifier{
-        identifier:String,
+    UnknownIdentifier {
+        identifier: String,
     },
     #[error("expect a type name, but identifier `{identifier}` is not a type")]
-    IdentifierIsNotType{
-        identifier:String,
+    IdentifierIsNotType {
+        identifier: String,
     },
     #[error("expect a variable, but identifier `{identifier}` is not a variable")]
-    IdentifierIsNotVariable{
-        identifier:String,
+    IdentifierIsNotVariable {
+        identifier: String,
     },
     #[error("expect a function name, but identifier `{identifier}` is not a variable")]
-    IdentifierIsNotFunction{
-        identifier:String,
+    IdentifierIsNotFunction {
+        identifier: String,
     },
     #[error("expect a type name, but identifier `{identifier}` is not a type")]
-    TypeMismatched{
-        identifier:String,
+    TypeMismatched {
+        identifier: String,
+    },
+    #[error("identifier `{identifier}` is already defined, which is a `{symbol_name}`")]
+    IdentifierAlreadyDefined {
+        identifier: String,
+        symbol_name: String,
     },
     #[error("expect a variable, but identifier `{identifier}` is not a variable")]
     CanOnlyAssignVariable {
-        identifier:String,
-    }
-
+        identifier: String,
+    },
 }
 
 impl TokenParserError {
@@ -102,18 +106,24 @@ impl TokenParserError {
 }
 
 impl CompileError {
-    pub fn identifier_is_not_type(name: String) -> Self {
-        Self::IdentifierIsNotType{ identifier: name }}
-    pub fn can_only_assign_variable(name: String) -> Self {
-        Self::CanOnlyAssignVariable { identifier: name }}
-    pub fn unknown_identifier(name: String) -> Self {
-        Self::UnknownIdentifier{ identifier: name }
+    pub fn identifier_is_not_type(identifier: String) -> Self {
+        Self::IdentifierIsNotType { identifier }
     }
-    pub fn identifier_is_not_variable(name: String) -> Self {
-        Self::IdentifierIsNotVariable{ identifier: name }
+    pub fn can_only_assign_variable(identifier: String) -> Self {
+        Self::CanOnlyAssignVariable { identifier }
     }
-    pub fn identifier_is_not_function(name: String) -> Self {
-        Self::IdentifierIsNotFunction{ identifier: name }
+    pub fn unknown_identifier(identifier: String) -> Self {
+        Self::UnknownIdentifier { identifier }
+    }
+    pub fn identifier_is_not_variable(identifier: String) -> Self {
+        Self::IdentifierIsNotVariable { identifier }
+    }
+    pub fn identifier_is_not_function(identifier: String) -> Self {
+        Self::IdentifierIsNotFunction { identifier }
+    }
+
+    pub fn identifier_already_defined(identifier: String, symbol_name: String) -> Self {
+        Self::IdentifierIsNotFunction { identifier }
     }
 }
 
@@ -144,22 +154,22 @@ impl SyntaxError {
         Self::MissingToken { expect: TokenType::Colon, line }
     }
     pub fn missing_left_little_brace(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::LeftLittleBrace, line }
+        Self::MissingToken { expect: TokenType::LeftPar, line }
     }
     pub fn missing_right_little_brace(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::RightLittleBrace, line }
+        Self::MissingToken { expect: TokenType::RightPar, line }
     }
     pub fn missing_left_middle_brace(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::LeftMiddleBrace, line }
+        Self::MissingToken { expect: TokenType::LeftBracket, line }
     }
     pub fn missing_right_middle_brace(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::RightMiddleBrace, line }
+        Self::MissingToken { expect: TokenType::RightBracket, line }
     }
     pub fn missing_left_big_brace(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::LeftBigBrace, line }
+        Self::MissingToken { expect: TokenType::LeftBrace, line }
     }
     pub fn missing_right_big_brace(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::RightBigBrace, line }
+        Self::MissingToken { expect: TokenType::RightBrace, line }
     }
     pub fn missing_comma(line: usize) -> Self {
         Self::MissingToken { expect: TokenType::Comma, line }

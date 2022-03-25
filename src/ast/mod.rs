@@ -1,27 +1,25 @@
-
-mod nodes;
-mod parser;
-
-
-
-use std::collections::HashMap;
 use anyhow::Result;
 
 pub use nodes::*;
 pub use parser::*;
+
 use crate::error::{SyntaxError, TokenType};
 use crate::lexer::{KeyWord, LELexer, LEToken};
 
+mod nodes;
+mod parser;
+
 #[derive(Debug)]
 pub struct Ast {
-    pub globals: HashMap<String, VariableNode>,
-    pub functions: HashMap<String, FunctionNode>,
+    pub globals: Vec<VariableNode>,
+    pub function_definitions: Vec<FunctionDefinition>,
+    pub extern_functions: Vec<ExternFunction>,
 }
 
 
 impl Ast {
-    pub fn from_tokens(mut tokens: LELexer) -> Result<Self> {
-        let mut ast = Self { globals: HashMap::new(), functions: HashMap::new() };
+    pub fn from_tokens(tokens: LELexer) -> Result<Self> {
+        let mut ast = Self { globals: vec![], function_definitions: vec![], extern_functions: vec![] };
         ast.parse(tokens)?;
         Ok(ast)
     }
@@ -33,11 +31,24 @@ impl Ast {
                 None => { break; }
                 Some(token) => {
                     if let LEToken::KeyWord(keyword) = token {
-                        if &KeyWord::FunctionDeclare == keyword {
-                            let function = parse_function(&mut tokens)?;
-                            self.functions.insert(function.name.clone(), function);
-                        } else {
-                            return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, tokens.current_result()?.clone(), tokens.line()).into());
+                        match keyword {
+                            KeyWord::Declare => {
+                                tokens.consume_keyword()?;
+                                let function_prototype = parse_function_prototype(&mut tokens)?;
+                                tokens.consume_semicolon()?;
+                                self.extern_functions.push(function_prototype);
+                            }
+                            KeyWord::FunctionDefine => {
+                                let function = parse_function(&mut tokens)?;
+                                self.function_definitions.push(function);
+                            }
+                            KeyWord::VariableDeclare => {
+                                let variable = parse_variable_declaration(&mut tokens)?;
+                                self.globals.push(variable);
+                            }
+                            _ => {
+                                return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, tokens.current_result()?.clone(), tokens.line()).into());
+                            }
                         }
                     } else {
                         return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, tokens.current_result()?.clone(), tokens.line()).into());

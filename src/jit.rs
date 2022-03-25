@@ -7,10 +7,6 @@ pub struct JITCompiler<'source> {
     engine: ExecutionEngine<'source>,
 }
 
-/// Convenience type alias for the `sum` function.
-///
-/// Calling this is innately `unsafe` because there's no guarantee it doesn't
-/// do `unsafe` operations internally.
 type MainFunc = unsafe extern "C" fn() -> i32;
 
 impl<'source> JITCompiler<'source> {

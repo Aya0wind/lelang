@@ -28,12 +28,10 @@ nom = "7.1.0"
 enum_dispatch = "0.3.8"
 clap = "3.1.1"
 
-[release]
+[profile.release]
 opt-level = 3
-#debug=false
+debug=true
 lto = true
 overflow-checks = false
 rpath = false
 
-[profile.release]
-debug=true

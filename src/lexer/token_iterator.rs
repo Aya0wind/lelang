@@ -24,11 +24,17 @@ pub enum LogosToken {
     #[token("el")]
     Else,
 
+    #[token("decl")]
+    Declare,
+
     #[token("le")]
     FunctionDeclare,
 
     #[token("for")]
     For,
+
+    #[token("while")]
+    While,
 
     #[token("var")]
     VariableDeclare,
@@ -43,22 +49,22 @@ pub enum LogosToken {
     Semicolon,
 
     #[token("(")]
-    LeftLittleBrace,
+    LeftPar,
 
     #[token(")")]
-    RightLittleBrace,
+    RightPar,
 
     #[token("[")]
-    LeftMiddleBrace,
+    LeftBracket,
 
     #[token("]")]
-    RightMiddleBrace,
+    RightBracket,
 
     #[token("}")]
-    RightBigBrace,
+    RightBrace,
 
     #[token("{")]
-    LeftBigBrace,
+    LeftBrace,
 
     #[token(",")]
     Comma,
@@ -99,7 +105,7 @@ pub enum LogosToken {
     #[regex(r"[\s]+", | lex | counter_line(lex.slice()))]
     WhiteCharacter(usize),
 
-    #[regex(r"#[\x20-\x7F]+\n+")]
+    #[regex(r"##[\x20-\x7F]+\n+")]
     Comment,
 
     #[regex("[a-zA-Z_]+[0-9]*", | lex | lex.slice().to_string())]
@@ -108,7 +114,7 @@ pub enum LogosToken {
     #[regex(r#""[0-9a-zA-Z\-\.]*""#, | lex | parse_string_literal_token(lex.slice()))]
     StringLiteral(String),
 
-    #[regex(r#"-?[1-9][0-9]*(\.[0-9]+)?"#, | lex | parse_number(lex).ok())]
+    #[regex(r#"[1-9][0-9]*(\.[0-9]+)?"#, | lex | parse_number(lex).ok())]
     NumberLiteral(Number),
 
     #[error]
@@ -121,13 +127,17 @@ pub enum KeyWord {
 
     Else,
 
-    FunctionDeclare,
+    Declare,
+
+    FunctionDefine,
 
     VariableDeclare,
 
     Return,
 
     For,
+
+    While,
 }
 
 #[derive(Debug, PartialEq, Display, Clone)]
@@ -178,17 +188,17 @@ pub enum LEToken {
 
     Semicolon,
 
-    LeftLittleBrace,
+    LeftPar,
 
-    RightLittleBrace,
+    RightPar,
 
-    LeftMiddleBrace,
+    LeftBracket,
 
-    RightMiddleBrace,
+    RightBracket,
 
-    RightBigBrace,
+    RightBrace,
 
-    LeftBigBrace,
+    LeftBrace,
 
     ReturnTypeAllow,
 
@@ -203,19 +213,20 @@ impl From<LogosToken> for LEToken {
         match logos_token {
             LogosToken::If => { Self::KeyWord(KeyWord::If) }
             LogosToken::Else => { Self::KeyWord(KeyWord::Else) }
-            LogosToken::For =>{Self::KeyWord(KeyWord::For)}
-            LogosToken::FunctionDeclare => { Self::KeyWord(KeyWord::FunctionDeclare) }
+            LogosToken::For => { Self::KeyWord(KeyWord::For) }
+            LogosToken::FunctionDeclare => { Self::KeyWord(KeyWord::FunctionDefine) }
             LogosToken::VariableDeclare => { Self::KeyWord(KeyWord::VariableDeclare) }
+            LogosToken::Return => { Self::KeyWord(KeyWord::Return) }
             LogosToken::Return => { Self::KeyWord(KeyWord::Return) }
             LogosToken::Colon => { Self::Colon }
             LogosToken::Comma => { Self::Comma }
             LogosToken::Semicolon => { Self::Semicolon }
-            LogosToken::LeftLittleBrace => { Self::LeftLittleBrace }
-            LogosToken::RightLittleBrace => { Self::RightLittleBrace }
-            LogosToken::LeftMiddleBrace => { Self::LeftMiddleBrace }
-            LogosToken::RightMiddleBrace => { Self::RightMiddleBrace }
-            LogosToken::RightBigBrace => { Self::RightBigBrace }
-            LogosToken::LeftBigBrace => { Self::LeftBigBrace }
+            LogosToken::LeftPar => { Self::LeftPar }
+            LogosToken::RightPar => { Self::RightPar }
+            LogosToken::LeftBracket => { Self::LeftBracket }
+            LogosToken::RightBracket => { Self::RightBracket }
+            LogosToken::RightBrace => { Self::RightBrace }
+            LogosToken::LeftBrace => { Self::LeftBrace }
             LogosToken::ReturnTypeAllow => { Self::ReturnTypeAllow }
             LogosToken::Plus => { Self::Operator(Operator::Plus) }
             LogosToken::Sub => { Self::Operator(Operator::Sub) }
@@ -227,10 +238,12 @@ impl From<LogosToken> for LEToken {
             LogosToken::NumberLiteral(num) => { Self::NumberLiteral(num) }
             LogosToken::Identifier(identifier) => { Self::Identifier(identifier) }
             LogosToken::Error => { Self::Error("unknown character".into()) }
-            LogosToken::GreaterThan => {Self::Operator(Operator::GreaterThan) }
-            LogosToken::LessThan => {Self::Operator(Operator::LessThan) }
-            LogosToken::GreaterOrEqualThan => {Self::Operator(Operator::GreaterOrEqualThan) }
-            LogosToken::LessOrEqualThan => {Self::Operator(Operator::LessOrEqualThan) }
+            LogosToken::GreaterThan => { Self::Operator(Operator::GreaterThan) }
+            LogosToken::LessThan => { Self::Operator(Operator::LessThan) }
+            LogosToken::GreaterOrEqualThan => { Self::Operator(Operator::GreaterOrEqualThan) }
+            LogosToken::LessOrEqualThan => { Self::Operator(Operator::LessOrEqualThan) }
+            LogosToken::Declare => { Self::KeyWord(KeyWord::Declare) }
+            LogosToken::While => { Self::KeyWord(KeyWord::While) }
             _ => { unreachable!("unknown character handling not implement yet") }
         }
     }
@@ -247,19 +260,19 @@ impl<'s> Iterator for LELexer<'s> {
     type Item = LEToken;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let inner_iter = self.inner.by_ref().skip_while(|next| {
+        let inner_iter = self.inner.by_ref().find(|next| {
             match next {
                 LogosToken::Comment => {
                     self.current_line += 1;
-                    true
+                    false
                 }
                 LogosToken::WhiteCharacter(lines) => {
                     self.current_line += lines;
-                    true
+                    false
                 }
-                _ => { false }
+                _ => { true }
             }
-        }).next();
+        });
         match inner_iter {
             None => { self.current.take() }
             Some(x) => { self.current.replace(x.into()) }
@@ -280,13 +293,14 @@ impl<'s> LELexer<'s> {
     pub fn current(&self) -> Option<&LEToken> {
         self.current.as_ref()
     }
+
     pub fn own_current(&self) -> Result<LEToken> {
         Ok(self.current_result()?.clone())
     }
+
     pub fn line(&self) -> usize {
         self.current_line
     }
-
 
     pub fn next_result(&mut self) -> Result<LEToken> {
         self.next().ok_or_else(|| SyntaxError::EOF.into())
@@ -318,6 +332,7 @@ impl<'s> LELexer<'s> {
             Err(SyntaxError::unexpect_token(TokenType::NumberLiteral, consume.clone(), self.current_line).into())
         }
     }
+
     pub fn consume_string_literal(&mut self) -> Result<String> {
         let consume = self.next_result()?;
         if let LEToken::StringLiteral(string_literal) = consume {
@@ -326,6 +341,7 @@ impl<'s> LELexer<'s> {
             Err(SyntaxError::unexpect_token(TokenType::StringLiteral, consume.clone(), self.current_line).into())
         }
     }
+
     pub fn consume_identifier(&mut self) -> Result<String> {
         let consume = self.next_result()?;
         if let LEToken::Identifier(identifier) = consume {
@@ -343,6 +359,7 @@ impl<'s> LELexer<'s> {
             Err(SyntaxError::unexpect_token(TokenType::Colon, consume.clone(), self.current_line).into())
         }
     }
+
     pub fn consume_comma(&mut self) -> Result<()> {
         let consume = self.next_result()?;
         if let LEToken::Comma = consume {
@@ -351,6 +368,7 @@ impl<'s> LELexer<'s> {
             Err(SyntaxError::unexpect_token(TokenType::Comma, consume.clone(), self.current_line).into())
         }
     }
+
     pub fn consume_semicolon(&mut self) -> Result<()> {
         let consume = self.next_result()?;
         if let LEToken::Semicolon = consume {
@@ -359,46 +377,50 @@ impl<'s> LELexer<'s> {
             Err(SyntaxError::unexpect_token(TokenType::Semicolon, consume.clone(), self.current_line).into())
         }
     }
-    pub fn consume_left_little_brace(&mut self) -> Result<()> {
+
+    pub fn consume_left_par(&mut self) -> Result<()> {
         let consume = self.next_result()?;
-        if let LEToken::LeftLittleBrace = consume {
+        if let LEToken::LeftPar = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::LeftLittleBrace, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::LeftPar, consume.clone(), self.current_line).into())
         }
     }
-    pub fn consume_right_little_brace(&mut self) -> Result<()> {
+    pub fn consume_right_par(&mut self) -> Result<()> {
         let consume = self.next_result()?;
-        if let LEToken::RightLittleBrace = consume {
+        if let LEToken::RightPar = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightLittleBrace, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::RightPar, consume.clone(), self.current_line).into())
         }
     }
     pub fn consume_right_middle_brace(&mut self) -> Result<()> {
         let consume = self.next_result()?;
-        if let LEToken::RightMiddleBrace = consume {
+        if let LEToken::RightBracket = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightMiddleBrace, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::RightBracket, consume.clone(), self.current_line).into())
         }
     }
-    pub fn consume_left_big_brace(&mut self) -> Result<()> {
+
+    pub fn consume_left_brace(&mut self) -> Result<()> {
         let consume = self.next_result()?;
-        if let LEToken::LeftBigBrace = consume {
+        if let LEToken::LeftBrace = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::LeftBigBrace, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::LeftBrace, consume.clone(), self.current_line).into())
         }
     }
-    pub fn consume_right_big_brace(&mut self) -> Result<()> {
+
+    pub fn consume_right_brace(&mut self) -> Result<()> {
         let consume = self.next_result()?;
-        if let LEToken::RightBigBrace = consume {
+        if let LEToken::RightBrace = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightBigBrace, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::RightBrace, consume.clone(), self.current_line).into())
         }
     }
+
     pub fn consume_return_type_allow(&mut self) -> Result<()> {
         let consume = self.next_result()?;
         if let LEToken::ReturnTypeAllow = consume {
@@ -407,7 +429,6 @@ impl<'s> LELexer<'s> {
             Err(SyntaxError::unexpect_token(TokenType::ReturnTypeAllow, consume.clone(), self.current_line).into())
         }
     }
-
 
     pub fn check_current_keyword(&mut self) -> Result<&KeyWord> {
         let check_current = self.current_result()?;
@@ -478,42 +499,42 @@ impl<'s> LELexer<'s> {
     }
     pub fn check_current_left_little_brace(&mut self) -> Result<()> {
         let check_current = self.current_result()?;
-        if let LEToken::LeftLittleBrace = check_current {
+        if let LEToken::LeftPar = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::LeftLittleBrace, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::LeftPar, check_current.clone(), self.current_line).into())
         }
     }
     pub fn check_current_right_little_brace(&mut self) -> Result<()> {
         let check_current = self.current_result()?;
-        if let LEToken::RightLittleBrace = check_current {
+        if let LEToken::RightPar = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightLittleBrace, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::RightPar, check_current.clone(), self.current_line).into())
         }
     }
     pub fn check_current_right_middle_brace(&mut self) -> Result<()> {
         let check_current = self.current_result()?;
-        if let LEToken::RightMiddleBrace = check_current {
+        if let LEToken::RightBracket = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightMiddleBrace, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::RightBracket, check_current.clone(), self.current_line).into())
         }
     }
     pub fn check_current_left_big_brace(&mut self) -> Result<()> {
         let check_current = self.current_result()?;
-        if let LEToken::LeftBigBrace = check_current {
+        if let LEToken::LeftBrace = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::LeftBigBrace, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::LeftBrace, check_current.clone(), self.current_line).into())
         }
     }
     pub fn check_current_right_big_brace(&mut self) -> Result<()> {
         let check_current = self.current_result()?;
-        if let LEToken::RightBigBrace = check_current {
+        if let LEToken::RightBrace = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightBigBrace, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::RightBrace, check_current.clone(), self.current_line).into())
         }
     }
     pub fn check_current_return_type_allow(&mut self) -> Result<()> {
