@@ -1,5 +1,5 @@
-# llvm-rs
-# 基于Rust与LLVM(inkwell safe binding library)的编译器
+# lelang
+# leang使用Rust与LLVM(inkwell safe binding library)实现
 + 基本的函数
 + 外部链接
 + 变量定义
