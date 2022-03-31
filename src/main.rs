@@ -26,8 +26,8 @@ pub fn compile_with_error_handling(code: &str) -> Result<()> {
     let mut code_generator = CodeGenerator::create(&context);
     let module = context.create_module("main");
     code_generator.compile(&module, ast)?;
-    let optimizer = Optimizer::new(&module, OptimizationLevel::None);
-    //optimizer.run_on_module(&module);
+    let optimizer = Optimizer::new(&module, OptimizationLevel::Aggressive);
+    optimizer.run_on_module(&module);
     module.print_to_file("out.ll").unwrap();
     // let jit_compiler = JITCompiler::new(&module);
     // jit_compiler.run_main()?;
