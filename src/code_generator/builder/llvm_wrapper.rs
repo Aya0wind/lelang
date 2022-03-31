@@ -23,7 +23,7 @@ impl<'s> LEValue<'s> for IntegerValue<'s> {
 
 impl<'s> IntegerValue<'s> {
     pub fn get_type(&self) -> IntegerType {
-        IntegerType { signed: false, value: self.value.get_type() }
+        IntegerType { signed: self.signed, value: self.value.get_type() }
     }
 }
 
