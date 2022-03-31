@@ -2,10 +2,13 @@ decl le print_num(i32);
 
 le func23(a:i32,b:i64)->i32{
     if(a==1000){
-       ret a+b+(b*10+2);
+        if(b==200){
+            ret a+b+(b*10+2);
+        }
     }el{
        ret a+b+(b*20);
     }
+    ret 1000;
 }
 
 le main()->i32{

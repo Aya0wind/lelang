@@ -303,15 +303,16 @@ impl<'s> CodeGenerator<'s> {
         self.builder.llvm_builder.position_at_end(then_block);
         let is_then_return_block = self.build_code_block(&statement.then_block)?;
         if !is_then_return_block {
-            self.builder.llvm_builder.position_at_end(then_block);
             self.builder.llvm_builder.build_unconditional_branch(merge_block);
         }
+        self.builder.llvm_builder.position_at_end(else_block);
         if let Some(el) = &statement.else_block {
-            self.builder.llvm_builder.position_at_end(else_block);
             let is_else_return_block = self.build_code_block(el)?;
             if !is_else_return_block {
                 self.builder.llvm_builder.build_unconditional_branch(merge_block);
             }
+        }else{
+            self.builder.llvm_builder.build_unconditional_branch(merge_block);
         }
         self.builder.llvm_builder.position_at_end(merge_block);
         Ok(())

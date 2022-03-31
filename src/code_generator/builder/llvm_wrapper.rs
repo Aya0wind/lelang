@@ -1,3 +1,4 @@
+#![allow(clippy::enum_variant_names)]
 use std::fmt::{Display, Formatter};
 
 use inkwell::types::{AnyType, AnyTypeEnum, ArrayType, BasicTypeEnum, FloatType, FunctionType, IntType, PointerType, StructType, VectorType};
@@ -52,9 +53,9 @@ pub enum NumericTypeEnum<'s> {
 }
 
 impl<'s> NumericTypeEnum<'s> {
-    pub fn to_basic_type_enum(&self) -> BasicTypeEnum {
+    pub fn to_basic_type_enum(self) -> BasicTypeEnum<'s> {
         match self {
-            NumericTypeEnum::FloatType(f) => { BasicTypeEnum::FloatType(*f) }
+            NumericTypeEnum::FloatType(f) => { BasicTypeEnum::FloatType(f) }
             NumericTypeEnum::IntegerType(i) => { BasicTypeEnum::IntType(i.value) }
         }
     }
