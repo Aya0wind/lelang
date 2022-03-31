@@ -1,9 +1,9 @@
 use anyhow::Result;
 
-use crate::ast::{FunctionDefinition, ExternFunction, parse_code_block};
+use crate::ast::{ExternalFunction, FunctionDefinition, parse_code_block};
 use crate::ast::parser::common::FParseResult;
 use crate::error::{SyntaxError, TokenType};
-use crate::lexer::{LELexer, LEToken, Number};
+use crate::lexer::{LELexer, LEToken};
 
 pub fn parse_variable_annotation(lexer: &mut LELexer) -> Result<(String, String)> {
     let identifier = lexer.consume_identifier()?;
@@ -61,12 +61,12 @@ pub fn parse_type_list(lexer: &mut LELexer) -> Result<Vec<String>> {
 }
 
 
-pub fn parse_function_prototype(lexer: &mut LELexer) -> Result<ExternFunction> {
+pub fn parse_function_prototype(lexer: &mut LELexer) -> Result<ExternalFunction> {
     lexer.consume_keyword()?;
     let name = lexer.consume_identifier()?;
     let param_types = parse_type_list(lexer)?;
     let return_type = parse_function_return_type(lexer)?;
-    Ok(ExternFunction {
+    Ok(ExternalFunction {
         name,
         param_types,
         return_type,
@@ -96,7 +96,7 @@ pub fn parse_function(lexer: &mut LELexer) -> FParseResult {
         param_names.push(anno.0);
     });
     let function = FunctionDefinition {
-        prototype: ExternFunction {
+        prototype: ExternalFunction {
             name,
             param_types,
             return_type,

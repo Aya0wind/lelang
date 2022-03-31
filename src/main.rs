@@ -1,31 +1,36 @@
 #![allow(unused)]
-
 use std::fs::File;
 use std::io::Read;
 
 use anyhow::Result;
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
+use inkwell::targets::InitializationConfig;
 
-use crate::code_gen::ModuleCodeGenerator;
+use crate::ast::Ast;
+use crate::code_generator::CodeGenerator;
 use crate::jit::JITCompiler;
+use crate::optimizer::Optimizer;
 
 mod lexer;
-mod code_gen;
+mod code_generator;
 mod jit;
 mod error;
 mod ast;
-
+mod optimizer;
+mod target;
 pub fn compile_with_error_handling(code: &str) -> Result<()> {
-    let tokens = lexer::LELexer::new(code).unwrap();
-    // for token in tokens {
-    //     eprintln!("{:?}",token);
-    // }
+    let lexer = lexer::LELexer::new(code).unwrap();
+    let ast = Ast::from_lexer(lexer)?;
     let context = Context::create();
-    let mut code_generator = ModuleCodeGenerator::create(&context);
+    let mut code_generator = CodeGenerator::create(&context);
     let module = context.create_module("main");
-    code_generator.compile_module(&module, tokens, OptimizationLevel::None)?;
+    code_generator.compile(&module, ast)?;
+    let optimizer = Optimizer::new(&module, OptimizationLevel::Aggressive);
+    optimizer.run_on_module(&module);
     module.print_to_file("out.ll").unwrap();
+    // let jit_compiler = JITCompiler::new(&module);
+    // jit_compiler.run_main()?;
     Ok(())
 }
 

@@ -3,60 +3,45 @@ source_filename = "main"
 
 declare void @print_num(i32)
 
-define i32 @func23(i32 %0, i32 %1) {
-  %3 = alloca i32, align 4
-  store i32 %0, i32* %3, align 4
-  %4 = alloca i32, align 4
-  store i32 %1, i32* %4, align 4
-  %5 = load i32, i32* %3, align 4
-  %6 = icmp eq i32 %5, 1000
-  br i1 %6, label %7, label %15
+define i32 @func23(i32 %0, i64 %1) {
+  %3 = icmp eq i32 %0, 1000
+  br i1 %3, label %4, label %10
 
-7:                                                ; preds = %2
-  %8 = load i32, i32* %3, align 4
-  %9 = load i32, i32* %4, align 4
-  %10 = add i32 %8, %9
-  %11 = load i32, i32* %4, align 4
-  %12 = mul i32 %11, 10
-  %13 = add i32 %12, 2
-  %14 = add i32 %10, %13
-  ret i32 %14
+4:                                                ; preds = %2
+  %5 = trunc i64 %1 to i32
+  %6 = mul i64 %1, 10
+  %7 = add i64 %6, 2
+  %8 = trunc i64 %7 to i32
+  %9 = add i32 %8, i64 %7
+  br label %15
 
-15:                                               ; preds = %2
-  %16 = load i32, i32* %3, align 4
-  %17 = load i32, i32* %4, align 4
-  %18 = add i32 %16, %17
-  %19 = load i32, i32* %4, align 4
-  %20 = mul i32 %19, 20
-  %21 = add i32 %18, %20
-  ret i32 %21
+10:                                               ; preds = %2
+  %11 = trunc i64 %1 to i32
+  %12 = mul i64 %1, 20
+  %13 = trunc i64 %12 to i32
+  %14 = add i32 %13, i64 %12
+  br label %15
 
-22:                                               ; No predecessors!
+15:                                               ; preds = %10, %4
+  %.0 = phi i32 [ %9, %4 ], [ %14, %10 ]
+  ret i32 %.0
 }
 
 define i32 @main() {
-  %1 = alloca i32, align 4
-  store i32 10, i32* %1, align 4
-  %2 = alloca i32, align 4
-  %call = call i32 @func23(i32 10, i32 20)
-  store i32 %call, i32* %2, align 4
-  %3 = load i32, i32* %2, align 4
-  call void @print_num(i32 %3)
-  br label %4
+  %1 = call i32 @func23(i32 1000, i64 40)
+  call void @print_num(i32 %1)
+  br label %2
 
-4:                                                ; preds = %7, %0
-  %5 = load i32, i32* %1, align 4
-  %6 = icmp slt i32 %5, 100
-  br i1 %6, label %7, label %10
+2:                                                ; preds = %4, %0
+  %.0 = phi i32 [ 10, %0 ], [ %5, %4 ]
+  %3 = icmp slt i32 %.0, 20
+  br i1 %3, label %4, label %6
 
-7:                                                ; preds = %4
-  call void @print_num(i32 9999)
-  %8 = load i32, i32* %1, align 4
-  %9 = add i32 %8, 1
-  store i32 %9, i32* %1, align 4
-  br label %4
+4:                                                ; preds = %2
+  call void @print_num(i32 %.0)
+  %5 = add i32 %.0, 1
+  br label %2
 
-10:                                               ; preds = %4
-  %11 = load i32, i32* %2, align 4
-  ret i32 %11
+6:                                                ; preds = %2
+  ret i32 %1
 }

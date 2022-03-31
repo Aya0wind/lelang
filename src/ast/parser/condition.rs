@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::ast::{BExpr, CodeBlock, IfStatement, parse_code_block, parse_little_par_expression};
+use crate::ast::{IfStatement, parse_code_block, parse_little_par_expression};
 use crate::lexer::{KeyWord, LELexer, LEToken};
 
 pub fn parse_if_condition(lexer: &mut LELexer) -> Result<IfStatement> {

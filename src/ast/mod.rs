@@ -13,12 +13,12 @@ mod parser;
 pub struct Ast {
     pub globals: Vec<VariableNode>,
     pub function_definitions: Vec<FunctionDefinition>,
-    pub extern_functions: Vec<ExternFunction>,
+    pub extern_functions: Vec<ExternalFunction>,
 }
 
 
 impl Ast {
-    pub fn from_tokens(tokens: LELexer) -> Result<Self> {
+    pub fn from_lexer(tokens: LELexer) -> Result<Self> {
         let mut ast = Self { globals: vec![], function_definitions: vec![], extern_functions: vec![] };
         ast.parse(tokens)?;
         Ok(ast)

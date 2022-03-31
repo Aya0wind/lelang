@@ -1,9 +1,9 @@
 use anyhow::Result;
 
-use crate::ast::{BExpr, BinaryOpExpression, CodeBlock, Expr, FunctionCall, FunctionDefinition, IdentifierNode, NumberLiteralNode, Param, parse_statement, parse_variable_annotation, parse_variable_declaration};
+use crate::ast::{BExpr, BinaryOpExpression, CodeBlock, Expr, FunctionCall, FunctionDefinition, IdentifierNode, NumberLiteralNode, parse_statement};
 use crate::ast::Expr::{BinaryOperator, Identifier, NumberLiteral};
-use crate::error::{SyntaxError, TokenParserError, TokenType};
-use crate::lexer::{KeyWord, LELexer, LEToken, Operator};
+use crate::error::{SyntaxError};
+use crate::lexer::{LELexer, LEToken, Operator};
 
 pub fn get_operator_precedence(op: &Operator) -> usize {
     match op {

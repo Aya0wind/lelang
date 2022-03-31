@@ -1,7 +1,6 @@
 use anyhow::Result;
-use nom::combinator::cond;
 
-use crate::ast::{ForLoop, parse_code_block, parse_expression, parse_statement, parse_variable_declaration, Statement, WhileLoop};
+use crate::ast::{parse_code_block, parse_expression, WhileLoop};
 use crate::lexer::LELexer;
 
 pub fn parse_while_loop(lexer: &mut LELexer) -> Result<WhileLoop> {

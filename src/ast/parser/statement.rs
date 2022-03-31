@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::ast::{BExpr, ForLoop, parse_expression, parse_identifier_expression, parse_little_par_expression, parse_primary_expression, parse_variable_declaration, parse_while_loop, Statement, VariableNode};
+use crate::ast::{parse_expression, parse_variable_declaration, parse_while_loop, Statement};
 use crate::ast::parser::condition::parse_if_condition;
 use crate::ast::parser::for_loop::parse_for_loop;
 use crate::error::{SyntaxError, TokenType};
@@ -34,7 +34,7 @@ pub fn parse_statement(lexer: &mut LELexer) -> Result<Statement> {
         }
         _ => {
             let expr = parse_expression(lexer)?;
-            lexer.consume_semicolon();
+            lexer.consume_semicolon()?;
             Ok(Statement::Expressions(expr))
         }
     }

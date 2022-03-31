@@ -84,10 +84,6 @@ pub enum CompileError {
     IdentifierIsNotFunction {
         identifier: String,
     },
-    #[error("expect a type name, but identifier `{identifier}` is not a type")]
-    TypeMismatched {
-        identifier: String,
-    },
     #[error("identifier `{identifier}` is already defined, which is a `{symbol_name}`")]
     IdentifierAlreadyDefined {
         identifier: String,
@@ -97,6 +93,12 @@ pub enum CompileError {
     CanOnlyAssignVariable {
         identifier: String,
     },
+    #[error("expect a type `{expect}`, but got `{found}`")]
+    TypeMismatched {
+        expect: String,
+        found: String,
+    },
+
 }
 
 impl TokenParserError {
@@ -124,6 +126,10 @@ impl CompileError {
 
     pub fn identifier_already_defined(identifier: String, symbol_name: String) -> Self {
         Self::IdentifierIsNotFunction { identifier }
+    }
+
+    pub fn type_mismatched(expect: String, found: String) -> Self {
+        Self::TypeMismatched { expect, found }
     }
 }
 

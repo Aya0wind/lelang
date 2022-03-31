@@ -1,5 +1,3 @@
-use inkwell::values::VectorValue;
-
 use crate::lexer::{Number, Operator};
 
 #[derive(Debug)]
@@ -32,7 +30,7 @@ pub struct WhileLoop {
 
 
 #[derive(Debug)]
-pub struct ExternFunction {
+pub struct ExternalFunction {
     pub name: String,
     pub param_types: Vec<String>,
     pub return_type: Option<String>,
@@ -41,7 +39,7 @@ pub struct ExternFunction {
 
 #[derive(Debug)]
 pub struct FunctionDefinition {
-    pub prototype: ExternFunction,
+    pub prototype: ExternalFunction,
     pub param_names: Vec<String>,
     pub code_block: CodeBlock,
 }
@@ -111,7 +109,7 @@ pub enum Expr {
 }
 
 pub enum Declaration {
-    Function(ExternFunction),
+    Function(ExternalFunction),
     Variable(VariableNode),
 }
 
