@@ -29,14 +29,6 @@ impl<'s> LEBuilder<'s> {
         }
     }
 
-    fn build_assign_variable(&self, variable: LEVariable, value: LEValueEnum) {
-        match variable.ty {
-            LETypeEnum::NumericType(_) => {}
-            _ => { unimplemented!() }
-        }
-    }
-
-
     pub fn build_add(&self, lhs: LEValueEnum<'s>, rhs: LEValueEnum<'s>) -> Result<LEValueEnum<'s>> {
         match (lhs, rhs) {
             (LEValueEnum::NumericValue(left_number), LEValueEnum::NumericValue(right_number)) => {
@@ -152,7 +144,7 @@ impl<'s> LEBuilder<'s> {
 
     pub fn build_load(&self, variable: LEVariable<'s>) -> Result<LEValueEnum<'s>> {
         match variable.ty {
-            LETypeEnum::NumericType(number) => {
+            LETypeEnum::NumericType(_) => {
                 let pointer = variable.pointer;
                 Ok(self.llvm_builder.build_load(pointer, "").into())
             }

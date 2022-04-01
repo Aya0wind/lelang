@@ -1,7 +1,7 @@
 use anyhow::Result;
 
-use crate::ast::{ExternalFunction, FunctionDefinition, parse_code_block};
-use crate::ast::parser::common::FParseResult;
+use crate::ast::{ExternalFunction, FunctionDefinition};
+use crate::ast::parser::common::{FParseResult, parse_code_block};
 use crate::error::{SyntaxError, TokenType};
 use crate::lexer::{LELexer, LEToken};
 

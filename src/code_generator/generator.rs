@@ -5,9 +5,8 @@ use inkwell::context::Context;
 use inkwell::module::{Linkage, Module};
 use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::FunctionValue;
-use nom::combinator::value;
 
-use crate::ast::{Ast, BinaryOpExpression, CodeBlock, Expr, ExternalFunction, ForLoop, FunctionCall, FunctionDefinition, IdentifierNode, IfStatement, NumberLiteralNode, Position, Statement, VariableNode, WhileLoop};
+use crate::ast::{Ast, BinaryOpExpression, CodeBlock, Expr, ExternalFunction, ForLoop, FunctionCall, FunctionDefinition, Identifier, IfStatement, NumberLiteral, Statement, Variable, WhileLoop};
 use crate::code_generator::builder::{CompareOperator, LEBuilder, LEVariable, NumericTypeEnum, NumericValueEnum};
 use crate::code_generator::compile_context::CompilerContext;
 use crate::code_generator::symbol_table::Symbol;
@@ -61,10 +60,6 @@ impl<'s> CodeGenerator<'s> {
         Ok(le_variable)
     }
 
-    fn load_variable(&self, identifier: &str) -> Result<LEValueEnum<'s>> {
-        let variable = self.get_variable(identifier)?;
-        self.builder.build_load(variable)
-    }
 
     fn create_function(&mut self, name: &str, function: FunctionValue<'s>) -> Result<FunctionValue> {
         self.compiler_context.symbols.insert_global_function(name.into(), function, self.compiler_context.current_pos)?;
@@ -162,13 +157,13 @@ impl<'s> CodeGenerator<'s> {
         }
     }
 
-    fn build_identifier_expression(&self, value: &IdentifierNode) -> Result<LEValueEnum<'s>> {
+    fn build_identifier_expression(&self, value: &Identifier) -> Result<LEValueEnum<'s>> {
         let name = &value.name;
         let variable = self.compiler_context.symbols.get_variable(name, self.compiler_context.current_pos)?;
         self.builder.build_load_variable(variable)
     }
 
-    fn build_number_literal_expression(&self, value: &NumberLiteralNode) -> Result<LEValueEnum<'s>> {
+    fn build_number_literal_expression(&self, value: &NumberLiteral) -> Result<LEValueEnum<'s>> {
         match value.number {
             Number::Integer(i, signed) => {
                 Ok(self.builder.llvm_context.i64_type().const_int(i, signed).into())
@@ -188,8 +183,7 @@ impl<'s> CodeGenerator<'s> {
         self.builder.build_call(function, &params)
     }
 
-    fn build_local_variable_definition(&mut self, value: &VariableNode) -> Result<LEVariable> {
-
+    fn build_local_variable_definition(&mut self, value: &Variable) -> Result<LEVariable> {
         let variable = self.create_local_variable(
             &value.prototype.name,
             self.get_type(&value.prototype.type_name)?,
@@ -207,7 +201,7 @@ impl<'s> CodeGenerator<'s> {
                 }
                 Statement::Return(expr) => {
                     let value = self.build_expression(expr)?;
-                    self.build_return(value);
+                    self.build_return(value)?;
                     return Ok(true);
                 }
                 Statement::If(if_expr) => {
@@ -223,7 +217,6 @@ impl<'s> CodeGenerator<'s> {
                 Statement::WhileLoop(while_loop) => {
                     self.build_while_loop(while_loop)?;
                 }
-                _ => { unimplemented!() }
             }
         }
         Ok(false)
@@ -319,10 +312,10 @@ impl<'s> CodeGenerator<'s> {
         Ok(())
     }
 
-    fn build_function_prototype(&mut self, module: &Module<'s>, prototype: ExternalFunction) -> Result<FunctionValue<'s>> {
+    fn build_function_prototype(&mut self, module: &Module<'s>, prototype: &ExternalFunction) -> Result<FunctionValue<'s>> {
         let mut param_types = vec![];
-        for param_type in prototype.param_types {
-            let ty = self.get_type(&param_type)?;
+        for param_type in prototype.param_types.iter() {
+            let ty = self.get_type(param_type)?;
             match ty {
                 LETypeEnum::NumericType(number) => {
                     match number {
@@ -367,8 +360,8 @@ impl<'s> CodeGenerator<'s> {
         }
     }
 
-    fn build_function(&mut self, module: &Module<'s>, function_node: FunctionDefinition) -> Result<FunctionValue<'s>> {
-        let function_value = self.build_function_prototype(module, function_node.prototype)?;
+    fn build_function(&mut self, module: &Module<'s>, function_node: &FunctionDefinition) -> Result<FunctionValue<'s>> {
+        let function_value = self.build_function_prototype(module, &function_node.prototype)?;
         let entry = self.builder.llvm_context.append_basic_block(function_value, "");
         self.builder.llvm_builder.position_at_end(entry);
         let return_variable = self.builder.build_alloca(function_value.get_type().get_return_type().unwrap().into())?;
@@ -390,13 +383,13 @@ impl<'s> CodeGenerator<'s> {
         Ok(function_value)
     }
 
-    fn generate_all_functions(&mut self, module: &Module<'s>, ast: Ast) -> Result<()> {
-        for function_prototype in ast.extern_functions {
+    fn generate_all_functions(&mut self, module: &Module<'s>, ast: &Ast) -> Result<()> {
+        for function_prototype in ast.extern_functions.iter() {
             let name = function_prototype.name.clone();
             let function_value = self.build_function_prototype(module, function_prototype)?;
             self.create_function(&name, function_value)?;
         }
-        for function_node in ast.function_definitions {
+        for function_node in ast.function_definitions.iter() {
             let name = function_node.prototype.name.clone();
             let function_value = self.build_function(module, function_node)?;
             self.create_function(&name, function_value)?;
@@ -418,9 +411,9 @@ impl<'s> CodeGenerator<'s> {
         Ok(())
     }
 
-    pub fn compile(&mut self, module: &Module<'s>, ast: Ast) -> Result<()> {
+    pub fn compile(&mut self, module: &Module<'s>, ast: &Ast) -> Result<()> {
         self.generate_all_global_variables(module, &ast)?;
-        self.generate_all_functions(module, ast)?;
+        self.generate_all_functions(module, &ast)?;
         Ok(())
     }
 

@@ -27,13 +27,10 @@ impl<'s> CompilerContext<'s> {
         }
     }
 
-    pub fn get_current_function(&self) -> Option<FunctionValue> {
-        self.current_function
-    }
-
     pub fn push_block_table(&mut self) {
         self.symbols.push_block_table();
     }
+
     pub fn pop_block_table(&mut self) {
         self.symbols.pop_block_table();
     }

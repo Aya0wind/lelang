@@ -6,7 +6,7 @@ pub use types::*;
 
 mod numeric_operator_builder;
 mod llvm_wrapper;
-mod type_checker;
+mod providence;
 mod builder;
 mod traits;
 mod types;

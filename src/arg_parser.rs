@@ -1,18 +1,17 @@
-use clap::Parser;
-use clap::ArgEnum;
-use std::error::Error;
 use std::ops::RangeInclusive;
-use std::path::Path;
-use std::path::PathBuf;
+
+use clap::ArgEnum;
+use clap::Parser;
+
 /// lelang programming language compiler, based on LLVM infrastructure
 #[derive(Parser, Debug)]
 pub struct Args {
     /// Set compiler optimize level
-    #[clap(short = 'O',default_value_t = 0,value_name = "OPTIMIZE_LEVEL",parse(try_from_str=port_in_range))]
+    #[clap(short = 'O', default_value_t = 0, value_name = "OPTIMIZE_LEVEL", parse(try_from_str = port_in_range))]
     pub optimization: usize,
 
     /// Set compiler out put format
-    #[clap(short = 'S',default_value_t = OutputFormatEnum::LLVMIR,arg_enum)]
+    #[clap(short = 'S', default_value_t = OutputFormatEnum::LLVMIR, arg_enum)]
     pub output_format: OutputFormatEnum,
 
     /// Set compiler out put path
@@ -51,7 +50,4 @@ fn port_in_range(s: &str) -> Result<usize, String> {
             OPTIMIZE_LEVEL_RANGE.end()
         ))
     }
-}
-pub fn parse_args()->Args{
-    Args::parse()
 }

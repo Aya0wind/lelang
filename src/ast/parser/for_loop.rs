@@ -1,6 +1,8 @@
 use anyhow::Result;
 
-use crate::ast::{ForLoop, parse_code_block, parse_statement};
+use crate::ast::ForLoop;
+use crate::ast::parser::common::parse_code_block;
+use crate::ast::parser::statement::parse_statement;
 use crate::lexer::LELexer;
 
 pub fn parse_for_loop(lexer: &mut LELexer) -> Result<ForLoop> {

@@ -1,11 +1,12 @@
 use anyhow::Result;
 
-use crate::ast::{BExpr, BinaryOpExpression, CodeBlock, Expr, FunctionCall, FunctionDefinition, IdentifierNode, NumberLiteralNode, parse_statement};
-use crate::ast::Expr::{BinaryOperator, Identifier, NumberLiteral};
+use crate::ast::{BinaryOpExpression, CodeBlock, Expr, FunctionCall, FunctionDefinition, Identifier, NumberLiteral};
+use crate::ast::Expr::BinaryOperator;
+use crate::ast::parser::statement::parse_statement;
 use crate::error::SyntaxError;
 use crate::lexer::{LELexer, LEToken, Operator};
 
-pub fn get_operator_precedence(op: &Operator) -> usize {
+fn get_operator_precedence(op: &Operator) -> usize {
     match op {
         Operator::Plus => { 20 }
         Operator::Sub => { 20 }
@@ -21,11 +22,11 @@ pub fn get_operator_precedence(op: &Operator) -> usize {
 }
 
 
-pub type VParseResult = Result<BExpr>;
+pub type VParseResult = Result<Box<Expr>>;
 pub type FParseResult = Result<FunctionDefinition>;
 
 
-pub fn parse_call_expression(lexer: &mut LELexer, function_name: String) -> Result<BExpr> {
+pub fn parse_call_expression(lexer: &mut LELexer, function_name: String) -> Result<Box<Expr>> {
     lexer.next_result()?;
     let mut params = vec![];
     loop {
@@ -50,7 +51,7 @@ pub fn parse_call_expression(lexer: &mut LELexer, function_name: String) -> Resu
 }
 
 
-pub fn parse_binary_ops(lexer: &mut LELexer, mut lhs: BExpr, expression_precedence: usize) -> VParseResult {
+pub fn parse_binary_ops(lexer: &mut LELexer, mut lhs: Box<Expr>, expression_precedence: usize) -> VParseResult {
     loop {
         if let LEToken::Operator(op) = lexer.own_current()? {
             let precedence = get_operator_precedence(&op);
@@ -79,14 +80,14 @@ pub fn parse_identifier_expression(lexer: &mut LELexer) -> VParseResult {
             Ok(parse_call_expression(lexer, identifier)?)
         }
         _ => {
-            Ok(Box::new(Identifier(IdentifierNode { name: identifier, pos: lexer.line().into() })))
+            Ok(Box::new(Expr::Identifier(Identifier { name: identifier, pos: lexer.line().into() })))
         }
     }
 }
 
 pub fn parse_number_expression(lexer: &mut LELexer) -> VParseResult {
     let number = lexer.consume_number_literal()?;
-    Ok(Box::new(NumberLiteral(NumberLiteralNode { number, pos: lexer.line().into() })))
+    Ok(Box::new(Expr::NumberLiteral(NumberLiteral { number, pos: lexer.line().into() })))
 }
 
 pub fn parse_little_par_expression(lexer: &mut LELexer) -> VParseResult {

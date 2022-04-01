@@ -63,7 +63,7 @@ impl<'s> SymbolTable<'s> {
         }
     }
 
-    pub fn get_symbol(&self, identifier: &str, pos: Position) -> Option<Symbol<'s>> {
+    pub fn get_symbol(&self, identifier: &str, _: Position) -> Option<Symbol<'s>> {
         for block_symbols in self.table.iter().rev() {
             if let Some(symbol) = block_symbols.get(identifier) {
                 return Some(*symbol);

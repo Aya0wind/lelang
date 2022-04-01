@@ -1,8 +1,11 @@
 use anyhow::Result;
 
-use crate::ast::{parse_expression, parse_variable_declaration, parse_while_loop, Statement};
+use crate::ast::Statement;
+use crate::ast::parser::common::parse_expression;
 use crate::ast::parser::condition::parse_if_condition;
 use crate::ast::parser::for_loop::parse_for_loop;
+use crate::ast::parser::variable_parser::parse_variable_declaration;
+use crate::ast::parser::while_loop::parse_while_loop;
 use crate::error::{SyntaxError, TokenType};
 use crate::lexer::{KeyWord, LELexer, LEToken};
 

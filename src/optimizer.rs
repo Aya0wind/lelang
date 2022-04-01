@@ -1,8 +1,9 @@
+use anyhow::Result;
 use inkwell::module::Module;
 use inkwell::OptimizationLevel;
-use inkwell::passes::{PassManager, PassManagerBuilder, PassManagerSubType};
+use inkwell::passes::{PassManager, PassManagerBuilder};
 use inkwell::values::FunctionValue;
-use anyhow::Result;
+
 pub struct Optimizer<'s> {
     pass_manager: PassManager<FunctionValue<'s>>,
 }
@@ -20,7 +21,7 @@ impl<'s> Optimizer<'s> {
     }
 
     pub fn run_on_module(&self,module:&Module)->Result<()>{
-        let mut current_function = module.get_first_function();;
+        let mut current_function = module.get_first_function();
         while let Some(f) = current_function {
             self.run_on_function(&f);
             current_function = f.get_next_function();

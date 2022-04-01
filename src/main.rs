@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::Read;
 
 use anyhow::Result;
+use clap::Parser;
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
 use inkwell::targets::InitializationConfig;
@@ -23,9 +24,8 @@ mod target;
 mod arg_parser;
 mod compiler;
 
-
 fn main() {
-    let args = arg_parser::parse_args();
+    let args = arg_parser::Args::parse();
     match compiler::compile_with_config(args) {
         Ok(_) => {
             eprintln!("compile success")

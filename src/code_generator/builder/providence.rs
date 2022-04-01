@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use inkwell::types::FloatType;
 use lazy_static::lazy_static;
 
-use crate::code_generator::builder::llvm_wrapper::{IntegerType, LEValueEnum, NumericTypeEnum};
+use crate::code_generator::builder::llvm_wrapper::{IntegerType, NumericTypeEnum};
 
 lazy_static! {
     //类型提升优先级(是否有符号,位长)
@@ -43,15 +43,5 @@ pub fn get_number_providence(ty: &NumericTypeEnum) -> u32 {
     match ty {
         NumericTypeEnum::FloatType(f) => { get_float_promotion_providence(f) }
         NumericTypeEnum::IntegerType(i) => { get_integer_promotion_providence(i) }
-    }
-}
-
-
-pub struct TypeChecker;
-
-
-impl TypeChecker {
-    pub fn is_same_type(lhs: &LEValueEnum, rhs: &LEValueEnum) -> bool {
-        lhs.get_type() == rhs.get_type()
     }
 }

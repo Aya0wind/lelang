@@ -5,10 +5,9 @@ use inkwell::{FloatPredicate, IntPredicate};
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::values::{FloatValue, IntValue, PointerValue};
-use nom::combinator::value;
 
 use crate::code_generator::builder::llvm_wrapper::{IntegerValue, NumericTypeEnum, NumericValueEnum};
-use crate::code_generator::builder::type_checker::get_number_providence;
+use crate::code_generator::builder::providence::get_number_providence;
 
 pub struct NumericOperatorBuilder;
 
