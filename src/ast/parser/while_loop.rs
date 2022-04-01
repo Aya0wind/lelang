@@ -16,5 +16,6 @@ pub fn parse_while_loop(lexer: &mut LELexer) -> Result<WhileLoop> {
     Ok(WhileLoop {
         condition: cond,
         code_block,
+        pos: lexer.line().into()
     })
 }

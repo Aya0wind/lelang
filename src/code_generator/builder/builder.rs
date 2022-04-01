@@ -3,6 +3,7 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::values::{AnyValue, BasicMetadataValueEnum, FunctionValue};
 
+use crate::ast::Position;
 use crate::code_generator::builder::{CompareOperator, LEVariable, NumericTypeEnum};
 use crate::code_generator::builder::llvm_wrapper::{IntegerValue, LETypeEnum, LEValueEnum, NumericValueEnum};
 use crate::code_generator::builder::numeric_operator_builder::NumericOperatorBuilder;
@@ -117,7 +118,7 @@ impl<'s> LEBuilder<'s> {
         }
     }
 
-    pub fn build_store(&self, variable: LEVariable<'s>, rhs: LEValueEnum<'s>) -> Result<LEValueEnum<'s>> {
+    pub fn build_store(&self, variable: LEVariable<'s>, rhs: LEValueEnum<'s>, pos: Position) -> Result<LEValueEnum<'s>> {
         if let LEValueEnum::NumericValue(rhs) = rhs {
             if let LETypeEnum::NumericType(numeric_ty) = variable.ty {
                 return NumericOperatorBuilder::build_numeric_assign(
@@ -128,7 +129,7 @@ impl<'s> LEBuilder<'s> {
                     rhs).map(LEValueEnum::NumericValue)
             }
         }
-        Err(CompileError::type_mismatched(variable.ty.to_string(), rhs.get_type().to_string()).into())
+        Err(CompileError::type_mismatched(variable.ty.to_string(), rhs.get_type().to_string(), pos).into())
     }
 
     pub fn build_alloca(&self, value: LETypeEnum<'s>) -> Result<LEVariable<'s>> {

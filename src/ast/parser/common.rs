@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use crate::ast::{BExpr, BinaryOpExpression, CodeBlock, Expr, FunctionCall, FunctionDefinition, IdentifierNode, NumberLiteralNode, parse_statement};
 use crate::ast::Expr::{BinaryOperator, Identifier, NumberLiteral};
-use crate::error::{SyntaxError};
+use crate::error::SyntaxError;
 use crate::lexer::{LELexer, LEToken, Operator};
 
 pub fn get_operator_precedence(op: &Operator) -> usize {
@@ -36,6 +36,7 @@ pub fn parse_call_expression(lexer: &mut LELexer, function_name: String) -> Resu
                 return Ok(Box::new(Expr::CallExpression(FunctionCall {
                     function_name,
                     params,
+                    pos: lexer.line().into(),
                 })));
             }
             LEToken::Comma => {
@@ -63,6 +64,7 @@ pub fn parse_binary_ops(lexer: &mut LELexer, mut lhs: BExpr, expression_preceden
                 op,
                 left: lhs,
                 right: rhs,
+                pos: lexer.line().into(),
             }))
         } else {
             return Ok(lhs);
@@ -77,14 +79,14 @@ pub fn parse_identifier_expression(lexer: &mut LELexer) -> VParseResult {
             Ok(parse_call_expression(lexer, identifier)?)
         }
         _ => {
-            Ok(Box::new(Identifier(IdentifierNode { name: identifier })))
+            Ok(Box::new(Identifier(IdentifierNode { name: identifier, pos: lexer.line().into() })))
         }
     }
 }
 
 pub fn parse_number_expression(lexer: &mut LELexer) -> VParseResult {
     let number = lexer.consume_number_literal()?;
-    Ok(Box::new(NumberLiteral(NumberLiteralNode { number })))
+    Ok(Box::new(NumberLiteral(NumberLiteralNode { number, pos: lexer.line().into() })))
 }
 
 pub fn parse_little_par_expression(lexer: &mut LELexer) -> VParseResult {
@@ -104,7 +106,7 @@ pub fn parse_primary_expression(lexer: &mut LELexer) -> VParseResult {
             parse_identifier_expression(lexer)
         }
         LEToken::LeftPar => { parse_little_par_expression(lexer) }
-        _ => { Err(SyntaxError::missing_expression(lexer.line()).into()) }
+        _ => { Err(SyntaxError::missing_expression(lexer.line().into()).into()) }
     }
 }
 
@@ -115,7 +117,7 @@ pub fn parse_expression(lexer: &mut LELexer) -> VParseResult {
 
 pub fn parse_code_block(lexer: &mut LELexer) -> Result<CodeBlock> {
     lexer.consume_left_brace()?;
-    let mut block = CodeBlock { statements: vec![] };
+    let mut block = CodeBlock { statements: vec![], pos: lexer.line().into() };
     while let Ok(current) = lexer.current_result() {
         if current == &LEToken::RightBrace {
             break;

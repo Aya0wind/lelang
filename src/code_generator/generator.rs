@@ -7,7 +7,7 @@ use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::FunctionValue;
 use nom::combinator::value;
 
-use crate::ast::{Ast, BinaryOpExpression, CodeBlock, Expr, ExternalFunction, ForLoop, FunctionCall, FunctionDefinition, IdentifierNode, IfStatement, NumberLiteralNode, Statement, VariableNode, WhileLoop};
+use crate::ast::{Ast, BinaryOpExpression, CodeBlock, Expr, ExternalFunction, ForLoop, FunctionCall, FunctionDefinition, IdentifierNode, IfStatement, NumberLiteralNode, Position, Statement, VariableNode, WhileLoop};
 use crate::code_generator::builder::{CompareOperator, LEBuilder, LEVariable, NumericTypeEnum, NumericValueEnum};
 use crate::code_generator::compile_context::CompilerContext;
 use crate::code_generator::symbol_table::Symbol;
@@ -26,7 +26,7 @@ impl<'s> CodeGenerator<'s> {
     fn create_global_variable(&mut self, name: &str, ty: LETypeEnum<'s>, module: &Module<'s>, initial_value: LEValueEnum<'s>) -> Result<LEVariable<'s>> {
         let value_type = initial_value.get_type();
         if ty != value_type {
-            return Err(CompileError::type_mismatched(ty.to_string(), value_type.to_string()).into());
+            return Err(CompileError::type_mismatched(ty.to_string(), value_type.to_string(), self.compiler_context.current_pos).into());
         }
         let variable = match ty {
             LETypeEnum::NumericType(number) => {
@@ -38,7 +38,7 @@ impl<'s> CodeGenerator<'s> {
             _ => { unimplemented!() }
         };
         let le_variable = LEVariable { ty, pointer: variable.as_pointer_value() };
-        self.compiler_context.symbols.insert_global_variable(name.into(), le_variable)?;
+        self.compiler_context.symbols.insert_global_variable(name.into(), le_variable, self.compiler_context.current_pos)?;
         Ok(le_variable)
     }
 
@@ -54,9 +54,10 @@ impl<'s> CodeGenerator<'s> {
         let value_type = initial_value.get_type();
         let le_variable = self.builder.build_alloca(target_type)?;
         self.builder.llvm_builder.position_at_end(current_insert_block);
-        let cast_value = self.builder.build_cast(initial_value, target_type).map_err(|_| CompileError::type_mismatched(target_type.to_string(), value_type.to_string()))?;
-        self.builder.build_store(le_variable, cast_value)?;
-        self.compiler_context.symbols.insert_local_variable(name.into(), le_variable)?;
+        let cast_value = self.builder.build_cast(initial_value, target_type)
+            .map_err(|_| CompileError::type_mismatched(target_type.to_string(), value_type.to_string(), self.compiler_context.current_pos))?;
+        self.builder.build_store(le_variable, cast_value, self.compiler_context.current_pos)?;
+        self.compiler_context.symbols.insert_local_variable(name.into(), le_variable, self.compiler_context.current_pos)?;
         Ok(le_variable)
     }
 
@@ -66,24 +67,24 @@ impl<'s> CodeGenerator<'s> {
     }
 
     fn create_function(&mut self, name: &str, function: FunctionValue<'s>) -> Result<FunctionValue> {
-        self.compiler_context.symbols.insert_global_function(name.into(), function)?;
+        self.compiler_context.symbols.insert_global_function(name.into(), function, self.compiler_context.current_pos)?;
         Ok(function)
     }
 
     fn get_variable(&self, identifier: &str) -> Result<LEVariable<'s>> {
-        self.compiler_context.symbols.get_variable(identifier)
+        self.compiler_context.symbols.get_variable(identifier, self.compiler_context.current_pos)
     }
 
     fn get_function(&self, identifier: &str) -> Result<FunctionValue<'s>> {
-        self.compiler_context.symbols.get_function(identifier)
+        self.compiler_context.symbols.get_function(identifier, self.compiler_context.current_pos)
     }
 
     fn get_type(&self, identifier: &str) -> Result<LETypeEnum<'s>> {
-        self.compiler_context.symbols.get_type(identifier)
+        self.compiler_context.symbols.get_type(identifier, self.compiler_context.current_pos)
     }
 
-    fn get_symbol(&self, identifier: &str) -> Result<Symbol<'s>> {
-        self.compiler_context.symbols.get_symbol(identifier).ok_or_else(|| CompileError::unknown_identifier(identifier.into()).into())
+    fn get_symbol(&self, identifier: &str) -> Option<Symbol<'s>> {
+        self.compiler_context.symbols.get_symbol(identifier, self.compiler_context.current_pos)
     }
 
     fn build_expression(&self, value: &Expr) -> Result<LEValueEnum<'s>> {
@@ -121,11 +122,11 @@ impl<'s> CodeGenerator<'s> {
             }
             Operator::Assign => {
                 if let Expr::Identifier(identifier) = lhs.as_ref() {
-                    let variable = self.compiler_context.symbols.get_variable(&identifier.name)?;
+                    let variable = self.compiler_context.symbols.get_variable(&identifier.name, self.compiler_context.current_pos)?;
                     let value = self.build_expression(rhs.as_ref())?;
-                    self.builder.build_store(variable, value)
+                    self.builder.build_store(variable, value, self.compiler_context.current_pos)
                 } else {
-                    Err(CompileError::can_only_assign_variable(format!("{:?}", lhs)).into())
+                    Err(CompileError::can_only_assign_variable(format!("{:?}", lhs), self.compiler_context.current_pos).into())
                 }
             }
             Operator::Equal => {
@@ -163,7 +164,7 @@ impl<'s> CodeGenerator<'s> {
 
     fn build_identifier_expression(&self, value: &IdentifierNode) -> Result<LEValueEnum<'s>> {
         let name = &value.name;
-        let variable = self.compiler_context.symbols.get_variable(name)?;
+        let variable = self.compiler_context.symbols.get_variable(name, self.compiler_context.current_pos)?;
         self.builder.build_load_variable(variable)
     }
 
@@ -232,7 +233,7 @@ impl<'s> CodeGenerator<'s> {
         let return_variable = self.compiler_context.return_variable;
         let return_block = self.compiler_context.return_block.unwrap();
         if let Some(return_variable) = return_variable {
-            self.builder.build_store(return_variable, value)?;
+            self.builder.build_store(return_variable, value, self.compiler_context.current_pos)?;
         }
         self.builder.llvm_builder.build_unconditional_branch(return_block);
         Ok(())
@@ -253,7 +254,7 @@ impl<'s> CodeGenerator<'s> {
                 let cond_boolean = self.builder.llvm_builder.build_int_cast(int.value, self.builder.llvm_context.bool_type(), "");
                 self.builder.llvm_builder.build_conditional_branch(cond_boolean, body_block, after_block);
             } else {
-                return Err(CompileError::type_mismatched("".into(), "".into()).into());
+                return Err(CompileError::type_mismatched("".into(), "".into(), self.compiler_context.current_pos).into());
             }
             self.builder.llvm_builder.position_at_end(body_block);
             self.build_code_block(&for_loop.code_block)?;
@@ -277,7 +278,7 @@ impl<'s> CodeGenerator<'s> {
                 let cond_boolean = self.builder.llvm_builder.build_int_cast(int.value, self.builder.llvm_context.bool_type(), "");
                 self.builder.llvm_builder.build_conditional_branch(cond_boolean, body_block, after_block);
             } else {
-                return Err(CompileError::type_mismatched("".into(), "".into()).into());
+                return Err(CompileError::type_mismatched("".into(), "".into(), self.compiler_context.current_pos).into());
             }
         }else{
             self.builder.llvm_builder.build_unconditional_branch(body_block);
@@ -298,7 +299,7 @@ impl<'s> CodeGenerator<'s> {
             let cond_boolean = self.builder.llvm_builder.build_int_cast(int.value, self.builder.llvm_context.bool_type(), "");
             self.builder.llvm_builder.build_conditional_branch(cond_boolean, then_block, else_block);
         } else {
-            return Err(CompileError::type_mismatched("".into(), "".into()).into());
+            return Err(CompileError::type_mismatched("".into(), "".into(), self.compiler_context.current_pos).into());
         }
         self.builder.llvm_builder.position_at_end(then_block);
         let is_then_return_block = self.build_code_block(&statement.then_block)?;

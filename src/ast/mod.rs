@@ -47,11 +47,11 @@ impl Ast {
                                 self.globals.push(variable);
                             }
                             _ => {
-                                return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, tokens.current_result()?.clone(), tokens.line()).into());
+                                return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, tokens.current_result()?.clone(), tokens.line().into()).into());
                             }
                         }
                     } else {
-                        return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, tokens.current_result()?.clone(), tokens.line()).into());
+                        return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, tokens.current_result()?.clone(), tokens.line().into()).into());
                     }
                 }
             }

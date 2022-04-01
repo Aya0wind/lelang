@@ -5,6 +5,7 @@ use std::fmt::{Display, Formatter};
 use inkwell::types::{AnyType, AnyTypeEnum, ArrayType, BasicTypeEnum, FloatType, FunctionType, IntType, PointerType, StructType, VectorType};
 use inkwell::values::{AnyValue, AnyValueEnum, ArrayValue, BasicValueEnum, FloatValue, FunctionValue, IntValue, PointerValue, StructValue, VectorValue};
 
+use crate::ast::Position;
 use crate::code_generator::builder::traits::{LEType, LEValue};
 use crate::error::CompileError;
 
@@ -70,7 +71,7 @@ impl<'s> TryFrom<BasicTypeEnum<'s>> for NumericTypeEnum<'s> {
         match value {
             BasicTypeEnum::FloatType(f) => { Ok(NumericTypeEnum::FloatType(f)) }
             BasicTypeEnum::IntType(i) => { Ok(NumericTypeEnum::IntegerType(IntegerType { signed: true, value: i })) }
-            _ => { Err(CompileError::type_mismatched("NumericType".into(), value.print_to_string().to_string())) }
+            _ => { Err(CompileError::type_mismatched("NumericType".into(), value.print_to_string().to_string(), Position { line: 0 })) }
         }
     }
 }

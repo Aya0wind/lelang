@@ -1,4 +1,5 @@
 #![allow(unused)]
+
 use std::fs::File;
 use std::io::Read;
 
@@ -26,7 +27,11 @@ mod compiler;
 fn main() {
     let args = arg_parser::parse_args();
     match compiler::compile_with_config(args) {
-        Ok(_) => { eprintln!("compile success") }
-        Err(err) => { eprintln!("error occurred:{}", err) }
+        Ok(_) => {
+            eprintln!("compile success")
+        }
+        Err(err) => {
+            eprintln!("{}", err)
+        }
     }
 }

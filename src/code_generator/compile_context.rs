@@ -2,6 +2,7 @@ use inkwell::basic_block::BasicBlock;
 use inkwell::context::Context;
 use inkwell::values::FunctionValue;
 
+use crate::ast::Position;
 use crate::code_generator::builder::LEVariable;
 use crate::code_generator::symbol_table::SymbolTable;
 
@@ -11,6 +12,7 @@ pub struct CompilerContext<'s> {
     pub current_function: Option<FunctionValue<'s>>,
     pub return_variable: Option<LEVariable<'s>>,
     pub return_block: Option<BasicBlock<'s>>,
+    pub current_pos: Position,
 }
 
 
@@ -21,6 +23,7 @@ impl<'s> CompilerContext<'s> {
             current_function: None,
             return_variable: None,
             return_block: None,
+            current_pos: Position { line: 0 }
         }
     }
 

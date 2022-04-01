@@ -15,10 +15,12 @@ pub fn parse_variable_declaration(lexer: &mut LELexer) -> Result<VariableNode> {
             prototype: VariablePrototype {
                 type_name,
                 name,
+                pos: lexer.line().into()
             },
             value: initial_value,
+            pos: lexer.line().into()
         })
     } else {
-        Err(SyntaxError::unexpect_token(TokenType::Operator, LEToken::Operator(equal_op), lexer.line()).into())
+        Err(SyntaxError::unexpect_token(TokenType::Operator, LEToken::Operator(equal_op), lexer.line().into()).into())
     }
 }

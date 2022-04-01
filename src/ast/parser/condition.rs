@@ -15,12 +15,14 @@ pub fn parse_if_condition(lexer: &mut LELexer) -> Result<IfStatement> {
             cond: cond_value,
             then_block,
             else_block: Some(else_block),
+            pos: lexer.line().into()
         })
     } else {
         Ok(IfStatement {
             cond: cond_value,
             then_block,
             else_block: None,
+            pos: lexer.line().into()
         })
     }
 }

@@ -30,7 +30,7 @@ pub fn parse_function_params(lexer: &mut LELexer) -> Result<Vec<(String, String)
                 lexer.next_result()?;
             }
             _ => {
-                return Err(SyntaxError::unexpect_token(TokenType::RightPar, current_token, lexer.line()).into());
+                return Err(SyntaxError::unexpect_token(TokenType::RightPar, current_token, lexer.line().into()).into());
             }
         }
     }
@@ -54,7 +54,7 @@ pub fn parse_type_list(lexer: &mut LELexer) -> Result<Vec<String>> {
                 lexer.next_result()?;
             }
             _ => {
-                return Err(SyntaxError::unexpect_token(TokenType::RightPar, current_token, lexer.line()).into());
+                return Err(SyntaxError::unexpect_token(TokenType::RightPar, current_token, lexer.line().into()).into());
             }
         }
     }
@@ -70,6 +70,7 @@ pub fn parse_function_prototype(lexer: &mut LELexer) -> Result<ExternalFunction>
         name,
         param_types,
         return_type,
+        pos: lexer.line().into()
     })
 }
 
@@ -100,9 +101,11 @@ pub fn parse_function(lexer: &mut LELexer) -> FParseResult {
             name,
             param_types,
             return_type,
+            pos: lexer.line().into()
         },
         param_names,
         code_block,
+        pos: lexer.line().into()
     };
     Ok(function)
 }

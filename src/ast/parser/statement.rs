@@ -25,7 +25,7 @@ pub fn parse_statement(lexer: &mut LELexer) -> Result<Statement> {
                 KeyWord::If => Ok(Statement::If(parse_if_condition(lexer)?)),
                 KeyWord::For => Ok(Statement::ForLoop(parse_for_loop(lexer)?)),
                 KeyWord::While => Ok(Statement::WhileLoop(parse_while_loop(lexer)?)),
-                _ => { Err(SyntaxError::unexpect_token(TokenType::Identifier, lexer.current_result()?.clone(), lexer.line()).into()) }
+                _ => { Err(SyntaxError::unexpect_token(TokenType::Identifier, lexer.current_result()?.clone(), lexer.line().into()).into()) }
             }
         }
         LEToken::Semicolon => {

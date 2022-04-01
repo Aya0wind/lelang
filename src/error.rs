@@ -4,6 +4,7 @@ use std::fmt::{Display, Formatter};
 
 use thiserror::Error;
 
+use crate::ast::Position;
 use crate::lexer::{LELexer, LEToken};
 
 #[derive(Debug, Error)]
@@ -46,20 +47,20 @@ impl Display for TokenType {
 #[allow(unused)]
 #[derive(Debug, Error)]
 pub enum SyntaxError {
-    #[error("[line {line}]Unexpected token: `{found}`, expect: `{expect}`")]
+    #[error("[ERROR]line({pos}): Unexpected token: `{found}`, expect: `{expect}`")]
     UnexpectToken {
         expect: TokenType,
         found: LEToken,
-        line: usize,
+        pos: Position,
     },
-    #[error("[line {line}] Missing token:`{expect}`")]
+    #[error("[ERROR]line({pos}): Missing token:`{expect}`")]
     MissingToken {
         expect: TokenType,
-        line: usize,
+        pos: Position,
     },
-    #[error("[line {line}] Missing expression.")]
+    #[error("[ERROR]line({pos}): Missing expression.")]
     MissingExpression {
-        line: usize,
+        pos: Position,
     },
     #[error("End of file")]
     EOF,
@@ -68,35 +69,42 @@ pub enum SyntaxError {
 #[allow(unused)]
 #[derive(Debug, Error)]
 pub enum CompileError {
-    #[error("unknown identifier:{identifier}")]
+    #[error("[ERROR]line({pos}):unknown identifier:{identifier}")]
     UnknownIdentifier {
         identifier: String,
+        pos: Position,
     },
-    #[error("expect a type name, but identifier `{identifier}` is not a type")]
+    #[error("[ERROR]line({pos}):expect a type name, but identifier `{identifier}` is not a type")]
     IdentifierIsNotType {
         identifier: String,
+        pos: Position,
     },
-    #[error("expect a variable, but identifier `{identifier}` is not a variable")]
+    #[error("[ERROR]line({pos}):expect a variable, but identifier `{identifier}` is not a variable")]
     IdentifierIsNotVariable {
         identifier: String,
+        pos: Position,
     },
-    #[error("expect a function name, but identifier `{identifier}` is not a function")]
+    #[error("[ERROR]line({pos}):expect a function name, but identifier `{identifier}` is not a function")]
     IdentifierIsNotFunction {
         identifier: String,
+        pos: Position,
     },
-    #[error("identifier `{identifier}` is already defined, which is a `{symbol_name}`")]
+    #[error("[ERROR]line({pos}):identifier `{identifier}` is already defined, which is a `{symbol_name}`")]
     IdentifierAlreadyDefined {
         identifier: String,
         symbol_name: String,
+        pos: Position,
     },
-    #[error("expect a variable, but identifier `{identifier}` is not a variable")]
+    #[error("[ERROR]line({pos}):expect a variable, but identifier `{identifier}` is not a variable")]
     CanOnlyAssignVariable {
         identifier: String,
+        pos: Position,
     },
-    #[error("expect a type `{expect}`, but got `{found}`")]
+    #[error("[ERROR]line({pos}):expect a type `{expect}`, but got `{found}`")]
     TypeMismatched {
         expect: String,
         found: String,
+        pos: Position,
     },
 
 }
@@ -108,92 +116,92 @@ impl TokenParserError {
 }
 
 impl CompileError {
-    pub fn identifier_is_not_type(identifier: String) -> Self {
-        Self::IdentifierIsNotType { identifier }
+    pub fn identifier_is_not_type(identifier: String, pos: Position) -> Self {
+        Self::IdentifierIsNotType { identifier, pos }
     }
-    pub fn can_only_assign_variable(identifier: String) -> Self {
-        Self::CanOnlyAssignVariable { identifier }
+    pub fn can_only_assign_variable(identifier: String, pos: Position) -> Self {
+        Self::CanOnlyAssignVariable { identifier, pos }
     }
-    pub fn unknown_identifier(identifier: String) -> Self {
-        Self::UnknownIdentifier { identifier }
+    pub fn unknown_identifier(identifier: String, pos: Position) -> Self {
+        Self::UnknownIdentifier { identifier, pos }
     }
-    pub fn identifier_is_not_variable(identifier: String) -> Self {
-        Self::IdentifierIsNotVariable { identifier }
+    pub fn identifier_is_not_variable(identifier: String, pos: Position) -> Self {
+        Self::IdentifierIsNotVariable { identifier, pos }
     }
-    pub fn identifier_is_not_function(identifier: String) -> Self {
-        Self::IdentifierIsNotFunction { identifier }
-    }
-
-    pub fn identifier_already_defined(identifier: String, symbol_name: String) -> Self {
-        Self::IdentifierIsNotFunction { identifier }
+    pub fn identifier_is_not_function(identifier: String, pos: Position) -> Self {
+        Self::IdentifierIsNotFunction { identifier, pos }
     }
 
-    pub fn type_mismatched(expect: String, found: String) -> Self {
-        Self::TypeMismatched { expect, found }
+    pub fn identifier_already_defined(identifier: String, symbol_name: String, pos: Position) -> Self {
+        Self::IdentifierIsNotFunction { identifier, pos }
+    }
+
+    pub fn type_mismatched(expect: String, found: String, pos: Position) -> Self {
+        Self::TypeMismatched { expect, found, pos }
     }
 }
 
 impl SyntaxError {
-    pub fn unexpect_token(expect: TokenType, found: LEToken, line: usize) -> Self {
-        Self::UnexpectToken { expect, found, line }
+    pub fn unexpect_token(expect: TokenType, found: LEToken, pos: Position) -> Self {
+        Self::UnexpectToken { expect, found, pos }
     }
-    pub fn missing_expression(line: usize) -> Self { Self::MissingExpression { line } }
-    pub fn missing_token(expect: TokenType, line: usize) -> Self {
-        Self::MissingToken { expect, line }
+    pub fn missing_expression(pos: Position) -> Self { Self::MissingExpression { pos } }
+    pub fn missing_token(expect: TokenType, pos: Position) -> Self {
+        Self::MissingToken { expect, pos }
     }
-    pub fn missing_if(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::If, line }
+    pub fn missing_if(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::If, pos }
     }
-    pub fn missing_else(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::Else, line }
+    pub fn missing_else(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::Else, pos }
     }
-    pub fn missing_function_declare(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::FunctionDeclare, line }
+    pub fn missing_function_declare(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::FunctionDeclare, pos }
     }
-    pub fn missing_variable_declare(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::VariableDeclare, line }
+    pub fn missing_variable_declare(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::VariableDeclare, pos }
     }
-    pub fn missing_return(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::Return, line }
+    pub fn missing_return(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::Return, pos }
     }
-    pub fn missing_colon(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::Colon, line }
+    pub fn missing_colon(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::Colon, pos }
     }
-    pub fn missing_left_little_brace(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::LeftPar, line }
+    pub fn missing_left_little_brace(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::LeftPar, pos }
     }
-    pub fn missing_right_little_brace(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::RightPar, line }
+    pub fn missing_right_little_brace(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::RightPar, pos }
     }
-    pub fn missing_left_middle_brace(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::LeftBracket, line }
+    pub fn missing_left_middle_brace(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::LeftBracket, pos }
     }
-    pub fn missing_right_middle_brace(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::RightBracket, line }
+    pub fn missing_right_middle_brace(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::RightBracket, pos }
     }
-    pub fn missing_left_big_brace(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::LeftBrace, line }
+    pub fn missing_left_big_brace(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::LeftBrace, pos }
     }
-    pub fn missing_right_big_brace(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::RightBrace, line }
+    pub fn missing_right_big_brace(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::RightBrace, pos }
     }
-    pub fn missing_comma(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::Comma, line }
+    pub fn missing_comma(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::Comma, pos }
     }
-    pub fn missing_operator(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::Operator, line }
+    pub fn missing_operator(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::Operator, pos }
     }
-    pub fn missing_return_type_allow(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::ReturnTypeAllow, line }
+    pub fn missing_return_type_allow(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::ReturnTypeAllow, pos }
     }
-    pub fn missing_identifier(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::Identifier, line }
+    pub fn missing_identifier(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::Identifier, pos }
     }
-    pub fn missing_number_literal(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::NumberLiteral, line }
+    pub fn missing_number_literal(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::NumberLiteral, pos }
     }
-    pub fn missing_string_literal(line: usize) -> Self {
-        Self::MissingToken { expect: TokenType::StringLiteral, line }
+    pub fn missing_string_literal(pos: Position) -> Self {
+        Self::MissingToken { expect: TokenType::StringLiteral, pos }
     }
 }
 

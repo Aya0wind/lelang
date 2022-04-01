@@ -16,5 +16,6 @@ pub fn parse_for_loop(lexer: &mut LELexer) -> Result<ForLoop> {
         condition: Box::from(cond),
         iterate: Box::new(step),
         code_block,
+        pos: lexer.line().into()
     })
 }

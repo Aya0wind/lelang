@@ -299,7 +299,7 @@ impl<'s> LELexer<'s> {
     }
 
     pub fn line(&self) -> usize {
-        self.current_line
+        self.current_line.into()
     }
 
     pub fn next_result(&mut self) -> Result<LEToken> {
@@ -311,7 +311,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::KeyWord(keyword) = consume {
             Ok(keyword)
         } else {
-            Err(Box::new(SyntaxError::unexpect_token(TokenType::Identifier, consume.clone(), self.current_line)).into())
+            Err(Box::new(SyntaxError::unexpect_token(TokenType::Identifier, consume.clone(), self.current_line.into())).into())
         }
     }
 
@@ -320,7 +320,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Operator(operator) = consume {
             Ok(operator)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Operator, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::Operator, consume.clone(), self.current_line.into()).into())
         }
     }
 
@@ -329,7 +329,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::NumberLiteral(number) = consume {
             Ok(number)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::NumberLiteral, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::NumberLiteral, consume.clone(), self.current_line.into()).into())
         }
     }
 
@@ -338,7 +338,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::StringLiteral(string_literal) = consume {
             Ok(string_literal)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::StringLiteral, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::StringLiteral, consume.clone(), self.current_line.into()).into())
         }
     }
 
@@ -347,7 +347,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Identifier(identifier) = consume {
             Ok(identifier)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Identifier, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::Identifier, consume.clone(), self.current_line.into()).into())
         }
     }
 
@@ -356,7 +356,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Colon = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Colon, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::Colon, consume.clone(), self.current_line.into()).into())
         }
     }
 
@@ -365,7 +365,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Comma = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Comma, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::Comma, consume.clone(), self.current_line.into()).into())
         }
     }
 
@@ -374,7 +374,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Semicolon = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Semicolon, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::Semicolon, consume.clone(), self.current_line.into()).into())
         }
     }
 
@@ -383,7 +383,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::LeftPar = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::LeftPar, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::LeftPar, consume.clone(), self.current_line.into()).into())
         }
     }
     pub fn consume_right_par(&mut self) -> Result<()> {
@@ -391,7 +391,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::RightPar = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightPar, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::RightPar, consume.clone(), self.current_line.into()).into())
         }
     }
     pub fn consume_right_middle_brace(&mut self) -> Result<()> {
@@ -399,7 +399,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::RightBracket = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightBracket, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::RightBracket, consume.clone(), self.current_line.into()).into())
         }
     }
 
@@ -408,7 +408,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::LeftBrace = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::LeftBrace, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::LeftBrace, consume.clone(), self.current_line.into()).into())
         }
     }
 
@@ -417,7 +417,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::RightBrace = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightBrace, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::RightBrace, consume.clone(), self.current_line.into()).into())
         }
     }
 
@@ -426,7 +426,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::ReturnTypeAllow = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::ReturnTypeAllow, consume.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::ReturnTypeAllow, consume.clone(), self.current_line.into()).into())
         }
     }
 
@@ -435,7 +435,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::KeyWord(keyword) = check_current {
             Ok(keyword)
         } else {
-            Err(Box::new(SyntaxError::unexpect_token(TokenType::Identifier, check_current.clone(), self.current_line)).into())
+            Err(Box::new(SyntaxError::unexpect_token(TokenType::Identifier, check_current.clone(), self.current_line.into())).into())
         }
     }
 
@@ -444,7 +444,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Operator(operator) = check_current {
             Ok(operator)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Operator, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::Operator, check_current.clone(), self.current_line.into()).into())
         }
     }
 
@@ -453,7 +453,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::NumberLiteral(number) = check_current {
             Ok(number)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::NumberLiteral, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::NumberLiteral, check_current.clone(), self.current_line.into()).into())
         }
     }
     pub fn check_current_string_literal(&mut self) -> Result<&String> {
@@ -461,7 +461,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::StringLiteral(string_literal) = check_current {
             Ok(string_literal)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::StringLiteral, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::StringLiteral, check_current.clone(), self.current_line.into()).into())
         }
     }
     pub fn check_current_identifier(&mut self) -> Result<&String> {
@@ -469,7 +469,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Identifier(identifier) = check_current {
             Ok(identifier)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Identifier, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::Identifier, check_current.clone(), self.current_line.into()).into())
         }
     }
 
@@ -478,7 +478,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Colon = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Colon, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::Colon, check_current.clone(), self.current_line.into()).into())
         }
     }
     pub fn check_current_comma(&mut self) -> Result<()> {
@@ -486,7 +486,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Comma = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Comma, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::Comma, check_current.clone(), self.current_line.into()).into())
         }
     }
     pub fn check_current_semicolon(&mut self) -> Result<()> {
@@ -494,7 +494,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Semicolon = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Semicolon, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::Semicolon, check_current.clone(), self.current_line.into()).into())
         }
     }
     pub fn check_current_left_little_brace(&mut self) -> Result<()> {
@@ -502,7 +502,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::LeftPar = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::LeftPar, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::LeftPar, check_current.clone(), self.current_line.into()).into())
         }
     }
     pub fn check_current_right_little_brace(&mut self) -> Result<()> {
@@ -510,7 +510,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::RightPar = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightPar, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::RightPar, check_current.clone(), self.current_line.into()).into())
         }
     }
     pub fn check_current_right_middle_brace(&mut self) -> Result<()> {
@@ -518,7 +518,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::RightBracket = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightBracket, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::RightBracket, check_current.clone(), self.current_line.into()).into())
         }
     }
     pub fn check_current_left_big_brace(&mut self) -> Result<()> {
@@ -526,7 +526,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::LeftBrace = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::LeftBrace, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::LeftBrace, check_current.clone(), self.current_line.into()).into())
         }
     }
     pub fn check_current_right_big_brace(&mut self) -> Result<()> {
@@ -534,7 +534,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::RightBrace = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightBrace, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::RightBrace, check_current.clone(), self.current_line.into()).into())
         }
     }
     pub fn check_current_return_type_allow(&mut self) -> Result<()> {
@@ -542,7 +542,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::ReturnTypeAllow = check_current {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::ReturnTypeAllow, check_current.clone(), self.current_line).into())
+            Err(SyntaxError::unexpect_token(TokenType::ReturnTypeAllow, check_current.clone(), self.current_line.into()).into())
         }
     }
 }

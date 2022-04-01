@@ -4,6 +4,7 @@ use anyhow::Result;
 use inkwell::context::Context;
 use inkwell::values::FunctionValue;
 
+use crate::ast::Position;
 use crate::code_generator::builder::{IntegerType, LETypeEnum, LEVariable, NumericTypeEnum};
 use crate::error::CompileError;
 
@@ -37,32 +38,32 @@ impl<'s> SymbolTable<'s> {
             ])]
         }
     }
-    pub fn get_type(&self, type_name: &str) -> Result<LETypeEnum<'s>> {
-        let symbol = self.get_symbol(type_name).ok_or(CompileError::unknown_identifier(type_name.into()))?;
+    pub fn get_type(&self, type_name: &str, pos: Position) -> Result<LETypeEnum<'s>> {
+        let symbol = self.get_symbol(type_name, pos).ok_or(CompileError::unknown_identifier(type_name.into(), pos))?;
         if let Symbol::Type(t) = symbol {
             Ok(t)
         } else {
-            Err(CompileError::identifier_is_not_type(type_name.into()).into())
+            Err(CompileError::identifier_is_not_type(type_name.into(), pos).into())
         }
     }
-    pub fn get_variable(&self, variable: &str) -> Result<LEVariable<'s>> {
-        let symbol = self.get_symbol(variable).ok_or(CompileError::unknown_identifier(variable.into()))?;
+    pub fn get_variable(&self, variable: &str, pos: Position) -> Result<LEVariable<'s>> {
+        let symbol = self.get_symbol(variable, pos).ok_or(CompileError::unknown_identifier(variable.into(), pos))?;
         if let Symbol::Variable(v) = symbol {
             Ok(v)
         } else {
-            Err(CompileError::identifier_is_not_type(variable.into()).into())
+            Err(CompileError::identifier_is_not_type(variable.into(), pos).into())
         }
     }
-    pub fn get_function(&self, function: &str) -> Result<FunctionValue<'s>> {
-        let symbol = self.get_symbol(function).ok_or(CompileError::unknown_identifier(function.into()))?;
+    pub fn get_function(&self, function: &str, pos: Position) -> Result<FunctionValue<'s>> {
+        let symbol = self.get_symbol(function, pos).ok_or(CompileError::unknown_identifier(function.into(), pos))?;
         if let Symbol::Function(f) = symbol {
             Ok(f)
         } else {
-            Err(CompileError::identifier_is_not_type(function.into()).into())
+            Err(CompileError::identifier_is_not_type(function.into(), pos).into())
         }
     }
 
-    pub fn get_symbol(&self, identifier: &str) -> Option<Symbol<'s>> {
+    pub fn get_symbol(&self, identifier: &str, pos: Position) -> Option<Symbol<'s>> {
         for block_symbols in self.table.iter().rev() {
             if let Some(symbol) = block_symbols.get(identifier) {
                 return Some(*symbol);
@@ -71,41 +72,41 @@ impl<'s> SymbolTable<'s> {
         None
     }
 
-    pub fn insert_global_symbol(&mut self, name: String, symbol: Symbol<'s>) -> Result<()> {
+    pub fn insert_global_symbol(&mut self, name: String, symbol: Symbol<'s>, pos: Position) -> Result<()> {
         let global_table = self.table.first_mut().unwrap();
         if global_table.contains_key(&name) {
-            return Err(CompileError::identifier_already_defined(name, "variable".into()).into());
+            return Err(CompileError::identifier_already_defined(name, "variable".into(), pos).into());
         } else {
             global_table.entry(name).or_insert(symbol);
         }
         Ok(())
     }
 
-    pub fn insert_global_variable(&mut self, name: String, value: LEVariable<'s>) -> Result<()> {
-        self.insert_global_symbol(name, Symbol::Variable(value))
+    pub fn insert_global_variable(&mut self, name: String, value: LEVariable<'s>, pos: Position) -> Result<()> {
+        self.insert_global_symbol(name, Symbol::Variable(value), pos)
     }
 
-    pub fn insert_global_type(&mut self, name: String, value: LETypeEnum<'s>) -> Result<()> {
-        self.insert_global_symbol(name, Symbol::Type(value))
+    pub fn insert_global_type(&mut self, name: String, value: LETypeEnum<'s>, pos: Position) -> Result<()> {
+        self.insert_global_symbol(name, Symbol::Type(value), pos)
     }
-    pub fn insert_global_function(&mut self, name: String, value: FunctionValue<'s>) -> Result<()> {
-        self.insert_global_symbol(name, Symbol::Function(value))
+    pub fn insert_global_function(&mut self, name: String, value: FunctionValue<'s>, pos: Position) -> Result<()> {
+        self.insert_global_symbol(name, Symbol::Function(value), pos)
     }
 
-    pub fn insert_local_function(&mut self, name: String, value: FunctionValue<'s>) -> Result<()> {
+    pub fn insert_local_function(&mut self, name: String, value: FunctionValue<'s>, pos: Position) -> Result<()> {
         let local_symbols = self.table.last_mut().unwrap();
         if local_symbols.contains_key(&name) {
-            Err(CompileError::identifier_already_defined(name, "function".into()).into())
+            Err(CompileError::identifier_already_defined(name, "function".into(), pos).into())
         } else {
             local_symbols.entry(name).or_insert(Symbol::Function(value));
             Ok(())
         }
     }
 
-    pub fn insert_local_type(&mut self, name: String, value: LETypeEnum<'s>) -> Result<()> {
+    pub fn insert_local_type(&mut self, name: String, value: LETypeEnum<'s>, pos: Position) -> Result<()> {
         let local_symbols = self.table.last_mut().unwrap();
         if local_symbols.contains_key(&name) {
-            Err(CompileError::identifier_already_defined(name, "type".into()).into())
+            Err(CompileError::identifier_already_defined(name, "type".into(), pos).into())
         } else {
             local_symbols.entry(name).or_insert(Symbol::Type(value));
             Ok(())
@@ -117,10 +118,10 @@ impl<'s> SymbolTable<'s> {
     pub fn pop_block_table(&mut self) {
         self.table.pop();
     }
-    pub fn insert_local_variable(&mut self, name: String, value: LEVariable<'s>) -> Result<()> {
+    pub fn insert_local_variable(&mut self, name: String, value: LEVariable<'s>, pos: Position) -> Result<()> {
         let local_symbols = self.table.last_mut().unwrap();
         if local_symbols.contains_key(&name) {
-            Err(CompileError::identifier_already_defined(name, "variable".into()).into())
+            Err(CompileError::identifier_already_defined(name, "variable".into(), pos).into())
         } else {
             local_symbols.entry(name).or_insert(Symbol::Variable(value));
             Ok(())
