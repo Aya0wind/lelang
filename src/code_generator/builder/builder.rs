@@ -125,7 +125,7 @@ impl<'s> LEBuilder<'s> {
                     self.llvm_context,
                     variable.pointer,
                     numeric_ty,
-                    rhs).map(|n| LEValueEnum::NumericValue(n));
+                    rhs).map(LEValueEnum::NumericValue)
             }
         }
         Err(CompileError::type_mismatched(variable.ty.to_string(), rhs.get_type().to_string()).into())
@@ -165,7 +165,7 @@ impl<'s> LEBuilder<'s> {
         for (param, argument) in function.get_param_iter().zip(params.iter()) {
             let param_type: LETypeEnum = param.get_type().into();
             if param_type != argument.get_type() {
-                let argument = self.build_cast(*argument,param_type)?;
+                let argument = self.build_cast(*argument, param_type)?;
                 match argument {
                     LEValueEnum::NumericValue(number) => {
                         let arg = match number {
@@ -180,7 +180,7 @@ impl<'s> LEBuilder<'s> {
                     }
                     _ => { unimplemented!() }
                 }
-            }else{
+            } else {
                 match argument {
                     LEValueEnum::NumericValue(number) => {
                         let arg = match number {

@@ -1,0 +1,1 @@
+target/release/lelang -i main.le -Sllvmir -O0 -oout.ll

@@ -167,7 +167,7 @@ pub enum Operator {
 #[allow(dead_code)]
 pub enum Number {
     Integer(u64, bool),
-    Float(f64, bool),
+    Float(f64),
 }
 
 #[derive(Debug, PartialEq, Display, Clone)]

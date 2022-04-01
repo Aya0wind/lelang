@@ -1,0 +1,18 @@
+[alias]     # 命令别名
+b = "build"
+c = "check"
+t = "test"
+r = "run"
+br = "build --release"
+
+[source.crates-io]
+replace-with = 'rsproxy'
+
+[source.rsproxy]
+registry = "https://rsproxy.cn/crates.io-index"
+
+[registries.rsproxy]
+index = "https://rsproxy.cn/crates.io-index"
+
+[net]
+git-fetch-with-cli = true

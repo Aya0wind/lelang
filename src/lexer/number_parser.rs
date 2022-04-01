@@ -50,7 +50,7 @@ fn float(input: &str) -> IResult<&str, (f64, bool)> {
 
 fn parse(input: &str) -> Result<(Number, usize)> {
     if let Ok((remain, (number, signed))) = float(input) {
-        Ok((Number::Float(number, signed), remain.len()))
+        Ok((Number::Float(number), remain.len()))
     } else if let Ok((remain, (number, signed))) = integer(input) {
         Ok((Number::Integer(number, signed), remain.len()))
     } else {

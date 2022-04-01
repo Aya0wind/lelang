@@ -19,27 +19,13 @@ mod error;
 mod ast;
 mod optimizer;
 mod target;
-pub fn compile_with_error_handling(code: &str) -> Result<()> {
-    let lexer = lexer::LELexer::new(code).unwrap();
-    let ast = Ast::from_lexer(lexer)?;
-    let context = Context::create();
-    let mut code_generator = CodeGenerator::create(&context);
-    let module = context.create_module("main");
-    code_generator.compile(&module, ast)?;
-    let optimizer = Optimizer::new(&module, OptimizationLevel::Aggressive);
-    optimizer.run_on_module(&module);
-    module.print_to_file("out.ll").unwrap();
-    // let jit_compiler = JITCompiler::new(&module);
-    // jit_compiler.run_main()?;
-    Ok(())
-}
+mod arg_parser;
+mod compiler;
 
 
 fn main() {
-    let mut file = File::open("main.le").unwrap();
-    let mut buffer = String::new();
-    file.read_to_string(&mut buffer).unwrap();
-    match compile_with_error_handling(&buffer) {
+    let args = arg_parser::parse_args();
+    match compiler::compile_with_config(args) {
         Ok(_) => { eprintln!("compile success") }
         Err(err) => { eprintln!("error occurred:{}", err) }
     }

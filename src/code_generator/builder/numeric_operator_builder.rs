@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+
 use anyhow::Result;
 use inkwell::{FloatPredicate, IntPredicate};
 use inkwell::builder::Builder;
@@ -72,7 +73,8 @@ impl NumericOperatorBuilder {
                             )
                         )
                     }
-                }}
+                }
+            }
             Ordering::Greater => {
                 //左边的类型要提升至右边的类型
                 match (lhs, rhs) {
@@ -144,15 +146,14 @@ impl NumericOperatorBuilder {
     pub fn build_numeric_sub<'s>(llvm_builder: &Builder<'s>, llvm_context: &Context, lhs: NumericValueEnum<'s>, rhs: NumericValueEnum<'s>) -> Result<NumericValueEnum<'s>> {
         let (left_providence, right_providence) = (get_number_providence(&lhs.get_type()), get_number_providence(&rhs.get_type()));
         match left_providence.cmp(&right_providence) {
-
             Ordering::Less => {
                 //右边的类型要提升至左边的类型
                 match (lhs, rhs) {
-                    (NumericValueEnum::Integer(left_int), NumericValueEnum::Integer(right_int_)) => {
-                        let cast_value = llvm_builder.build_int_cast(right_int_.value, left_int.value.get_type(), "");
+                    (NumericValueEnum::Integer(left_int), NumericValueEnum::Integer(right_int)) => {
+                        let cast_value = llvm_builder.build_int_cast(right_int.value, left_int.value.get_type(), "");
                         Ok(
                             NumericValueEnum::Integer(
-                                IntegerValue { signed: left_int.signed, value: llvm_builder.build_int_sub(left_int.value, cast_value, "") }
+                                IntegerValue { signed: left_int.signed, value: llvm_builder.build_int_sub(cast_value,right_int.value, "") }
                             )
                         )
                     }
@@ -194,7 +195,7 @@ impl NumericOperatorBuilder {
                 //左边的类型要提升至右边的类型
                 match (lhs, rhs) {
                     (NumericValueEnum::Integer(left_int), NumericValueEnum::Integer(right_int)) => {
-                        let cast_value = llvm_builder.build_int_cast(right_int.value, left_int.value.get_type(), "");
+                        let cast_value = llvm_builder.build_int_cast(left_int.value, right_int.value.get_type(), "");
                         Ok(
                             NumericValueEnum::Integer(
                                 IntegerValue { signed: right_int.signed, value: llvm_builder.build_int_sub(cast_value, right_int.value, "") }
@@ -261,7 +262,6 @@ impl NumericOperatorBuilder {
     pub fn build_numeric_mul<'s>(llvm_builder: &Builder<'s>, llvm_context: &Context, lhs: NumericValueEnum<'s>, rhs: NumericValueEnum<'s>) -> Result<NumericValueEnum<'s>> {
         let (left_providence, right_providence) = (get_number_providence(&lhs.get_type()), get_number_providence(&rhs.get_type()));
         match left_providence.cmp(&right_providence) {
-
             Ordering::Less => {
                 //右边的类型要提升至左边的类型
                 match (lhs, rhs) {
@@ -311,7 +311,7 @@ impl NumericOperatorBuilder {
                 //左边的类型要提升至右边的类型
                 match (lhs, rhs) {
                     (NumericValueEnum::Integer(left_int), NumericValueEnum::Integer(right_int)) => {
-                        let cast_value = llvm_builder.build_int_cast(right_int.value, left_int.value.get_type(), "");
+                        let cast_value = llvm_builder.build_int_cast(left_int.value, right_int.value.get_type(), "");
                         Ok(
                             NumericValueEnum::Integer(
                                 IntegerValue { signed: right_int.signed, value: llvm_builder.build_int_mul(cast_value, right_int.value, "") }
@@ -526,7 +526,6 @@ impl NumericOperatorBuilder {
     pub fn build_numeric_compare<'s>(llvm_builder: &Builder<'s>, llvm_context: &Context, lhs: NumericValueEnum<'s>, rhs: NumericValueEnum<'s>, op: CompareOperator) -> Result<IntegerValue<'s>> {
         let (left_providence, right_providence) = (get_number_providence(&lhs.get_type()), get_number_providence(&rhs.get_type()));
         match left_providence.cmp(&right_providence) {
-
             Ordering::Less => {
                 //右边的类型要提升至左边的类型
                 match (lhs, rhs) {
@@ -639,64 +638,63 @@ impl NumericOperatorBuilder {
     }
 
     pub fn build_numeric_assign<'s>(llvm_builder: &Builder<'s>, llvm_context: &Context, variable_pointer: PointerValue<'s>, variable_ty: NumericTypeEnum<'s>, rhs: NumericValueEnum<'s>) -> Result<NumericValueEnum<'s>> {
-        let cast_value = Self::build_numeric_cast(llvm_builder,llvm_context,rhs,variable_ty)?;
+        let cast_value = Self::build_numeric_cast(llvm_builder, llvm_context, rhs, variable_ty)?;
         match cast_value {
-            NumericValueEnum::Float(f) => {llvm_builder.build_store(variable_pointer,f);}
-            NumericValueEnum::Integer(i) => {llvm_builder.build_store(variable_pointer,i.value);}
+            NumericValueEnum::Float(f) => { llvm_builder.build_store(variable_pointer, f); }
+            NumericValueEnum::Integer(i) => { llvm_builder.build_store(variable_pointer, i.value); }
         }
         Ok(cast_value)
     }
 
     pub fn build_numeric_cast<'s>(llvm_builder: &Builder<'s>, llvm_context: &Context, from: NumericValueEnum<'s>, to: NumericTypeEnum<'s>) -> Result<NumericValueEnum<'s>> {
-        if from.get_type() != to {
-            match (from, to) {
-                (NumericValueEnum::Integer(left_int), NumericTypeEnum::IntegerType(target_type)) => {
-                    Ok(
-                        NumericValueEnum::Integer(
-                            IntegerValue { signed: target_type.signed, value: llvm_builder.build_int_cast(left_int.value, target_type.value, "") }
-                        )
+        if from.get_type()==to {
+            return Ok(from)
+        }
+        match (from, to) {
+            (NumericValueEnum::Integer(left_int), NumericTypeEnum::IntegerType(target_type)) => {
+                Ok(
+                    NumericValueEnum::Integer(
+                        IntegerValue { signed: target_type.signed, value: llvm_builder.build_int_cast(left_int.value, target_type.value, "") }
                     )
-                }
-                (NumericValueEnum::Integer(left_int), NumericTypeEnum::FloatType(target_type)) => {
-                    if left_int.signed {
-                        Ok(
-                            NumericValueEnum::Float(
-                                llvm_builder.build_signed_int_to_float(left_int.value, target_type, "")
-                            )
-                        )
-                    } else {
-                        Ok(
-                            NumericValueEnum::Float(
-                                llvm_builder.build_unsigned_int_to_float(left_int.value, target_type, "")
-                            )
-                        )
-                    }
-                }
-                (NumericValueEnum::Float(left_float), NumericTypeEnum::IntegerType(target_type)) => {
-                    if target_type.signed {
-                        Ok(
-                            NumericValueEnum::Integer(
-                                IntegerValue { signed: target_type.signed, value: llvm_builder.build_float_to_signed_int(left_float, target_type.value, "") }
-                            )
-                        )
-                    } else {
-                        Ok(
-                            NumericValueEnum::Integer(
-                                IntegerValue { signed: target_type.signed, value: llvm_builder.build_float_to_unsigned_int(left_float, target_type.value, "") }
-                            )
-                        )
-                    }
-                }
-                (NumericValueEnum::Float(left_float), NumericTypeEnum::FloatType(target_type)) => {
+                )
+            }
+            (NumericValueEnum::Integer(left_int), NumericTypeEnum::FloatType(target_type)) => {
+                if left_int.signed {
                     Ok(
                         NumericValueEnum::Float(
-                            llvm_builder.build_float_cast(left_float, target_type, "")
+                            llvm_builder.build_signed_int_to_float(left_int.value, target_type, "")
+                        )
+                    )
+                } else {
+                    Ok(
+                        NumericValueEnum::Float(
+                            llvm_builder.build_unsigned_int_to_float(left_int.value, target_type, "")
                         )
                     )
                 }
             }
-        } else {
-            Ok(from)
+            (NumericValueEnum::Float(left_float), NumericTypeEnum::IntegerType(target_type)) => {
+                if target_type.signed {
+                    Ok(
+                        NumericValueEnum::Integer(
+                            IntegerValue { signed: target_type.signed, value: llvm_builder.build_float_to_signed_int(left_float, target_type.value, "") }
+                        )
+                    )
+                } else {
+                    Ok(
+                        NumericValueEnum::Integer(
+                            IntegerValue { signed: target_type.signed, value: llvm_builder.build_float_to_unsigned_int(left_float, target_type.value, "") }
+                        )
+                    )
+                }
+            }
+            (NumericValueEnum::Float(left_float), NumericTypeEnum::FloatType(target_type)) => {
+                Ok(
+                    NumericValueEnum::Float(
+                        llvm_builder.build_float_cast(left_float, target_type, "")
+                    )
+                )
+            }
         }
     }
 }

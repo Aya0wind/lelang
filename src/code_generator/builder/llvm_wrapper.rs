@@ -1,10 +1,12 @@
 #![allow(clippy::enum_variant_names)]
+
 use std::fmt::{Display, Formatter};
 
 use inkwell::types::{AnyType, AnyTypeEnum, ArrayType, BasicTypeEnum, FloatType, FunctionType, IntType, PointerType, StructType, VectorType};
 use inkwell::values::{AnyValue, AnyValueEnum, ArrayValue, BasicValueEnum, FloatValue, FunctionValue, IntValue, PointerValue, StructValue, VectorValue};
 
 use crate::code_generator::builder::traits::{LEType, LEValue};
+use crate::error::CompileError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IntegerValue<'s> {
@@ -40,8 +42,8 @@ impl<'s> LEType<'s> for IntegerType<'s> {
         LETypeEnum::NumericType(NumericTypeEnum::IntegerType(*self))
     }
 
-    fn as_any_type_enum(&self) -> AnyValueEnum<'s> {
-        todo!()
+    fn as_any_type_enum(&self) -> AnyTypeEnum<'s> {
+        AnyTypeEnum::IntType(self.value)
     }
 }
 
@@ -53,28 +55,36 @@ pub enum NumericTypeEnum<'s> {
 }
 
 impl<'s> NumericTypeEnum<'s> {
-    pub fn to_basic_type_enum(self) -> BasicTypeEnum<'s> {
+    pub fn to_basic_type_enum(&self) -> BasicTypeEnum<'s> {
         match self {
-            NumericTypeEnum::FloatType(f) => { BasicTypeEnum::FloatType(f) }
+            NumericTypeEnum::FloatType(f) => { BasicTypeEnum::FloatType(*f) }
             NumericTypeEnum::IntegerType(i) => { BasicTypeEnum::IntType(i.value) }
         }
     }
 }
 
-impl<'s> From<AnyTypeEnum<'s>> for NumericTypeEnum<'s> {
-    fn from(_: AnyTypeEnum<'s>) -> Self {
-        todo!()
+impl<'s> TryFrom<BasicTypeEnum<'s>> for NumericTypeEnum<'s> {
+    type Error = CompileError;
+
+    fn try_from(value: BasicTypeEnum<'s>) -> Result<Self, Self::Error> {
+        match value {
+            BasicTypeEnum::FloatType(f) => { Ok(NumericTypeEnum::FloatType(f)) }
+            BasicTypeEnum::IntType(i) => { Ok(NumericTypeEnum::IntegerType(IntegerType { signed: true, value: i })) }
+            _ => { Err(CompileError::type_mismatched("NumericType".into(), value.print_to_string().to_string())) }
+        }
     }
 }
-
 
 impl<'s> LEType<'s> for NumericTypeEnum<'s> {
     fn as_le_type_enum(&self) -> LETypeEnum<'s> {
         LETypeEnum::NumericType(*self)
     }
 
-    fn as_any_type_enum(&self) -> AnyValueEnum<'s> {
-        todo!()
+    fn as_any_type_enum(&self) -> AnyTypeEnum<'s> {
+        match self {
+            NumericTypeEnum::FloatType(f) => { AnyTypeEnum::FloatType(*f) }
+            NumericTypeEnum::IntegerType(i) => { AnyTypeEnum::IntType(i.value) }
+        }
     }
 }
 
@@ -87,6 +97,7 @@ impl<'s> Display for NumericTypeEnum<'s> {
         }
     }
 }
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NumericValueEnum<'s> {
@@ -133,40 +144,6 @@ pub enum LEValueEnum<'s> {
     UnitValue,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub enum LETypeEnum<'s> {
-    ArrayType(ArrayType<'s>),
-    /// A function return and parameter definition.
-    FunctionType(FunctionType<'s>),
-    /// An integer or float type.
-    NumericType(NumericTypeEnum<'s>),
-    /// A pointer type.
-    PointerType(PointerType<'s>),
-    /// A contiguous heterogeneous container type.
-    StructType(StructType<'s>),
-    /// A contiguous homogeneous "SIMD" container type.
-    VectorType(VectorType<'s>),
-    /// A unit type.
-    UnitType,
-}
-
-
-impl<'s, A: AnyType<'s>> From<A> for LETypeEnum<'s> {
-    fn from(a: A) -> Self {
-        match a.as_any_type_enum() {
-            AnyTypeEnum::ArrayType(a) => { LETypeEnum::ArrayType(a) }
-            AnyTypeEnum::FloatType(a) => { LETypeEnum::NumericType(NumericTypeEnum::FloatType(a)) }
-            AnyTypeEnum::FunctionType(a) => { LETypeEnum::FunctionType(a) }
-            AnyTypeEnum::IntType(a) => { LETypeEnum::NumericType(NumericTypeEnum::IntegerType(IntegerType { signed: true, value: a })) }
-            AnyTypeEnum::PointerType(a) => { LETypeEnum::PointerType(a) }
-            AnyTypeEnum::StructType(a) => { LETypeEnum::StructType(a) }
-            AnyTypeEnum::VectorType(a) => { LETypeEnum::VectorType(a) }
-            AnyTypeEnum::VoidType(_) => { LETypeEnum::UnitType }
-        }
-    }
-}
-
-
 impl<'s, A: AnyValue<'s>> From<A> for LEValueEnum<'s> {
     fn from(a: A) -> Self {
         match a.as_any_value_enum() {
@@ -203,6 +180,38 @@ impl<'s> LEValueEnum<'s> {
 }
 
 
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+pub enum LETypeEnum<'s> {
+    ArrayType(ArrayType<'s>),
+    /// A function return and parameter definition.
+    FunctionType(FunctionType<'s>),
+    /// An integer or float type.
+    NumericType(NumericTypeEnum<'s>),
+    /// A pointer type.
+    PointerType(PointerType<'s>),
+    /// A contiguous heterogeneous container type.
+    StructType(StructType<'s>),
+    /// A contiguous homogeneous "SIMD" container type.
+    VectorType(VectorType<'s>),
+    /// A unit type.
+    UnitType,
+}
+
+impl<'s, A: AnyType<'s>> From<A> for LETypeEnum<'s> {
+    fn from(a: A) -> Self {
+        match a.as_any_type_enum() {
+            AnyTypeEnum::ArrayType(a) => { LETypeEnum::ArrayType(a) }
+            AnyTypeEnum::FloatType(a) => { LETypeEnum::NumericType(NumericTypeEnum::FloatType(a)) }
+            AnyTypeEnum::FunctionType(a) => { LETypeEnum::FunctionType(a) }
+            AnyTypeEnum::IntType(a) => { LETypeEnum::NumericType(NumericTypeEnum::IntegerType(IntegerType { signed: true, value: a })) }
+            AnyTypeEnum::PointerType(a) => { LETypeEnum::PointerType(a) }
+            AnyTypeEnum::StructType(a) => { LETypeEnum::StructType(a) }
+            AnyTypeEnum::VectorType(a) => { LETypeEnum::VectorType(a) }
+            AnyTypeEnum::VoidType(_) => { LETypeEnum::UnitType }
+        }
+    }
+}
+
 impl<'s> Display for LETypeEnum<'s> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -216,3 +225,5 @@ impl<'s> Display for LETypeEnum<'s> {
         }
     }
 }
+
+

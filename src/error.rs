@@ -80,7 +80,7 @@ pub enum CompileError {
     IdentifierIsNotVariable {
         identifier: String,
     },
-    #[error("expect a function name, but identifier `{identifier}` is not a variable")]
+    #[error("expect a function name, but identifier `{identifier}` is not a function")]
     IdentifierIsNotFunction {
         identifier: String,
     },

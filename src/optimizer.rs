@@ -27,12 +27,4 @@ impl<'s> Optimizer<'s> {
         }
         Ok(())
     }
-
-    // pub fn optimize_all_functions(&mut self, module: &Module<'s>, level: OptimizationLevel) -> Result<()> {
-    //     let optimizer = Optimizer::new(module, level);
-    //     for fun in module{
-    //
-    //     }
-    //     Ok(())
-    // }
 }

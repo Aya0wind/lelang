@@ -5,6 +5,7 @@ use inkwell::context::Context;
 use inkwell::module::{Linkage, Module};
 use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::FunctionValue;
+use nom::combinator::value;
 
 use crate::ast::{Ast, BinaryOpExpression, CodeBlock, Expr, ExternalFunction, ForLoop, FunctionCall, FunctionDefinition, IdentifierNode, IfStatement, NumberLiteralNode, Statement, VariableNode, WhileLoop};
 use crate::code_generator::builder::{CompareOperator, LEBuilder, LEVariable, NumericTypeEnum, NumericValueEnum};
@@ -41,14 +42,21 @@ impl<'s> CodeGenerator<'s> {
         Ok(le_variable)
     }
 
-    fn create_local_variable(&mut self, name: &str, ty: LETypeEnum<'s>, initial_value: LEValueEnum<'s>) -> Result<LEVariable<'s>> {
-        let value_type = initial_value.get_type();
-        if ty != value_type {
-            return Err(CompileError::type_mismatched(ty.to_string(), value_type.to_string()).into());
+    fn create_local_variable(&mut self, name: &str, target_type: LETypeEnum<'s>, initial_value: LEValueEnum<'s>) -> Result<LEVariable<'s>> {
+        let current_insert_block = self.builder.llvm_builder.get_insert_block().unwrap();
+        let parent_function = self.compiler_context.current_function.unwrap();
+        let entry_block = parent_function.get_first_basic_block().unwrap();
+        if let Some(first_instruction) = entry_block.get_first_instruction() {
+            self.builder.llvm_builder.position_at(entry_block, &first_instruction);
+        } else {
+            self.builder.llvm_builder.position_at_end(entry_block);
         }
-        let le_variable = self.builder.build_alloca(ty)?;
-        self.builder.build_store(le_variable, initial_value)?;
-        self.compiler_context.symbols.insert_global_variable(name.into(), le_variable)?;
+        let value_type = initial_value.get_type();
+        let le_variable = self.builder.build_alloca(target_type)?;
+        self.builder.llvm_builder.position_at_end(current_insert_block);
+        let cast_value = self.builder.build_cast(initial_value, target_type).map_err(|_| CompileError::type_mismatched(target_type.to_string(), value_type.to_string()))?;
+        self.builder.build_store(le_variable, cast_value)?;
+        self.compiler_context.symbols.insert_local_variable(name.into(), le_variable)?;
         Ok(le_variable)
     }
 
@@ -75,7 +83,7 @@ impl<'s> CodeGenerator<'s> {
     }
 
     fn get_symbol(&self, identifier: &str) -> Result<Symbol<'s>> {
-        self.compiler_context.symbols.get_symbol(identifier).ok_or(CompileError::unknown_identifier(identifier.into()).into())
+        self.compiler_context.symbols.get_symbol(identifier).ok_or_else(|| CompileError::unknown_identifier(identifier.into()).into())
     }
 
     fn build_expression(&self, value: &Expr) -> Result<LEValueEnum<'s>> {
@@ -162,9 +170,9 @@ impl<'s> CodeGenerator<'s> {
     fn build_number_literal_expression(&self, value: &NumberLiteralNode) -> Result<LEValueEnum<'s>> {
         match value.number {
             Number::Integer(i, signed) => {
-                Ok(self.builder.llvm_context.i32_type().const_int(i, signed).into())
+                Ok(self.builder.llvm_context.i64_type().const_int(i, signed).into())
             }
-            Number::Float(f, _) => {
+            Number::Float(f) => {
                 Ok(self.builder.llvm_context.f64_type().const_float(f).into())
             }
         }
@@ -180,21 +188,13 @@ impl<'s> CodeGenerator<'s> {
     }
 
     fn build_local_variable_definition(&mut self, value: &VariableNode) -> Result<LEVariable> {
-        let current_insert_block = self.builder.llvm_builder.get_insert_block().unwrap();
-        let parent_function = self.builder.llvm_builder.get_insert_block().unwrap().get_parent().unwrap();
-        let entry_block = parent_function.get_first_basic_block().unwrap();
-        if let Some(first_instruction) = entry_block.get_first_instruction() {
-            self.builder.llvm_builder.position_at(entry_block, &first_instruction);
-        } else {
-            self.builder.llvm_builder.position_at_end(entry_block);
-        }
-        let variable_type = self.get_type(&value.prototype.type_name)?;
+
         let variable = self.create_local_variable(
             &value.prototype.name,
-            variable_type,
+            self.get_type(&value.prototype.type_name)?,
             self.build_expression(value.value.as_ref())?,
         )?;
-        self.builder.llvm_builder.position_at_end(current_insert_block);
+
         Ok(variable)
     }
 
@@ -267,25 +267,25 @@ impl<'s> CodeGenerator<'s> {
     }
 
     fn build_while_loop(&mut self, while_loop: &WhileLoop) -> Result<()> {
+        let cond_block = self.builder.llvm_context.insert_basic_block_after(self.builder.llvm_builder.get_insert_block().unwrap(), "");
+        let body_block = self.builder.llvm_context.insert_basic_block_after(cond_block, "");
+        let after_block = self.builder.llvm_context.insert_basic_block_after(body_block, "");
+        self.builder.llvm_builder.build_unconditional_branch(cond_block);
+        self.builder.llvm_builder.position_at_end(cond_block);
         if let Some(cond_expr) = &while_loop.condition {
-            let cond_block = self.builder.llvm_context.insert_basic_block_after(self.builder.llvm_builder.get_insert_block().unwrap(), "");
-            let body_block = self.builder.llvm_context.insert_basic_block_after(cond_block, "");
-            let after_block = self.builder.llvm_context.insert_basic_block_after(body_block, "");
-            self.builder.llvm_builder.build_unconditional_branch(cond_block);
-            self.builder.llvm_builder.position_at_end(cond_block);
-            if let Some(cond) = &while_loop.condition {
-                if let LEValueEnum::NumericValue(NumericValueEnum::Integer(int)) = self.build_expression(cond.as_ref())? {
-                    let cond_boolean = self.builder.llvm_builder.build_int_cast(int.value, self.builder.llvm_context.bool_type(), "");
-                    self.builder.llvm_builder.build_conditional_branch(cond_boolean, body_block, after_block);
-                } else {
-                    return Err(CompileError::type_mismatched("".into(), "".into()).into());
-                }
+            if let LEValueEnum::NumericValue(NumericValueEnum::Integer(int)) = self.build_expression(cond_expr.as_ref())? {
+                let cond_boolean = self.builder.llvm_builder.build_int_cast(int.value, self.builder.llvm_context.bool_type(), "");
+                self.builder.llvm_builder.build_conditional_branch(cond_boolean, body_block, after_block);
+            } else {
+                return Err(CompileError::type_mismatched("".into(), "".into()).into());
             }
-            self.builder.llvm_builder.position_at_end(body_block);
-            self.build_code_block(&while_loop.code_block)?;
-            self.builder.llvm_builder.build_unconditional_branch(cond_block);
-            self.builder.llvm_builder.position_at_end(after_block);
+        }else{
+            self.builder.llvm_builder.build_unconditional_branch(body_block);
         }
+        self.builder.llvm_builder.position_at_end(body_block);
+        self.build_code_block(&while_loop.code_block)?;
+        self.builder.llvm_builder.build_unconditional_branch(cond_block);
+        self.builder.llvm_builder.position_at_end(after_block);
         Ok(())
     }
 
@@ -311,7 +311,7 @@ impl<'s> CodeGenerator<'s> {
             if !is_else_return_block {
                 self.builder.llvm_builder.build_unconditional_branch(merge_block);
             }
-        }else{
+        } else {
             self.builder.llvm_builder.build_unconditional_branch(merge_block);
         }
         self.builder.llvm_builder.position_at_end(merge_block);
@@ -389,7 +389,6 @@ impl<'s> CodeGenerator<'s> {
         Ok(function_value)
     }
 
-
     fn generate_all_functions(&mut self, module: &Module<'s>, ast: Ast) -> Result<()> {
         for function_prototype in ast.extern_functions {
             let name = function_prototype.name.clone();
@@ -423,7 +422,6 @@ impl<'s> CodeGenerator<'s> {
         self.generate_all_functions(module, ast)?;
         Ok(())
     }
-
 
     pub fn create(context: &'s Context) -> Self {
         let llvm_builder = context.create_builder();
