@@ -22,7 +22,7 @@ pub fn initialize_target_machine(config: &Args) -> Result<TargetMachine> {
         base: true,
         disassembler: false,
         info: false,
-        machine_code: true
+        machine_code: true,
     }).unwrap();
     let target_triple = inkwell::targets::TargetMachine::get_default_triple();
     let target = inkwell::targets::Target::get_first().unwrap();

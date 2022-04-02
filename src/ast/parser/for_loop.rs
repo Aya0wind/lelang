@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::ast::ForLoop;
+use crate::ast::nodes::ForLoop;
 use crate::ast::parser::common::parse_code_block;
 use crate::ast::parser::statement::parse_statement;
 use crate::lexer::LELexer;
@@ -18,6 +18,6 @@ pub fn parse_for_loop(lexer: &mut LELexer) -> Result<ForLoop> {
         condition: Box::from(cond),
         iterate: Box::new(step),
         code_block,
-        pos: lexer.line().into()
+        pos: lexer.line().into(),
     })
 }

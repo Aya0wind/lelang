@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::ast::{Variable, VariablePrototype};
+use crate::ast::nodes::{Variable, VariablePrototype};
 use crate::ast::parser::common::parse_expression;
 use crate::ast::parser::function_parser::parse_variable_annotation;
 use crate::error::SyntaxError;

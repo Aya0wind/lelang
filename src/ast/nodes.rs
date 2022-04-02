@@ -2,8 +2,7 @@ use std::fmt::{Display, Formatter};
 
 use anyhow::Result;
 
-use crate::ast::parser::function_parser::{parse_function, parse_function_prototype};
-use crate::ast::parser::variable_parser::parse_variable_declaration;
+use crate::ast::parser::{parse_function, parse_function_prototype, parse_variable_declaration};
 use crate::error::{SyntaxError, TokenType};
 use crate::lexer::{KeyWord, LELexer, LEToken};
 use crate::lexer::{Number, Operator};
@@ -36,7 +35,7 @@ pub struct BinaryOpExpression {
 #[derive(Debug)]
 pub struct FunctionCall {
     pub function_name: String,
-    pub params: Vec<Box<Expr>>,
+    pub params: Vec<Expr>,
     pub pos: Position,
 }
 
@@ -97,9 +96,9 @@ pub struct NumberLiteral {
 }
 
 #[derive(Debug)]
-pub struct UnaryOperatorNode {
+pub struct UnaryOpExpression {
     pub op: Operator,
-    pub param: Box<Expr>,
+    pub expr: Box<Expr>,
     pub pos: Position,
 }
 
@@ -128,6 +127,7 @@ pub struct Identifier {
 #[derive(Debug)]
 pub enum Expr {
     BinaryOperator(BinaryOpExpression),
+    UnaryOperator(UnaryOpExpression),
     NumberLiteral(NumberLiteral),
     Identifier(Identifier),
     CallExpression(FunctionCall),

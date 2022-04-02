@@ -3,7 +3,7 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::values::{AnyValue, BasicMetadataValueEnum, FunctionValue};
 
-use crate::ast::Position;
+use crate::ast::nodes::Position;
 use crate::code_generator::builder::{CompareOperator, LEVariable, NumericTypeEnum};
 use crate::code_generator::builder::llvm_wrapper::{IntegerValue, LETypeEnum, LEValueEnum, NumericValueEnum};
 use crate::code_generator::builder::numeric_operator_builder::NumericOperatorBuilder;
@@ -118,7 +118,7 @@ impl<'s> LEBuilder<'s> {
                     self.llvm_context,
                     variable.pointer,
                     numeric_ty,
-                    rhs).map(LEValueEnum::NumericValue)
+                    rhs).map(LEValueEnum::NumericValue);
             }
         }
         Err(CompileError::type_mismatched(variable.ty.to_string(), rhs.get_type().to_string(), pos).into())

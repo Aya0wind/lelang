@@ -2,7 +2,7 @@ use inkwell::basic_block::BasicBlock;
 use inkwell::context::Context;
 use inkwell::values::FunctionValue;
 
-use crate::ast::Position;
+use crate::ast::nodes::Position;
 use crate::code_generator::builder::LEVariable;
 use crate::code_generator::symbol_table::SymbolTable;
 
@@ -23,7 +23,7 @@ impl<'s> CompilerContext<'s> {
             current_function: None,
             return_variable: None,
             return_block: None,
-            current_pos: Position { line: 0 }
+            current_pos: Position { line: 0 },
         }
     }
 
@@ -35,9 +35,9 @@ impl<'s> CompilerContext<'s> {
         self.symbols.pop_block_table();
     }
 
-    pub fn set_current_context(&mut self, current_function: FunctionValue<'s>, return_variable: LEVariable<'s>, return_block: BasicBlock<'s>) {
+    pub fn set_current_context(&mut self, current_function: FunctionValue<'s>, return_variable: Option<LEVariable<'s>>, return_block: BasicBlock<'s>) {
         self.current_function = Some(current_function);
-        self.return_variable = Some(return_variable);
+        self.return_variable = return_variable;
         self.return_block = Some(return_block);
     }
 }

@@ -23,3 +23,11 @@ leang是一门使用Rust编写，基于LLVM(inkwell llvm safe binding library)�
 + ❌支持引用类型
 + ❌支持匿名函数
 + ❌计划引入GC
+
+### Build
+
++ 安装LLVM 12
+  + homebrew
+  > brew install llvm@12
+  + apt
+  > apt install llvm

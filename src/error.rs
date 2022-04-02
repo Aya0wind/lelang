@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 
 use thiserror::Error;
 
-use crate::ast::Position;
+use crate::ast::nodes::Position;
 use crate::lexer::{LELexer, LEToken};
 
 #[derive(Debug, Error)]

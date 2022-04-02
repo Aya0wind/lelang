@@ -2,57 +2,36 @@ extern crate nom;
 
 use anyhow::Result;
 use logos::Lexer;
-use nom::{
-    bytes::complete::tag,
-    IResult,
-    sequence::tuple,
-};
+use nom::{bytes::complete::tag, Err, error, IResult, Needed, Parser, sequence::tuple};
 use nom::bytes::streaming::take_while;
-use nom::character::complete::char;
-use nom::combinator::opt;
+use nom::character::is_digit;
+use nom::combinator::{map, opt};
+use nom::error::Error;
+use nom::error::ErrorKind;
+use nom::number::complete::double;
 
 use crate::error::TokenParserError;
 use crate::lexer::LogosToken;
 
 use super::token_iterator::Number;
 
-fn unsigned_integer(input: &str) -> IResult<&str, u64> {
-    let i = input.parse::<u64>().unwrap();
-    Ok(("", i))
-}
-
-fn unsigned_float(input: &str) -> IResult<&str, f64> {
-    let x: (&str, (&str, char, &str)) = tuple((take_while(|x: char| x.is_digit(10)), char('.'), take_while(|x: char| x.is_digit(10))))(input)?;
-    let result = format!("{}.{}", x.1.0, x.1.2).parse::<f64>().unwrap();
-    Ok((x.0, result))
-}
-
-
-fn integer(input: &str) -> IResult<&str, (u64, bool)> {
-    let result = opt(tag("-"))(input)?;
-    let mut negative = false;
-    if let Some(_) = result.1 {
-        negative = true;
+fn integer(input: &str) -> IResult<&str, u64> {
+    let mut counter = 0;
+    for byte in input.as_bytes() {
+        if is_digit(*byte) {
+            counter += 1;
+        } else if *byte == b'.' {
+            return Err(Err::Incomplete(Needed::new(1)))
+        }
     }
-    let integer = unsigned_integer(result.0)?;
-    Ok((integer.0, (integer.1, negative)))
-}
-
-fn float(input: &str) -> IResult<&str, (f64, bool)> {
-    let result = opt(tag("-"))(input)?;
-    let mut negative = false;
-    if result.1.is_some() {
-        negative = true;
-    }
-    let float = unsigned_float(result.0)?;
-    Ok((float.0, (float.1, negative)))
+    Ok((&input[counter..], input[..counter].parse::<u64>().unwrap()))
 }
 
 fn parse(input: &str) -> Result<(Number, usize)> {
-    if let Ok((remain, (number, signed))) = float(input) {
+    if let Ok((remain, number)) = integer(input) {
+        Ok((Number::Integer(number), remain.len()))
+    } else if let Ok((remain, number)) = double::<_, nom::error::Error<&str>>(input) {
         Ok((Number::Float(number), remain.len()))
-    } else if let Ok((remain, (number, signed))) = integer(input) {
-        Ok((Number::Integer(number, signed), remain.len()))
     } else {
         Err(TokenParserError::unrecognized_token().into())
     }

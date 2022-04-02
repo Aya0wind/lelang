@@ -1,7 +1,7 @@
 use anyhow::Result;
 
-use crate::ast::{BinaryOpExpression, CodeBlock, Expr, FunctionCall, FunctionDefinition, Identifier, NumberLiteral};
-use crate::ast::Expr::BinaryOperator;
+use crate::ast::nodes::{BinaryOpExpression, CodeBlock, Expr, FunctionCall, FunctionDefinition, Identifier, NumberLiteral, Position, UnaryOpExpression};
+use crate::ast::nodes::Expr::BinaryOperator;
 use crate::ast::parser::statement::parse_statement;
 use crate::error::SyntaxError;
 use crate::lexer::{LELexer, LEToken, Operator};
@@ -44,7 +44,7 @@ pub fn parse_call_expression(lexer: &mut LELexer, function_name: String) -> Resu
                 lexer.next_result()?;
             }
             _ => {
-                params.push(parse_expression(lexer)?);
+                params.push(*parse_expression(lexer)?);
             }
         }
     }
@@ -97,9 +97,21 @@ pub fn parse_little_par_expression(lexer: &mut LELexer) -> VParseResult {
     Ok(expression)
 }
 
+pub fn parse_unary_ops(lexer: &mut LELexer) -> VParseResult {
+    let op = lexer.consume_operator()?;
+    Ok(Box::new(Expr::UnaryOperator(UnaryOpExpression {
+        op,
+        expr: parse_primary_expression(lexer)?,
+        pos: lexer.line().into(),
+    })))
+}
+
 pub fn parse_primary_expression(lexer: &mut LELexer) -> VParseResult {
     let next = lexer.own_current()?;
     match next {
+        LEToken::Operator(op) => {
+            parse_unary_ops(lexer)
+        }
         LEToken::NumberLiteral(_) => {
             parse_number_expression(lexer)
         }

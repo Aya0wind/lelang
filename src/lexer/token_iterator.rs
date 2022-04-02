@@ -42,6 +42,9 @@ pub enum LogosToken {
     #[token("ret")]
     Return,
 
+    #[token("->")]
+    ReturnTypeAllow,
+
     #[token(":")]
     Colon,
 
@@ -98,9 +101,6 @@ pub enum LogosToken {
 
     #[token("<=")]
     LessOrEqualThan,
-
-    #[token("->")]
-    ReturnTypeAllow,
 
     #[regex(r"[\s]+", | lex | counter_line(lex.slice()))]
     WhiteCharacter(usize),
@@ -166,7 +166,7 @@ pub enum Operator {
 #[derive(Debug, PartialEq, Display, Clone)]
 #[allow(dead_code)]
 pub enum Number {
-    Integer(u64, bool),
+    Integer(u64),
     Float(f64),
 }
 
@@ -249,6 +249,24 @@ impl From<LogosToken> for LEToken {
     }
 }
 
+/// 词法分析器
+/// 拆分代码为Token stream，使用迭代器形式返回token
+/// 为支持LL(1)分析，可前向看一个token
+/// # Example
+/// ```
+/// use std::fs::File;
+/// use std::fs::File;
+/// use std::io::Read;
+/// use std::io::Read;
+/// use lelang::lexer::LELexer;
+/// let mut f = File::open("benches/test_case/lexer_test.le").unwrap();
+/// let mut buffer = String::new();
+/// f.read_to_string(&mut buffer).unwrap();
+/// let lexer = LELexer::new(&buffer).unwrap();
+/// for token in lexer{
+///     eprintln!("{:?}",token);
+/// }
+/// ```
 pub struct LELexer<'s> {
     inner: Lexer<'s, LogosToken>,
     current_line: usize,
@@ -287,21 +305,30 @@ impl<'s> LELexer<'s> {
         Some(s)
     }
 
+
+    /// 获取迭代器当前指向的token，如果不存在则返回EOF错误信息
     pub fn current_result(&self) -> Result<&LEToken> {
         self.current.as_ref().ok_or_else(|| SyntaxError::EOF.into())
     }
+
+    /// 获取迭代器当前指向的token，如果不存在则返回None
     pub fn current(&self) -> Option<&LEToken> {
         self.current.as_ref()
     }
 
+
+    /// 获取迭代器当前指向的token的副本
     pub fn own_current(&self) -> Result<LEToken> {
         Ok(self.current_result()?.clone())
     }
 
+
+    ///获取迭代器当前指向的token的行号
     pub fn line(&self) -> usize {
-        self.current_line.into()
+        self.current_line
     }
 
+    ///获取迭代器当前指向token的所有权，并将迭代器指向下一个token
     pub fn next_result(&mut self) -> Result<LEToken> {
         self.next().ok_or_else(|| SyntaxError::EOF.into())
     }

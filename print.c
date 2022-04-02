@@ -1,12 +1,6 @@
 #include <stdio.h>
-int print_num(int a){
-  int b = a;
-  if(a==10){
-    int c =a;
-    short d =a;
-  return printf("%d\n",a);
-  }else{
-   return printf("%d\n",a);
-  }
-  return 10;
-}
+int print_num(int a) { return printf("%d\n", a); }
+
+int print_f32(float a) { return printf("%f\n", a); }
+
+int print_f64(float a) { return printf("%lf\n", a); }

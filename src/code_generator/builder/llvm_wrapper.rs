@@ -5,7 +5,7 @@ use std::fmt::{Display, Formatter};
 use inkwell::types::{AnyType, AnyTypeEnum, ArrayType, BasicTypeEnum, FloatType, FunctionType, IntType, PointerType, StructType, VectorType};
 use inkwell::values::{AnyValue, AnyValueEnum, ArrayValue, BasicValueEnum, FloatValue, FunctionValue, IntValue, PointerValue, StructValue, VectorValue};
 
-use crate::ast::Position;
+use crate::ast::nodes::Position;
 use crate::code_generator::builder::traits::{LEType, LEValue};
 use crate::error::CompileError;
 

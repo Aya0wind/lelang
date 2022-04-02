@@ -25,12 +25,7 @@ lazy_static! {
 }
 
 pub fn get_float_promotion_providence(ty: &FloatType) -> u32 {
-    let width = ty.size_of().get_sign_extended_constant().unwrap();
-    if width == 32 {
-        2
-    } else {
-        1
-    }
+    0
 }
 
 pub fn get_integer_promotion_providence(ty: &IntegerType) -> u32 {

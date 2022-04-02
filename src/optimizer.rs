@@ -20,7 +20,7 @@ impl<'s> Optimizer<'s> {
         self.pass_manager.run_on(function)
     }
 
-    pub fn run_on_module(&self,module:&Module)->Result<()>{
+    pub fn run_on_module(&self, module: &Module) -> Result<()> {
         let mut current_function = module.get_first_function();
         while let Some(f) = current_function {
             self.run_on_function(&f);

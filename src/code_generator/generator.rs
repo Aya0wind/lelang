@@ -5,9 +5,10 @@ use inkwell::context::Context;
 use inkwell::module::{Linkage, Module};
 use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::FunctionValue;
+use nom::combinator::{into, value};
 
-use crate::ast::{Ast, BinaryOpExpression, CodeBlock, Expr, ExternalFunction, ForLoop, FunctionCall, FunctionDefinition, Identifier, IfStatement, NumberLiteral, Statement, Variable, WhileLoop};
-use crate::code_generator::builder::{CompareOperator, LEBuilder, LEVariable, NumericTypeEnum, NumericValueEnum};
+use crate::ast::nodes::{Ast, BinaryOpExpression, CodeBlock, Expr, ExternalFunction, ForLoop, FunctionCall, FunctionDefinition, Identifier, IfStatement, NumberLiteral, Statement, UnaryOpExpression, Variable, WhileLoop};
+use crate::code_generator::builder::{CompareOperator, IntegerValue, LEBuilder, LEVariable, NumericTypeEnum, NumericValueEnum};
 use crate::code_generator::compile_context::CompilerContext;
 use crate::code_generator::symbol_table::Symbol;
 use crate::error::CompileError;
@@ -84,12 +85,39 @@ impl<'s> CodeGenerator<'s> {
 
     fn build_expression(&self, value: &Expr) -> Result<LEValueEnum<'s>> {
         match value {
+            Expr::UnaryOperator(n) => { self.build_unary_operator_expression(n) }
             Expr::BinaryOperator(n) => { self.build_binary_operator_expression(n) }
             Expr::NumberLiteral(n) => { self.build_number_literal_expression(n) }
             Expr::CallExpression(n) => { self.build_call_expression(n) }
             Expr::Identifier(n) => { self.build_identifier_expression(n) }
         }
     }
+
+    fn build_unary_operator_expression(&self, value: &UnaryOpExpression) -> Result<LEValueEnum<'s>> {
+        match value.op {
+            Operator::Plus => {
+                self.build_expression(value.expr.as_ref())
+            }
+            Operator::Sub => {
+                let value = self.build_expression(value.expr.as_ref())?;
+                if let LEValueEnum::NumericValue(number) = value {
+                    match number {
+                        NumericValueEnum::Float(f) => {
+                            Ok(self.builder.llvm_builder.build_float_neg(f, "").into())
+                        }
+                        NumericValueEnum::Integer(i) => {
+                            let negative_value = self.builder.llvm_builder.build_int_neg(i.value, "");
+                            Ok(LEValueEnum::NumericValue(NumericValueEnum::Integer(IntegerValue { signed: i.signed, value: negative_value })))
+                        }
+                    }
+                } else {
+                    Err(CompileError::type_mismatched("".into(), "".into(), self.compiler_context.current_pos).into())
+                }
+            }
+            _ => { Err(CompileError::type_mismatched("".into(), "".into(), self.compiler_context.current_pos).into()) }
+        }
+    }
+
 
     fn build_binary_operator_expression(&self, value: &BinaryOpExpression) -> Result<LEValueEnum<'s>> {
         let lhs = &value.left;
@@ -165,8 +193,8 @@ impl<'s> CodeGenerator<'s> {
 
     fn build_number_literal_expression(&self, value: &NumberLiteral) -> Result<LEValueEnum<'s>> {
         match value.number {
-            Number::Integer(i, signed) => {
-                Ok(self.builder.llvm_context.i64_type().const_int(i, signed).into())
+            Number::Integer(i) => {
+                Ok(self.builder.llvm_context.i64_type().const_int(i, true).into())
             }
             Number::Float(f) => {
                 Ok(self.builder.llvm_context.f64_type().const_float(f).into())
@@ -273,7 +301,7 @@ impl<'s> CodeGenerator<'s> {
             } else {
                 return Err(CompileError::type_mismatched("".into(), "".into(), self.compiler_context.current_pos).into());
             }
-        }else{
+        } else {
             self.builder.llvm_builder.build_unconditional_branch(body_block);
         }
         self.builder.llvm_builder.position_at_end(body_block);
@@ -347,27 +375,38 @@ impl<'s> CodeGenerator<'s> {
         Ok(external_function_value)
     }
 
-    fn build_return_block(&self, return_block: BasicBlock, return_variable: LEVariable) -> Result<()> {
+    fn build_return_block(&self, return_block: BasicBlock, return_variable: Option<LEVariable>) -> Result<()> {
         self.builder.llvm_builder.position_at_end(return_block);
-        let value = self.builder.build_load(return_variable)?;
-        match value {
-            LEValueEnum::NumericValue(number) => {
-                let basic_value = number.to_basic_value_enum();
-                self.builder.llvm_builder.build_return(Some(&basic_value));
-                Ok(())
+        if let Some(value) = return_variable {
+            let value = self.builder.build_load(value)?;
+            match value {
+                LEValueEnum::NumericValue(number) => {
+                    let basic_value = number.to_basic_value_enum();
+                    self.builder.llvm_builder.build_return(Some(&basic_value));
+                    Ok(())
+                }
+                _ => { unimplemented!() }
             }
-            _ => { unimplemented!() }
+        } else {
+            self.builder.llvm_builder.build_return(None);
+            Ok(())
         }
     }
 
     fn build_function(&mut self, module: &Module<'s>, function_node: &FunctionDefinition) -> Result<FunctionValue<'s>> {
         let function_value = self.build_function_prototype(module, &function_node.prototype)?;
         let entry = self.builder.llvm_context.append_basic_block(function_value, "");
-        self.builder.llvm_builder.position_at_end(entry);
-        let return_variable = self.builder.build_alloca(function_value.get_type().get_return_type().unwrap().into())?;
         let return_block = self.builder.llvm_context.append_basic_block(function_value, "");
-        self.compiler_context.set_current_context(function_value, return_variable, return_block);
-        self.build_return_block(return_block, return_variable)?;
+        let return_type = function_value.get_type().get_return_type();
+        self.builder.llvm_builder.position_at_end(return_block);
+        if let Some(none_void_type) = return_type {
+            let return_variable = self.builder.build_alloca(none_void_type.into())?;
+            self.compiler_context.set_current_context(function_value, Some(return_variable), return_block);
+            self.build_return_block(return_block, Some(return_variable))?;
+        } else {
+            self.compiler_context.set_current_context(function_value, None, return_block);
+            self.build_return_block(return_block, None)?;
+        }
         self.builder.llvm_builder.position_at_end(entry);
         self.compiler_context.push_block_table();
         let function = &function_value;

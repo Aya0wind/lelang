@@ -4,7 +4,7 @@ use anyhow::Result;
 use inkwell::context::Context;
 use inkwell::values::FunctionValue;
 
-use crate::ast::Position;
+use crate::ast::nodes::Position;
 use crate::code_generator::builder::{IntegerType, LETypeEnum, LEVariable, NumericTypeEnum};
 use crate::error::CompileError;
 

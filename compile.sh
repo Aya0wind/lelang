@@ -1,1 +1,1 @@
-target/release/lelang -i main.le -Sllvmir -O0 -oout.ll
+target/release/lelang -i main.le -S ir -O0 -o out.ll

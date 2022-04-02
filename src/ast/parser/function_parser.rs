@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::ast::{ExternalFunction, FunctionDefinition};
+use crate::ast::nodes::{ExternalFunction, FunctionDefinition};
 use crate::ast::parser::common::{FParseResult, parse_code_block};
 use crate::error::{SyntaxError, TokenType};
 use crate::lexer::{LELexer, LEToken};
@@ -70,7 +70,7 @@ pub fn parse_function_prototype(lexer: &mut LELexer) -> Result<ExternalFunction>
         name,
         param_types,
         return_type,
-        pos: lexer.line().into()
+        pos: lexer.line().into(),
     })
 }
 
@@ -101,11 +101,11 @@ pub fn parse_function(lexer: &mut LELexer) -> FParseResult {
             name,
             param_types,
             return_type,
-            pos: lexer.line().into()
+            pos: lexer.line().into(),
         },
         param_names,
         code_block,
-        pos: lexer.line().into()
+        pos: lexer.line().into(),
     };
     Ok(function)
 }

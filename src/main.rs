@@ -9,7 +9,6 @@ use inkwell::context::Context;
 use inkwell::OptimizationLevel;
 use inkwell::targets::InitializationConfig;
 
-use crate::ast::Ast;
 use crate::code_generator::CodeGenerator;
 use crate::jit::JITCompiler;
 use crate::optimizer::Optimizer;

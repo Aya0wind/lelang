@@ -152,7 +152,7 @@ impl NumericOperatorBuilder {
                         let cast_value = llvm_builder.build_int_cast(right_int.value, left_int.value.get_type(), "");
                         Ok(
                             NumericValueEnum::Integer(
-                                IntegerValue { signed: left_int.signed, value: llvm_builder.build_int_sub(cast_value,right_int.value, "") }
+                                IntegerValue { signed: left_int.signed, value: llvm_builder.build_int_sub(cast_value, right_int.value, "") }
                             )
                         )
                     }
@@ -427,10 +427,9 @@ impl NumericOperatorBuilder {
                         )
                     }
                     (NumericValueEnum::Float(left_float), NumericValueEnum::Float(right_float)) => {
-                        let cast_value = llvm_builder.build_float_cast(right_float, left_float.get_type(), "");
                         Ok(
                             NumericValueEnum::Float(
-                                llvm_builder.build_float_div(left_float, cast_value, "")
+                                llvm_builder.build_float_div(left_float, right_float, "")
                             )
                         )
                     }
@@ -482,10 +481,9 @@ impl NumericOperatorBuilder {
                         }
                     }
                     (NumericValueEnum::Float(left_float), NumericValueEnum::Float(right_float)) => {
-                        let cast_value = llvm_builder.build_float_cast(left_float, right_float.get_type(), "");
                         Ok(
                             NumericValueEnum::Float(
-                                llvm_builder.build_float_div(left_float, cast_value, "")
+                                llvm_builder.build_float_div(left_float, right_float, "")
                             )
                         )
                     }
@@ -549,8 +547,7 @@ impl NumericOperatorBuilder {
                         Self::build_float_compare(llvm_builder, llvm_context, cast_value, left_float, op)
                     }
                     (NumericValueEnum::Float(left_float), NumericValueEnum::Float(right_float)) => {
-                        let cast_value = llvm_builder.build_float_cast(right_float, left_float.get_type(), "");
-                        Self::build_float_compare(llvm_builder, llvm_context, left_float, cast_value, op)
+                        Self::build_float_compare(llvm_builder, llvm_context, left_float, right_float, op)
                     }
                 }
             }
@@ -578,8 +575,7 @@ impl NumericOperatorBuilder {
                         Self::build_integer_compare(llvm_builder, llvm_context, cast_value, right_int.value.clone(), right_int.signed, op)
                     }
                     (NumericValueEnum::Float(left_float), NumericValueEnum::Float(right_float)) => {
-                        let cast_value = llvm_builder.build_float_cast(left_float, right_float.get_type(), "");
-                        Self::build_float_compare(llvm_builder, llvm_context, left_float, cast_value, op)
+                        Self::build_float_compare(llvm_builder, llvm_context, left_float, right_float, op)
                     }
                 }
             }
@@ -646,8 +642,8 @@ impl NumericOperatorBuilder {
     }
 
     pub fn build_numeric_cast<'s>(llvm_builder: &Builder<'s>, llvm_context: &Context, from: NumericValueEnum<'s>, to: NumericTypeEnum<'s>) -> Result<NumericValueEnum<'s>> {
-        if from.get_type()==to {
-            return Ok(from)
+        if from.get_type() == to {
+            return Ok(from);
         }
         match (from, to) {
             (NumericValueEnum::Integer(left_int), NumericTypeEnum::IntegerType(target_type)) => {

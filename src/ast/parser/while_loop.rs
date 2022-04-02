@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::ast::WhileLoop;
+use crate::ast::nodes::WhileLoop;
 use crate::ast::parser::common::{parse_code_block, parse_expression};
 use crate::lexer::LELexer;
 
@@ -17,6 +17,6 @@ pub fn parse_while_loop(lexer: &mut LELexer) -> Result<WhileLoop> {
     Ok(WhileLoop {
         condition: cond,
         code_block,
-        pos: lexer.line().into()
+        pos: lexer.line().into(),
     })
 }

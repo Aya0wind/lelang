@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::ast::IfStatement;
+use crate::ast::nodes::IfStatement;
 use crate::ast::parser::common::{parse_code_block, parse_little_par_expression};
 use crate::lexer::{KeyWord, LELexer, LEToken};
 
@@ -16,14 +16,14 @@ pub fn parse_if_condition(lexer: &mut LELexer) -> Result<IfStatement> {
             cond: cond_value,
             then_block,
             else_block: Some(else_block),
-            pos: lexer.line().into()
+            pos: lexer.line().into(),
         })
     } else {
         Ok(IfStatement {
             cond: cond_value,
             then_block,
             else_block: None,
-            pos: lexer.line().into()
+            pos: lexer.line().into(),
         })
     }
 }
