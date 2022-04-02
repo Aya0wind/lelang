@@ -61,3 +61,9 @@ OPTIONS:
     -S <OUTPUT_FORMAT>           Set compiler output format [default: obj] [possible values: ir,
                                  asm, obj]
 ```
+
+Tips：
+
+##### 目前没有做libc的绑定，需要先编译目录下的print.c，然后才能调用print_xxx函数进行打印。
+
+##### 也可以自己编译出object文件并手动链接为可执行文件或函数库，如需调用自定义c函数，可以在源文件中声明函数，然后手动链接

@@ -62,11 +62,6 @@ impl<'s> CodeGenerator<'s> {
     }
 
 
-    fn create_function(&mut self, name: &str, function: FunctionValue<'s>) -> Result<FunctionValue> {
-        self.compiler_context.symbols.insert_global_function(name.into(), function, self.compiler_context.current_pos)?;
-        Ok(function)
-    }
-
     fn get_variable(&self, identifier: &str) -> Result<LEVariable<'s>> {
         self.compiler_context.symbols.get_variable(identifier, self.compiler_context.current_pos)
     }
@@ -372,6 +367,7 @@ impl<'s> CodeGenerator<'s> {
             }
         };
         let external_function_value = module.add_function(&prototype.name, external_function, Some(Linkage::External));
+        self.compiler_context.symbols.insert_global_function(prototype.name.clone(), external_function_value, self.compiler_context.current_pos)?;
         Ok(external_function_value)
     }
 
@@ -415,6 +411,7 @@ impl<'s> CodeGenerator<'s> {
         for (param, name) in function.get_param_iter().zip(names) {
             self.create_local_variable(name, param.get_type().into(), param.into())?;
         }
+
         let is_return_block = self.build_code_block(&function_node.code_block)?;
         if !is_return_block {
             self.builder.llvm_builder.build_unconditional_branch(return_block);
@@ -426,15 +423,12 @@ impl<'s> CodeGenerator<'s> {
     fn generate_all_functions(&mut self, module: &Module<'s>, ast: &Ast) -> Result<()> {
         for function_prototype in ast.extern_functions.iter() {
             let name = function_prototype.name.clone();
-            let function_value = self.build_function_prototype(module, function_prototype)?;
-            self.create_function(&name, function_value)?;
+            self.build_function_prototype(module, function_prototype)?;
         }
         for function_node in ast.function_definitions.iter() {
             let name = function_node.prototype.name.clone();
-            let function_value = self.build_function(module, function_node)?;
-            self.create_function(&name, function_value)?;
+            self.build_function(module, function_node)?;
         }
-        //self.optimize_all_functions(module,level)?;
         Ok(())
     }
 

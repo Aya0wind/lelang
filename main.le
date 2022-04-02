@@ -1,17 +1,39 @@
-decl le print_int(i64);
+## Attention! not allow unicode character in comments now!
+decl le print_int(i64); ##external function declaration
 decl le print_float(f64);
 
-
+## function without return value
 le no_ret(){
-    for(var i:i32 = 10;i<10;i=i+1;){
+    for(var i:i32 = 10;i<10;i=i+1;){ ##for loop
         print_int(i);
+    }
+}
+##function with params and return type
+le reti32(number:i32)->i32{
+    while(number>0){ ## while loop
+        if (number==5){
+            ret number;
+        }el{
+         number=number-1;
+        }
+    }
+    ret number;
+}
+## recursive function with params and return value
+le Fibonacci(step:u32)->u32{
+    if(step<3){
+        ret 1;
+    }el{
+        ret Fibonacci(step-1)+Fibonacci(step-2);
     }
 }
 
 le main(a:f64)->i32{
-    var f:f64 = 10.034876;
-    var c:i32 = 20+-123400100;
+    var f:f64 = 10.034876; ## float number support
+    no_ret();
+    print_int(reti32(20));
     print_float(-123124.111);
+    print_int(Fibonacci(20));
     ret 0;
 }
 
