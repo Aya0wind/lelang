@@ -1,9 +1,10 @@
+#![allow(unused)]
+
 use std::fs::File;
 use std::io::Read;
 
 use criterion::{black_box, Criterion, criterion_group, criterion_main};
 use inkwell::context::Context;
-use inkwell::targets::FileType;
 
 use lelang::arg_parser::{Args, OutputFormatEnum};
 use lelang::ast::Ast;

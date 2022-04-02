@@ -114,7 +114,7 @@ pub enum LogosToken {
     #[regex(r#""[0-9a-zA-Z\-\.]*""#, | lex | parse_string_literal_token(lex.slice()))]
     StringLiteral(String),
 
-    #[regex(r#"[1-9][0-9]*(\.[0-9]+)?"#, | lex | parse_number(lex).ok())]
+    #[regex(r#"[0-9]*(\.[0-9]+)?"#, | lex | parse_number(lex).ok())]
     NumberLiteral(Number),
 
     #[error]

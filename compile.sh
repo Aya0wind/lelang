@@ -1,1 +1,0 @@
-target/release/lelang -i main.le -S ir -O0 -o out.ll

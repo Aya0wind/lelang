@@ -1,18 +1,18 @@
-decl le print_f64(f64);
-decl le print_num(i32);
+decl le print_int(i64);
+decl le print_float(f64);
 
 
 le no_ret(){
     for(var i:i32 = 10;i<10;i=i+1;){
-        print_num(i);
+        print_int(i);
     }
 }
 
 le main(a:f64)->i32{
     var f:f64 = 10.034876;
     var c:i32 = 20+-123400100;
-    print_f64(-123124.111);
-    ret f;
+    print_float(-123124.111);
+    ret 0;
 }
 
 

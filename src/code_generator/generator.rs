@@ -398,10 +398,11 @@ impl<'s> CodeGenerator<'s> {
         let entry = self.builder.llvm_context.append_basic_block(function_value, "");
         let return_block = self.builder.llvm_context.append_basic_block(function_value, "");
         let return_type = function_value.get_type().get_return_type();
-        self.builder.llvm_builder.position_at_end(return_block);
         if let Some(none_void_type) = return_type {
+            self.builder.llvm_builder.position_at_end(entry);
             let return_variable = self.builder.build_alloca(none_void_type.into())?;
             self.compiler_context.set_current_context(function_value, Some(return_variable), return_block);
+            self.builder.llvm_builder.position_at_end(return_block);
             self.build_return_block(return_block, Some(return_variable))?;
         } else {
             self.compiler_context.set_current_context(function_value, None, return_block);

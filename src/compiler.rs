@@ -6,6 +6,7 @@ use std::process::Command;
 
 use anyhow::Result;
 use inkwell::context::Context;
+use inkwell::memory_buffer::MemoryBuffer;
 use inkwell::OptimizationLevel;
 use inkwell::targets::FileType;
 
@@ -45,10 +46,13 @@ pub fn compile_with_config(config: Args) -> Result<()> {
         OutputFormatEnum::IR => { module.print_to_file(output_path.as_path()).unwrap(); }
         OutputFormatEnum::ASM => { target_machine.write_to_file(&module, FileType::Assembly, config.output_path.as_path()).unwrap(); }
         OutputFormatEnum::OBJ => { target_machine.write_to_file(&module, FileType::Object, config.output_path.as_path()).unwrap(); }
+        OutputFormatEnum::EXE => {
+            target_machine.write_to_file(&module, FileType::Object, config.output_path.as_path()).unwrap();
+            let mut cmd = Command::new("clang");
+            let mut link_process = cmd.args([config.output_path.to_str().unwrap(), "print.o", "-o", config.output_path.as_path().with_extension("out").to_str().unwrap()])
+                .spawn()?;
+            link_process.wait()?;
+        }
     }
-    // // let mut cmd = Command::new("clang");
-    // // let mut link_process = cmd.args([config.output_path.to_str().unwrap(), "print.o", "-o", config.output_path.as_path().with_extension("out").to_str().unwrap()])
-    // //     .spawn()?;
-    // // link_process.wait()?;
     Ok(())
 }

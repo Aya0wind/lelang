@@ -29,6 +29,7 @@ pub enum OutputFormatEnum {
     IR,
     ASM,
     OBJ,
+    EXE,
 }
 
 
