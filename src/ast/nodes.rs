@@ -1,11 +1,10 @@
 use std::fmt::{Display, Formatter};
 
-use anyhow::Result;
-
 use crate::ast::parser::{parse_function, parse_function_prototype, parse_variable_declaration};
+use crate::ast::ParseResult;
 use crate::error::{SyntaxError, TokenType};
 use crate::lexer::{KeyWord, LELexer, LEToken};
-use crate::lexer::{Number, Operator};
+use crate::lexer::{BinaryOperator, Number};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Position {
@@ -26,7 +25,7 @@ impl Display for Position {
 
 #[derive(Debug)]
 pub struct BinaryOpExpression {
-    pub op: Operator,
+    pub op: BinaryOperator,
     pub left: Box<Expr>,
     pub right: Box<Expr>,
     pub pos: Position,
@@ -97,7 +96,7 @@ pub struct NumberLiteral {
 
 #[derive(Debug)]
 pub struct UnaryOpExpression {
-    pub op: Operator,
+    pub op: BinaryOperator,
     pub expr: Box<Expr>,
     pub pos: Position,
 }
@@ -153,13 +152,13 @@ pub struct Ast {
 
 
 impl Ast {
-    pub fn from_lexer(tokens: LELexer) -> Result<Self> {
+    pub fn from_lexer(tokens: LELexer) -> ParseResult<Self> {
         let mut ast = Self { globals: vec![], function_definitions: vec![], extern_functions: vec![] };
         ast.parse(tokens)?;
         Ok(ast)
     }
 
-    fn parse(&mut self, mut tokens: LELexer) -> Result<()> {
+    fn parse(&mut self, mut tokens: LELexer) -> ParseResult<()> {
         loop {
             let next_token = tokens.current();
             match next_token {
@@ -182,11 +181,11 @@ impl Ast {
                                 self.globals.push(variable);
                             }
                             _ => {
-                                return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, tokens.current_result()?.clone(), tokens.line().into()).into());
+                                return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, LEToken::KeyWord(keyword.clone())).into());
                             }
                         }
                     } else {
-                        return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, tokens.current_result()?.clone(), tokens.line().into()).into());
+                        return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare,token.clone()).into());
                     }
                 }
             }

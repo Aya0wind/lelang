@@ -1,32 +1,28 @@
 use anyhow::Result;
 
 use crate::ast::nodes::{BinaryOpExpression, CodeBlock, Expr, FunctionCall, FunctionDefinition, Identifier, NumberLiteral, Position, UnaryOpExpression};
-use crate::ast::nodes::Expr::BinaryOperator;
 use crate::ast::parser::statement::parse_statement;
+use crate::ast::ParseResult;
 use crate::error::SyntaxError;
-use crate::lexer::{LELexer, LEToken, Operator};
+use crate::lexer::{BinaryOperator, LELexer, LEToken};
 
-fn get_operator_precedence(op: &Operator) -> usize {
+fn get_operator_precedence(op: &BinaryOperator) -> usize {
     match op {
-        Operator::Plus => { 20 }
-        Operator::Sub => { 20 }
-        Operator::Mul => { 40 }
-        Operator::Div => { 40 }
-        Operator::Assign => { 10 }
-        Operator::Equal => { 10 }
-        Operator::GreaterThan => { 10 }
-        Operator::LessThan => { 10 }
-        Operator::GreaterOrEqualThan => { 10 }
-        Operator::LessOrEqualThan => { 10 }
+        BinaryOperator::Plus => { 20 }
+        BinaryOperator::Sub => { 20 }
+        BinaryOperator::Mul => { 40 }
+        BinaryOperator::Div => { 40 }
+        BinaryOperator::Assign => { 10 }
+        BinaryOperator::Equal => { 10 }
+        BinaryOperator::GreaterThan => { 10 }
+        BinaryOperator::LessThan => { 10 }
+        BinaryOperator::GreaterOrEqualThan => { 10 }
+        BinaryOperator::LessOrEqualThan => { 10 }
     }
 }
 
 
-pub type VParseResult = Result<Box<Expr>>;
-pub type FParseResult = Result<FunctionDefinition>;
-
-
-pub fn parse_call_expression(lexer: &mut LELexer, function_name: String) -> Result<Box<Expr>> {
+pub fn parse_call_expression(lexer: &mut LELexer, function_name: String) -> ParseResult<Box<Expr>> {
     lexer.next_result()?;
     let mut params = vec![];
     loop {
@@ -37,7 +33,7 @@ pub fn parse_call_expression(lexer: &mut LELexer, function_name: String) -> Resu
                 return Ok(Box::new(Expr::CallExpression(FunctionCall {
                     function_name,
                     params,
-                    pos: lexer.line().into(),
+                    pos: lexer.pos(),
                 })));
             }
             LEToken::Comma => {
@@ -51,7 +47,7 @@ pub fn parse_call_expression(lexer: &mut LELexer, function_name: String) -> Resu
 }
 
 
-pub fn parse_binary_ops(lexer: &mut LELexer, mut lhs: Box<Expr>, expression_precedence: usize) -> VParseResult {
+pub fn parse_binary_ops(lexer: &mut LELexer, mut lhs: Box<Expr>, expression_precedence: usize) -> ParseResult<Box<Expr>> {
     loop {
         if let LEToken::Operator(op) = lexer.own_current()? {
             let precedence = get_operator_precedence(&op);
@@ -61,11 +57,11 @@ pub fn parse_binary_ops(lexer: &mut LELexer, mut lhs: Box<Expr>, expression_prec
             lexer.next_result()?;
             let mut rhs = parse_primary_expression(lexer)?;
             rhs = parse_binary_ops(lexer, rhs, precedence + 1)?;
-            lhs = Box::new(BinaryOperator(BinaryOpExpression {
+            lhs = Box::new(Expr::BinaryOperator(BinaryOpExpression{
                 op,
                 left: lhs,
                 right: rhs,
-                pos: lexer.line().into(),
+                pos: lexer.pos(),
             }))
         } else {
             return Ok(lhs);
@@ -73,40 +69,40 @@ pub fn parse_binary_ops(lexer: &mut LELexer, mut lhs: Box<Expr>, expression_prec
     }
 }
 
-pub fn parse_identifier_expression(lexer: &mut LELexer) -> VParseResult {
+pub fn parse_identifier_expression(lexer: &mut LELexer) -> ParseResult<Box<Expr>> {
     let identifier = lexer.consume_identifier()?;
     match lexer.current_result()? {
         LEToken::LeftPar => {
             Ok(parse_call_expression(lexer, identifier)?)
         }
         _ => {
-            Ok(Box::new(Expr::Identifier(Identifier { name: identifier, pos: lexer.line().into() })))
+            Ok(Box::new(Expr::Identifier(Identifier { name: identifier, pos: lexer.pos() })))
         }
     }
 }
 
-pub fn parse_number_expression(lexer: &mut LELexer) -> VParseResult {
+pub fn parse_number_expression(lexer: &mut LELexer) -> ParseResult<Box<Expr>> {
     let number = lexer.consume_number_literal()?;
-    Ok(Box::new(Expr::NumberLiteral(NumberLiteral { number, pos: lexer.line().into() })))
+    Ok(Box::new(Expr::NumberLiteral(NumberLiteral { number, pos: lexer.pos() })))
 }
 
-pub fn parse_little_par_expression(lexer: &mut LELexer) -> VParseResult {
+pub fn parse_little_par_expression(lexer: &mut LELexer) -> ParseResult<Box<Expr>> {
     lexer.consume_left_par()?;
     let expression = parse_expression(lexer)?;
     lexer.consume_right_par()?;
     Ok(expression)
 }
 
-pub fn parse_unary_ops(lexer: &mut LELexer) -> VParseResult {
+pub fn parse_unary_ops(lexer: &mut LELexer) -> ParseResult<Box<Expr>> {
     let op = lexer.consume_operator()?;
     Ok(Box::new(Expr::UnaryOperator(UnaryOpExpression {
         op,
         expr: parse_primary_expression(lexer)?,
-        pos: lexer.line().into(),
+        pos: lexer.pos(),
     })))
 }
 
-pub fn parse_primary_expression(lexer: &mut LELexer) -> VParseResult {
+pub fn parse_primary_expression(lexer: &mut LELexer) -> ParseResult<Box<Expr>> {
     let next = lexer.own_current()?;
     match next {
         LEToken::Operator(op) => {
@@ -119,18 +115,18 @@ pub fn parse_primary_expression(lexer: &mut LELexer) -> VParseResult {
             parse_identifier_expression(lexer)
         }
         LEToken::LeftPar => { parse_little_par_expression(lexer) }
-        _ => { Err(SyntaxError::missing_expression(lexer.line().into()).into()) }
+        _ => { Err(SyntaxError::missing_expression())}
     }
 }
 
-pub fn parse_expression(lexer: &mut LELexer) -> VParseResult {
+pub fn parse_expression(lexer: &mut LELexer) -> ParseResult<Box<Expr>> {
     let primary = parse_primary_expression(lexer)?;
     parse_binary_ops(lexer, primary, 0)
 }
 
-pub fn parse_code_block(lexer: &mut LELexer) -> Result<CodeBlock> {
+pub fn parse_code_block(lexer: &mut LELexer) -> ParseResult<CodeBlock> {
     lexer.consume_left_brace()?;
-    let mut block = CodeBlock { statements: vec![], pos: lexer.line().into() };
+    let mut block = CodeBlock { statements: vec![], pos: lexer.pos() };
     while let Ok(current) = lexer.current_result() {
         if current == &LEToken::RightBrace {
             break;

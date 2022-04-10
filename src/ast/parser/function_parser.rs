@@ -1,11 +1,10 @@
-use anyhow::Result;
-
 use crate::ast::nodes::{ExternalFunction, FunctionDefinition};
-use crate::ast::parser::common::{FParseResult, parse_code_block};
+use crate::ast::parser::common::parse_code_block;
+use crate::ast::ParseResult;
 use crate::error::{SyntaxError, TokenType};
 use crate::lexer::{LELexer, LEToken};
 
-pub fn parse_variable_annotation(lexer: &mut LELexer) -> Result<(String, String)> {
+pub fn parse_variable_annotation(lexer: &mut LELexer) -> ParseResult<(String, String)> {
     let identifier = lexer.consume_identifier()?;
     lexer.consume_colon()?;
     let type_name = lexer.consume_identifier()?;
@@ -13,7 +12,7 @@ pub fn parse_variable_annotation(lexer: &mut LELexer) -> Result<(String, String)
 }
 
 
-pub fn parse_function_params(lexer: &mut LELexer) -> Result<Vec<(String, String)>> {
+pub fn parse_function_params(lexer: &mut LELexer) -> ParseResult<Vec<(String, String)>> {
     lexer.consume_left_par()?;
     let mut params = vec![];
     loop {
@@ -30,13 +29,13 @@ pub fn parse_function_params(lexer: &mut LELexer) -> Result<Vec<(String, String)
                 lexer.next_result()?;
             }
             _ => {
-                return Err(SyntaxError::unexpect_token(TokenType::RightPar, current_token, lexer.line().into()).into());
+                return Err(SyntaxError::unexpect_token(TokenType::RightPar, current_token).into());
             }
         }
     }
 }
 
-pub fn parse_type_list(lexer: &mut LELexer) -> Result<Vec<String>> {
+pub fn parse_type_list(lexer: &mut LELexer) -> ParseResult<Vec<String>> {
     lexer.consume_left_par()?;
     let mut params = vec![];
     loop {
@@ -54,14 +53,14 @@ pub fn parse_type_list(lexer: &mut LELexer) -> Result<Vec<String>> {
                 lexer.next_result()?;
             }
             _ => {
-                return Err(SyntaxError::unexpect_token(TokenType::RightPar, current_token, lexer.line().into()).into());
+                return Err(SyntaxError::unexpect_token(TokenType::RightPar, current_token).into());
             }
         }
     }
 }
 
 
-pub fn parse_function_prototype(lexer: &mut LELexer) -> Result<ExternalFunction> {
+pub fn parse_function_prototype(lexer: &mut LELexer) -> ParseResult<ExternalFunction> {
     lexer.consume_keyword()?;
     let name = lexer.consume_identifier()?;
     let param_types = parse_type_list(lexer)?;
@@ -70,11 +69,11 @@ pub fn parse_function_prototype(lexer: &mut LELexer) -> Result<ExternalFunction>
         name,
         param_types,
         return_type,
-        pos: lexer.line().into(),
+        pos: lexer.pos(),
     })
 }
 
-pub fn parse_function_return_type(lexer: &mut LELexer) -> Result<Option<String>> {
+pub fn parse_function_return_type(lexer: &mut LELexer) -> ParseResult<Option<String>> {
     if let LEToken::ReturnTypeAllow = lexer.current_result()? {
         lexer.next_result()?;
         Ok(Some(lexer.consume_identifier()?))
@@ -84,7 +83,7 @@ pub fn parse_function_return_type(lexer: &mut LELexer) -> Result<Option<String>>
 }
 
 
-pub fn parse_function(lexer: &mut LELexer) -> FParseResult {
+pub fn parse_function(lexer: &mut LELexer) -> ParseResult<FunctionDefinition> {
     lexer.consume_keyword()?;
     let name = lexer.consume_identifier()?;
     let params = parse_function_params(lexer)?;
@@ -101,11 +100,11 @@ pub fn parse_function(lexer: &mut LELexer) -> FParseResult {
             name,
             param_types,
             return_type,
-            pos: lexer.line().into(),
+            pos: lexer.pos(),
         },
         param_names,
         code_block,
-        pos: lexer.line().into(),
+        pos: lexer.pos(),
     };
     Ok(function)
 }

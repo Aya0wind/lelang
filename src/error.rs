@@ -7,14 +7,6 @@ use thiserror::Error;
 use crate::ast::nodes::Position;
 use crate::lexer::{LELexer, LEToken};
 
-#[derive(Debug, Error)]
-#[allow(unused)]
-pub enum TokenParserError {
-    #[error("Error:Got unrecognized token")]
-    UnrecognizedToken
-}
-
-
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
     If,
@@ -47,21 +39,17 @@ impl Display for TokenType {
 #[allow(unused)]
 #[derive(Debug, Error)]
 pub enum SyntaxError {
-    #[error("[ERROR]line({pos}): Unexpected token: `{found}`, expect: `{expect}`")]
+    #[error("Unexpected token: `{found}`, expect: `{expect}`")]
     UnexpectToken {
         expect: TokenType,
         found: LEToken,
-        pos: Position,
     },
-    #[error("[ERROR]line({pos}): Missing token:`{expect}`")]
+    #[error("Missing token:`{expect}`")]
     MissingToken {
         expect: TokenType,
-        pos: Position,
     },
-    #[error("[ERROR]line({pos}): Missing expression.")]
-    MissingExpression {
-        pos: Position,
-    },
+    #[error("Missing expression.")]
+    MissingExpression {},
     #[error("End of file")]
     EOF,
 }
@@ -69,144 +57,152 @@ pub enum SyntaxError {
 #[allow(unused)]
 #[derive(Debug, Error)]
 pub enum CompileError {
-    #[error("[ERROR]line({pos}):unknown identifier:{identifier}")]
+    #[error("unknown identifier:{identifier}")]
     UnknownIdentifier {
         identifier: String,
-        pos: Position,
     },
-    #[error("[ERROR]line({pos}):expect a type name, but identifier `{identifier}` is not a type")]
+    #[error("expect a type name, but identifier `{identifier}` is not a type")]
     IdentifierIsNotType {
         identifier: String,
-        pos: Position,
     },
-    #[error("[ERROR]line({pos}):expect a variable, but identifier `{identifier}` is not a variable")]
+    #[error("expect a variable, but identifier `{identifier}` is not a variable")]
     IdentifierIsNotVariable {
         identifier: String,
-        pos: Position,
     },
-    #[error("[ERROR]line({pos}):expect a function name, but identifier `{identifier}` is not a function")]
+    #[error("expect a function name, but identifier `{identifier}` is not a function")]
     IdentifierIsNotFunction {
         identifier: String,
-        pos: Position,
     },
-    #[error("[ERROR]line({pos}):identifier `{identifier}` is already defined, which is a `{symbol_name}`")]
+    #[error("identifier `{identifier}` is already defined, which is a `{symbol_name}`")]
     IdentifierAlreadyDefined {
         identifier: String,
         symbol_name: String,
-        pos: Position,
     },
-    #[error("[ERROR]line({pos}):expect a variable, but identifier `{identifier}` is not a variable")]
+    #[error("expect a variable, but identifier `{identifier}` is not a variable")]
     CanOnlyAssignVariable {
         identifier: String,
-        pos: Position,
     },
-    #[error("[ERROR]line({pos}):expect a type `{expect}`, but got `{found}`")]
+    #[error("expect a type `{expect}`, but got `{found}`")]
     TypeMismatched {
         expect: String,
         found: String,
-        pos: Position,
     },
 
 }
 
-impl TokenParserError {
-    pub fn unrecognized_token() -> Self {
-        Self::UnrecognizedToken
-    }
-}
 
 impl CompileError {
-    pub fn identifier_is_not_type(identifier: String, pos: Position) -> Self {
-        Self::IdentifierIsNotType { identifier, pos }
+    pub fn identifier_is_not_type(identifier: String) -> Self {
+        Self::IdentifierIsNotType { identifier }
     }
-    pub fn can_only_assign_variable(identifier: String, pos: Position) -> Self {
-        Self::CanOnlyAssignVariable { identifier, pos }
+    pub fn can_only_assign_variable(identifier: String) -> Self {
+        Self::CanOnlyAssignVariable { identifier }
     }
-    pub fn unknown_identifier(identifier: String, pos: Position) -> Self {
-        Self::UnknownIdentifier { identifier, pos }
+    pub fn unknown_identifier(identifier: String) -> Self {
+        Self::UnknownIdentifier { identifier }
     }
-    pub fn identifier_is_not_variable(identifier: String, pos: Position) -> Self {
-        Self::IdentifierIsNotVariable { identifier, pos }
+    pub fn identifier_is_not_variable(identifier: String) -> Self {
+        Self::IdentifierIsNotVariable { identifier }
     }
-    pub fn identifier_is_not_function(identifier: String, pos: Position) -> Self {
-        Self::IdentifierIsNotFunction { identifier, pos }
-    }
-
-    pub fn identifier_already_defined(identifier: String, symbol_name: String, pos: Position) -> Self {
-        Self::IdentifierIsNotFunction { identifier, pos }
+    pub fn identifier_is_not_function(identifier: String) -> Self {
+        Self::IdentifierIsNotFunction { identifier }
     }
 
-    pub fn type_mismatched(expect: String, found: String, pos: Position) -> Self {
-        Self::TypeMismatched { expect, found, pos }
+    pub fn identifier_already_defined(identifier: String, symbol_name: String) -> Self {
+        Self::IdentifierIsNotFunction { identifier }
+    }
+
+    pub fn type_mismatched(expect: String, found: String) -> Self {
+        Self::TypeMismatched { expect, found }
     }
 }
 
 impl SyntaxError {
-    pub fn unexpect_token(expect: TokenType, found: LEToken, pos: Position) -> Self {
-        Self::UnexpectToken { expect, found, pos }
+    pub fn unexpect_token(expect: TokenType, found: LEToken) -> Self {
+        Self::UnexpectToken { expect, found }
     }
-    pub fn missing_expression(pos: Position) -> Self { Self::MissingExpression { pos } }
-    pub fn missing_token(expect: TokenType, pos: Position) -> Self {
-        Self::MissingToken { expect, pos }
+    pub fn missing_expression() -> Self {
+        Self::MissingExpression {  }
     }
-    pub fn missing_if(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::If, pos }
+    pub fn missing_token(expect: TokenType) -> Self {
+        Self::MissingToken { expect }
     }
-    pub fn missing_else(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::Else, pos }
+    pub fn missing_if() -> Self {
+        Self::MissingToken { expect: TokenType::If }
     }
-    pub fn missing_function_declare(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::FunctionDeclare, pos }
+    pub fn missing_else() -> Self {
+        Self::MissingToken { expect: TokenType::Else }
     }
-    pub fn missing_variable_declare(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::VariableDeclare, pos }
+    pub fn missing_function_declare() -> Self {
+        Self::MissingToken { expect: TokenType::FunctionDeclare }
     }
-    pub fn missing_return(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::Return, pos }
+    pub fn missing_variable_declare() -> Self {
+        Self::MissingToken { expect: TokenType::VariableDeclare }
     }
-    pub fn missing_colon(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::Colon, pos }
+    pub fn missing_return() -> Self {
+        Self::MissingToken { expect: TokenType::Return }
     }
-    pub fn missing_left_little_brace(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::LeftPar, pos }
+    pub fn missing_colon() -> Self {
+        Self::MissingToken { expect: TokenType::Colon }
     }
-    pub fn missing_right_little_brace(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::RightPar, pos }
+    pub fn missing_left_little_brace() -> Self {
+        Self::MissingToken { expect: TokenType::LeftPar }
     }
-    pub fn missing_left_middle_brace(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::LeftBracket, pos }
+    pub fn missing_right_little_brace() -> Self {
+        Self::MissingToken { expect: TokenType::RightPar }
     }
-    pub fn missing_right_middle_brace(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::RightBracket, pos }
+    pub fn missing_left_middle_brace() -> Self {
+        Self::MissingToken { expect: TokenType::LeftBracket }
     }
-    pub fn missing_left_big_brace(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::LeftBrace, pos }
+    pub fn missing_right_middle_brace() -> Self {
+        Self::MissingToken { expect: TokenType::RightBracket }
     }
-    pub fn missing_right_big_brace(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::RightBrace, pos }
+    pub fn missing_left_big_brace() -> Self {
+        Self::MissingToken { expect: TokenType::LeftBrace }
     }
-    pub fn missing_comma(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::Comma, pos }
+    pub fn missing_right_big_brace() -> Self {
+        Self::MissingToken { expect: TokenType::RightBrace }
     }
-    pub fn missing_operator(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::Operator, pos }
+    pub fn missing_comma() -> Self {
+        Self::MissingToken { expect: TokenType::Comma }
     }
-    pub fn missing_return_type_allow(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::ReturnTypeAllow, pos }
+    pub fn missing_operator() -> Self {
+        Self::MissingToken { expect: TokenType::Operator }
     }
-    pub fn missing_identifier(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::Identifier, pos }
+    pub fn missing_return_type_allow() -> Self {
+        Self::MissingToken { expect: TokenType::ReturnTypeAllow }
     }
-    pub fn missing_number_literal(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::NumberLiteral, pos }
+    pub fn missing_identifier() -> Self {
+        Self::MissingToken { expect: TokenType::Identifier }
     }
-    pub fn missing_string_literal(pos: Position) -> Self {
-        Self::MissingToken { expect: TokenType::StringLiteral, pos }
+    pub fn missing_number_literal() -> Self {
+        Self::MissingToken { expect: TokenType::NumberLiteral }
+    }
+    pub fn missing_string_literal() -> Self {
+        Self::MissingToken { expect: TokenType::StringLiteral }
     }
 }
 
-
-#[derive(Debug, Error)]
 #[allow(unused)]
-enum JITCompileError {}
+#[derive(Debug,Error)]
+pub enum LEError {
+    #[error("[line:{pos}]SyntaxError:{syntax_error}")]
+    SyntaxError{
+        syntax_error:SyntaxError,
+        pos:Position
+    },
+    #[error("[line:{pos}]CompileError:{compile_error}")]
+    CompileError{
+        compile_error:CompileError,
+        pos:Position
+    }
+}
 
+impl LEError {
+    pub fn new_syntax_error(error:SyntaxError,pos:Position)->Self{
+        Self::SyntaxError {syntax_error:error, pos }
+    }
+    pub fn new_compile_error(error:CompileError,pos:Position)->Self{
+        Self::CompileError {compile_error:error, pos }
+    }
+}

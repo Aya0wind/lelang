@@ -6,6 +6,7 @@ use std::process::Command;
 
 use anyhow::Result;
 use inkwell::context::Context;
+use inkwell::data_layout::DataLayout;
 use inkwell::memory_buffer::MemoryBuffer;
 use inkwell::OptimizationLevel;
 use inkwell::targets::FileType;
@@ -23,7 +24,7 @@ pub fn compile_with_config(config: Args) -> Result<()> {
     input.read_to_string(&mut buffer)?;
 
     //词法分析
-    let lexer = lexer::LELexer::new(&buffer).unwrap();
+    let lexer = lexer::LELexer::new(&buffer)?;
 
     //语法分析
     let ast = Ast::from_lexer(lexer)?;
