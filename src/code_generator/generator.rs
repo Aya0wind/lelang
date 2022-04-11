@@ -446,8 +446,8 @@ impl<'s> CodeGenerator<'s> {
     }
 
     pub fn compile(&mut self, module: &Module<'s>, ast: &Ast) -> Result<()> {
-        self.generate_all_global_variables(module, &ast)?;
-        self.generate_all_functions(module, &ast)?;
+        self.generate_all_global_variables(module, ast)?;
+        self.generate_all_functions(module, ast)?;
         Ok(())
     }
 

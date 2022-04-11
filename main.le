@@ -1,16 +1,16 @@
-## Attention! not allow unicode character in comments now!
-decl le print_int(i64); ##external function declaration
+## 外部函数声明
+decl le print_int(i64);
 decl le print_float(f64);
 
-## function without return value
+## 无返回值函数
 le no_ret(){
-    for(var i:i32 = 10;i<10;i=i+1;){ ##for loop
+    for(var i:i32 = 10;i<10;i=i+1;){    ## for 循环
         print_int(i);
     }
 }
-##function with params and return type
+## 带参数和返回值的函数
 le reti32(number:i32)->i32{
-    while(number>0){ ## while loop
+    while(number>0){            ## while循环
         if (number==5){
             ret number;
         }el{
@@ -19,21 +19,23 @@ le reti32(number:i32)->i32{
     }
     ret number;
 }
-## recursive function with params and return value
+## 带参数和返回值，递归函数
 le Fibonacci(step:u32)->u32{
     if(step<3){
         ret 1;
     }el{
-        ret Fibonacci(step-1)+Fibonacci(step-2);
+        var step_result:i32 = Fibonacci(step-1)+Fibonacci(step-2); ## 块级变量定义
+        print_int(step_result);
+        ret step_result;
     }
 }
 
 le main(a:f64)->i32{
-    var f:f64 = 10.034876; ## float number support
+    var f:f64 = 10.034876;          ## 浮点数支持
     no_ret();
-    print_int(reti32(20));
+    print_int(reti32(f));
     print_float(-123124.111);
-    print_int(Fibonacci(20));
+    print_int(Fibonacci(21));
     ret 0;
 }
 

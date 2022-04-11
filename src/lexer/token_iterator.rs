@@ -105,7 +105,7 @@ pub enum LogosToken {
     #[regex(r"[\s]+", | lex | counter_line(lex.slice()))]
     WhiteCharacter(usize),
 
-    #[regex(r"##[\x20-\x7F]+\n+")]
+    #[regex(r"##[^\n]*")]
     Comment,
 
     #[regex("[a-zA-Z_]+[0-9]*", | lex | lex.slice().to_string())]

@@ -34,7 +34,7 @@ impl<'s> SymbolTable<'s> {
                 ("u32".into(), Symbol::Type(LETypeEnum::NumericType(NumericTypeEnum::IntegerType(IntegerType { signed: false, value: llvm_context.i32_type() })))),
                 ("u64".into(), Symbol::Type(LETypeEnum::NumericType(NumericTypeEnum::IntegerType(IntegerType { signed: false, value: llvm_context.i64_type() })))),
                 ("f32".into(), Symbol::Type(LETypeEnum::NumericType(NumericTypeEnum::FloatType(llvm_context.f32_type())))),
-                ("f64".into(), Symbol::Type(LETypeEnum::NumericType(NumericTypeEnum::FloatType(llvm_context.f32_type())))),
+                ("f64".into(), Symbol::Type(LETypeEnum::NumericType(NumericTypeEnum::FloatType(llvm_context.f64_type())))),
             ])]
         }
     }
