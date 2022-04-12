@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use crate::ast::parser::{parse_function, parse_function_prototype, parse_variable_declaration};
 use crate::ast::ParseResult;
 use crate::error::{SyntaxError, TokenType};
-use crate::lexer::{KeyWord, LELexer, LEToken};
+use crate::lexer::{KeyWord, LELexer, LEToken, UnaryOperator};
 use crate::lexer::{BinaryOperator, Number};
 
 #[derive(Debug, Clone, Copy)]
@@ -96,7 +96,7 @@ pub struct NumberLiteral {
 
 #[derive(Debug)]
 pub struct UnaryOpExpression {
-    pub op: BinaryOperator,
+    pub op: UnaryOperator,
     pub expr: Box<Expr>,
     pub pos: Position,
 }
@@ -181,11 +181,11 @@ impl Ast {
                                 self.globals.push(variable);
                             }
                             _ => {
-                                return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, LEToken::KeyWord(keyword.clone())).into());
+                                return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, LEToken::KeyWord(keyword.clone())));
                             }
                         }
                     } else {
-                        return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare,token.clone()).into());
+                        return Err(SyntaxError::unexpect_token(TokenType::FunctionDeclare, token.clone()));
                     }
                 }
             }

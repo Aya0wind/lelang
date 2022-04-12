@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
@@ -8,7 +9,8 @@ use inkwell::types::FloatType;
 use inkwell::values::{FloatValue, IntValue, PointerValue};
 use lazy_static::lazy_static;
 
-use crate::code_generator::builder::llvm_type_wrapper::{LEBasicValue, LEFloatType, LEFloatValue, LEIntegerType, LEIntegerValue};
+use crate::code_generator::builder::le_type::{LEBasicType, LEFloatType, LEFloatValue, LEIntegerType, LEIntegerValue};
+use crate::code_generator::builder::LEContext;
 use crate::error::CompileError;
 
 use super::super::Result;
@@ -38,182 +40,182 @@ pub fn get_float_promotion_providence(ty: &LEFloatType) -> u32 {
 }
 
 pub fn get_integer_promotion_providence(ty: &LEIntegerType) -> u32 {
-    let width = ty.llvm_type.get_bit_width();
-    let signed = ty.signed;
+    let width = ty.get_llvm_type().get_bit_width();
+    let signed = ty.signed();
     *INT_TYPE_PROMOTION_PROVIDENCE.get(&(signed, width)).unwrap()
 }
 
 
-impl<'ctx,'a> BinaryOpBuilder<'ctx,'a> for LEIntegerValue<'ctx,'a> {
-    fn build_add(&self, llvm_builder: &Builder<'ctx>, llvm_context: &Context, rhs: &Self) -> Result<Self> {
-        let (left_providence, right_providence) = (get_integer_promotion_providence(self.ty), get_integer_promotion_providence(rhs.ty));
+impl<'ctx> BinaryOpBuilder<'ctx> for LEIntegerValue<'ctx> {
+    fn build_add(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
+        let (left_providence, right_providence) = (get_integer_promotion_providence(&self.ty), get_integer_promotion_providence(&rhs.ty));
         match left_providence.cmp(&right_providence) {
             Ordering::Less => {
                 //右边的类型要提升至左边的类型
-                let cast_value = llvm_builder.build_int_cast(self.llvm_value, rhs.ty.llvm_type, "");
+                let cast_value = le_context.llvm_builder.build_int_cast(self.llvm_value, rhs.ty.get_llvm_type(), "");
                 Ok(
-                    LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_add(self.llvm_value, cast_value, "") }
+                    LEIntegerValue { ty: self.ty.clone().clone(), llvm_value: le_context.llvm_builder.build_int_add(self.llvm_value, cast_value, "") }
                 )
             }
             Ordering::Greater => {
                 //左边的类型要提升至右边的类型
-                let cast_value = llvm_builder.build_int_cast(rhs.llvm_value, self.ty.llvm_type, "");
+                let cast_value = le_context.llvm_builder.build_int_cast(rhs.llvm_value, self.ty.get_llvm_type(), "");
                 Ok(
-                    LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_add(cast_value, rhs.llvm_value, "") }
+                    LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_add(cast_value, rhs.llvm_value, "") }
                 )
             }
             Ordering::Equal => {
                 Ok(
-                    LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_add(self.llvm_value, rhs.llvm_value, "") }
+                    LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_add(self.llvm_value, rhs.llvm_value, "") }
                 )
             }
         }
     }
 
-    fn build_sub(&self, llvm_builder: &Builder<'ctx>, llvm_context: &Context, rhs: &Self) -> Result<Self> {
-        let (left_providence, right_providence) = (get_integer_promotion_providence(self.ty), get_integer_promotion_providence(rhs.ty));
+    fn build_sub(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
+        let (left_providence, right_providence) = (get_integer_promotion_providence(&self.ty), get_integer_promotion_providence(&rhs.ty));
         match left_providence.cmp(&right_providence) {
             Ordering::Less => {
                 //右边的类型要提升至左边的类型
-                let cast_value = llvm_builder.build_int_cast(self.llvm_value, rhs.ty.llvm_type, "");
+                let cast_value = le_context.llvm_builder.build_int_cast(rhs.llvm_value, self.ty.get_llvm_type(), "");
                 Ok(
-                    LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_sub(self.llvm_value, cast_value, "") }
+                    LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_sub(self.llvm_value, cast_value, "") }
                 )
             }
             Ordering::Greater => {
                 //左边的类型要提升至右边的类型
-                let cast_value = llvm_builder.build_int_cast(rhs.llvm_value, self.ty.llvm_type, "");
+                let cast_value = le_context.llvm_builder.build_int_cast(self.llvm_value, rhs.ty.get_llvm_type(), "");
                 Ok(
-                    LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_sub(cast_value, rhs.llvm_value, "") }
+                    LEIntegerValue { ty: rhs.ty.clone(), llvm_value: le_context.llvm_builder.build_int_sub(cast_value, rhs.llvm_value, "") }
                 )
             }
             Ordering::Equal => {
                 Ok(
-                    LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_sub(self.llvm_value, rhs.llvm_value, "") }
+                    LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_sub(self.llvm_value, rhs.llvm_value, "") }
                 )
             }
         }
     }
 
-    fn build_mul(&self, llvm_builder: &Builder<'ctx>, llvm_context: &Context, rhs: &Self) -> Result<Self> {
-        let (left_providence, right_providence) = (get_integer_promotion_providence(self.ty), get_integer_promotion_providence(rhs.ty));
+    fn build_mul(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
+        let (left_providence, right_providence) = (get_integer_promotion_providence(&self.ty), get_integer_promotion_providence(&rhs.ty));
         match left_providence.cmp(&right_providence) {
             Ordering::Less => {
                 //右边的类型要提升至左边的类型
-                let cast_value = llvm_builder.build_int_cast(self.llvm_value, rhs.ty.llvm_type, "");
+                let cast_value = le_context.llvm_builder.build_int_cast(rhs.llvm_value, self.ty.get_llvm_type(), "");
                 Ok(
-                    LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_mul(self.llvm_value, cast_value, "") }
+                    LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_mul(self.llvm_value, cast_value, "") }
                 )
             }
             Ordering::Greater => {
                 //左边的类型要提升至右边的类型
-                let cast_value = llvm_builder.build_int_cast(rhs.llvm_value, self.ty.llvm_type, "");
+                let cast_value = le_context.llvm_builder.build_int_cast(self.llvm_value, rhs.ty.get_llvm_type(), "");
                 Ok(
-                    LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_mul(cast_value, rhs.llvm_value, "") }
+                    LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_mul(cast_value, rhs.llvm_value, "") }
                 )
             }
             Ordering::Equal => {
                 Ok(
-                    LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_mul(self.llvm_value, rhs.llvm_value, "") }
+                    LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_mul(self.llvm_value, rhs.llvm_value, "") }
                 )
             }
         }
     }
 
-    fn build_div(&self, llvm_builder: &Builder<'ctx>, llvm_context: &Context, rhs: &Self) -> Result<Self> {
-        let (left_providence, right_providence) = (get_integer_promotion_providence(self.ty), get_integer_promotion_providence(rhs.ty));
+    fn build_div(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
+        let (left_providence, right_providence) = (get_integer_promotion_providence(&self.ty), get_integer_promotion_providence(&rhs.ty));
         match left_providence.cmp(&right_providence) {
             Ordering::Less => {
                 //右边的类型要提升至左边的类型
-                let cast_value = llvm_builder.build_int_cast(self.llvm_value, rhs.ty.llvm_type, "");
-                if self.ty.signed{
+                let cast_value = le_context.llvm_builder.build_int_cast(rhs.llvm_value, self.ty.get_llvm_type(), "");
+                if self.ty.signed() {
                     Ok(
-                        LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_signed_div(self.llvm_value, cast_value, "") }
+                        LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_signed_div(self.llvm_value, cast_value, "") }
                     )
-                }else{
+                } else {
                     Ok(
-                        LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_unsigned_div(self.llvm_value, cast_value, "") }
+                        LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_unsigned_div(self.llvm_value, cast_value, "") }
                     )
                 }
             }
             Ordering::Greater => {
                 //左边的类型要提升至右边的类型
-                let cast_value = llvm_builder.build_int_cast(self.llvm_value, rhs.ty.llvm_type, "");
-                if rhs.ty.signed{
+                let cast_value = le_context.llvm_builder.build_int_cast(self.llvm_value, rhs.ty.get_llvm_type(), "");
+                if rhs.ty.signed() {
                     Ok(
-                        LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_signed_div(cast_value, rhs.llvm_value, "") }
+                        LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_signed_div(cast_value, rhs.llvm_value, "") }
                     )
-                }else{
+                } else {
                     Ok(
-                        LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_unsigned_div(cast_value, rhs.llvm_value, "") }
+                        LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_unsigned_div(cast_value, rhs.llvm_value, "") }
                     )
                 }
             }
             Ordering::Equal => {
-                if rhs.ty.signed{
+                if rhs.ty.signed() {
                     Ok(
-                        LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_signed_div(self.llvm_value, rhs.llvm_value, "") }
+                        LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_signed_div(self.llvm_value, rhs.llvm_value, "") }
                     )
-                }else{
+                } else {
                     Ok(
-                        LEIntegerValue{ ty: self.ty, llvm_value: llvm_builder.build_int_unsigned_div(self.llvm_value, rhs.llvm_value, "") }
+                        LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_unsigned_div(self.llvm_value, rhs.llvm_value, "") }
                     )
                 }
             }
         }
     }
 
-    fn build_cmp(&self, llvm_builder: &Builder<'ctx>, llvm_context: &Context, rhs: &Self, op: CompareOperator) -> Result<LEIntegerValue> {
-        let (left_providence, right_providence) = (get_integer_promotion_providence(self.ty), get_integer_promotion_providence(rhs.ty));
-        let (casted_left,casted_right) = match left_providence.cmp(&right_providence) {
+    fn build_cmp(self, le_context: &LEContext<'ctx>, rhs: Self, op: CompareOperator) -> Result<LEIntegerValue<'ctx>> {
+        let (left_providence, right_providence) = (get_integer_promotion_providence(&self.ty), get_integer_promotion_providence(&rhs.ty));
+        let (casted_left, casted_right) = match left_providence.cmp(&right_providence) {
             Ordering::Less => {
                 //右边的类型要提升至左边的类型
-                let cast_value = llvm_builder.build_int_cast(self.llvm_value, rhs.ty, "");
-                (LEIntegerValue{ ty: self.ty, llvm_value: cast_value },rhs)
+                let cast_value = le_context.llvm_builder.build_int_cast(rhs.llvm_value, self.ty.get_llvm_type(), "");
+                (LEIntegerValue { ty: self.ty.clone(), llvm_value: cast_value }, rhs.clone())
             }
             Ordering::Greater => {
                 //右边的类型要提升至左边的类型
-                let cast_value = llvm_builder.build_int_cast(self.llvm_value, rhs.ty, "");
-                (LEIntegerValue{ ty: self.ty, llvm_value: cast_value },rhs)
+                let cast_value = le_context.llvm_builder.build_int_cast(self.llvm_value, rhs.ty.get_llvm_type(), "");
+                (LEIntegerValue { ty: self.ty.clone(), llvm_value: cast_value }, rhs.clone())
             }
             Ordering::Equal => {
-                (self,rhs)
+                (self.clone(), rhs.clone())
             }
         };
-        if casted_left.ty.signed{
-            match op{
+        if casted_left.ty.signed() {
+            match op {
                 CompareOperator::Equal => {
-                    Ok(LEIntegerValue { ty: casted_left.ty, llvm_value: llvm_builder.build_int_compare(IntPredicate::EQ, casted_left.llvm_value, casted_right.llvm_value, "") })
+                    Ok(LEIntegerValue { ty: casted_left.ty, llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::EQ, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
                 CompareOperator::GreaterThan => {
-                    Ok(LEIntegerValue {ty: casted_left.ty, llvm_value: llvm_builder.build_int_compare(IntPredicate::SGT, casted_left.llvm_value, casted_right.llvm_value, "") })
+                    Ok(LEIntegerValue { ty: casted_left.ty, llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::SGT, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
                 CompareOperator::LessThan => {
-                    Ok(LEIntegerValue {ty: casted_left.ty, llvm_value: llvm_builder.build_int_compare(IntPredicate::SLT, casted_left.llvm_value, casted_right.llvm_value, "") })
+                    Ok(LEIntegerValue { ty: casted_left.ty, llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::SLT, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
                 CompareOperator::GreaterOrEqualThan => {
-                    Ok(LEIntegerValue {ty: casted_left.ty, llvm_value: llvm_builder.build_int_compare(IntPredicate::SGE, casted_left.llvm_value, casted_right.llvm_value, "") })
+                    Ok(LEIntegerValue { ty: casted_left.ty, llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::SGE, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
                 CompareOperator::LessOrEqualThan => {
-                    Ok(LEIntegerValue {ty: casted_left.ty, llvm_value: llvm_builder.build_int_compare(IntPredicate::SLE, casted_left.llvm_value, casted_right.llvm_value, "") })
+                    Ok(LEIntegerValue { ty: casted_left.ty, llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::SLE, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
             }
-        }else{
-            match op{
+        } else {
+            match op {
                 CompareOperator::Equal => {
-                    Ok(LEIntegerValue {ty: casted_left.ty, llvm_value: llvm_builder.build_int_compare(IntPredicate::EQ, casted_left.llvm_value, casted_right.llvm_value, "") })
+                    Ok(LEIntegerValue { ty: casted_left.ty, llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::EQ, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
                 CompareOperator::GreaterThan => {
-                    Ok(LEIntegerValue {ty: casted_left.ty, llvm_value: llvm_builder.build_int_compare(IntPredicate::UGT, casted_left.llvm_value, casted_right.llvm_value, "") })
+                    Ok(LEIntegerValue { ty: casted_left.ty, llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::UGT, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
                 CompareOperator::LessThan => {
-                    Ok(LEIntegerValue {ty: casted_left.ty, llvm_value: llvm_builder.build_int_compare(IntPredicate::ULT, casted_left.llvm_value, casted_right.llvm_value, "") })
+                    Ok(LEIntegerValue { ty: casted_left.ty, llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::ULT, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
                 CompareOperator::GreaterOrEqualThan => {
-                    Ok(LEIntegerValue {ty: casted_left.ty, llvm_value: llvm_builder.build_int_compare(IntPredicate::UGE, casted_left.llvm_value, casted_right.llvm_value, "") })
+                    Ok(LEIntegerValue { ty: casted_left.ty, llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::UGE, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
                 CompareOperator::LessOrEqualThan => {
-                    Ok(LEIntegerValue {ty: casted_left.ty, llvm_value: llvm_builder.build_int_compare(IntPredicate::ULE, casted_left.llvm_value, casted_right.llvm_value, "") })
+                    Ok(LEIntegerValue { ty: casted_left.ty, llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::ULE, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
             }
         }
@@ -221,142 +223,141 @@ impl<'ctx,'a> BinaryOpBuilder<'ctx,'a> for LEIntegerValue<'ctx,'a> {
 }
 
 
-impl<'ctx,'a> BinaryOpBuilder<'ctx,'a> for LEFloatValue<'ctx,'a> {
-    fn build_add(&self, llvm_builder: &Builder<'ctx>, llvm_context: &Context, rhs: &Self) -> Result<Self> {
-        let (left_providence, right_providence) = (get_float_promotion_providence(self.ty), get_float_promotion_providence(rhs.ty));
+impl<'ctx> BinaryOpBuilder<'ctx> for LEFloatValue<'ctx> {
+    fn build_add(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
+        let (left_providence, right_providence) = (get_float_promotion_providence(&self.ty), get_float_promotion_providence(&rhs.ty));
         match left_providence.cmp(&right_providence) {
             Ordering::Less => {
                 //右边的类型要提升至左边的类型
-                let cast_value = llvm_builder.build_float_cast(self.llvm_value, rhs.ty, "");
+                let cast_value = le_context.llvm_builder.build_float_cast(rhs.llvm_value, self.ty.get_llvm_type(), "");
                 Ok(
-                    LEFloatValue{ ty: self.ty, llvm_value: llvm_builder.build_float_add(self.llvm_value, cast_value, "") }
+                    LEFloatValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_float_add(self.llvm_value, cast_value, "") }
                 )
             }
             Ordering::Greater => {
                 //左边的类型要提升至右边的类型
-                let cast_value = llvm_builder.build_float_cast(rhs.llvm_value, self.ty, "");
+                let cast_value = le_context.llvm_builder.build_float_cast(self.llvm_value, rhs.ty.get_llvm_type(), "");
                 Ok(
-                    LEFloatValue{ ty: self.ty, llvm_value: llvm_builder.build_float_add(cast_value, rhs.llvm_value, "") }
+                    LEFloatValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_float_add(cast_value, rhs.llvm_value, "") }
                 )
             }
             Ordering::Equal => {
                 Ok(
-                    LEFloatValue{ ty: self.ty, llvm_value: llvm_builder.build_float_add(self.llvm_value, rhs.llvm_value, "") }
+                    LEFloatValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_float_add(self.llvm_value, rhs.llvm_value, "") }
                 )
             }
         }
     }
 
-    fn build_sub(&self, llvm_builder: &Builder<'ctx>, llvm_context: &Context, rhs: &Self) -> Result<Self> {
-        let (left_providence, right_providence) = (get_float_promotion_providence(self.ty), get_float_promotion_providence(rhs.ty));
+    fn build_sub(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
+        let (left_providence, right_providence) = (get_float_promotion_providence(&self.ty), get_float_promotion_providence(&rhs.ty));
         match left_providence.cmp(&right_providence) {
             Ordering::Less => {
                 //右边的类型要提升至左边的类型
-                let cast_value = llvm_builder.build_float_cast(self.llvm_value, rhs.ty, "");
+                let cast_value = le_context.llvm_builder.build_float_cast(rhs.llvm_value, self.ty.get_llvm_type(), "");
                 Ok(
-                    LEFloatValue{ ty: self.ty, llvm_value: llvm_builder.build_float_sub(self.llvm_value, cast_value, "") }
+                    LEFloatValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_float_sub(self.llvm_value, cast_value, "") }
                 )
             }
             Ordering::Greater => {
                 //左边的类型要提升至右边的类型
-                let cast_value = llvm_builder.build_float_cast(rhs.llvm_value, self.ty, "");
+                let cast_value = le_context.llvm_builder.build_float_cast(self.llvm_value, rhs.ty.get_llvm_type(), "");
                 Ok(
-                    LEFloatValue{ ty: self.ty, llvm_value: llvm_builder.build_float_sub(cast_value, rhs.llvm_value, "") }
+                    LEFloatValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_float_sub(cast_value, rhs.llvm_value, "") }
                 )
             }
             Ordering::Equal => {
                 Ok(
-                    LEFloatValue{ ty: self.ty, llvm_value: llvm_builder.build_float_sub(self.llvm_value, rhs.llvm_value, "") }
+                    LEFloatValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_float_sub(self.llvm_value, rhs.llvm_value, "") }
                 )
             }
         }
     }
 
-    fn build_mul(&self, llvm_builder: &Builder<'ctx>, llvm_context: &Context, rhs: &Self) -> Result<Self> {
-        let (left_providence, right_providence) = (get_float_promotion_providence(self.ty), get_float_promotion_providence(rhs.ty));
+    fn build_mul(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
+        let (left_providence, right_providence) = (get_float_promotion_providence(&self.ty), get_float_promotion_providence(&rhs.ty));
         match left_providence.cmp(&right_providence) {
             Ordering::Less => {
                 //右边的类型要提升至左边的类型
-                let cast_value = llvm_builder.build_float_cast(self.llvm_value, rhs.ty, "");
+                let cast_value = le_context.llvm_builder.build_float_cast(rhs.llvm_value, self.ty.get_llvm_type(), "");
                 Ok(
-                    LEFloatValue{ ty: self.ty, llvm_value: llvm_builder.build_float_mul(self.llvm_value, cast_value, "") }
+                    LEFloatValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_float_mul(self.llvm_value, cast_value, "") }
                 )
             }
             Ordering::Greater => {
                 //左边的类型要提升至右边的类型
-                let cast_value = llvm_builder.build_float_cast(rhs.llvm_value, self.ty, "");
+                let cast_value = le_context.llvm_builder.build_float_cast(self.llvm_value, rhs.ty.get_llvm_type(), "");
                 Ok(
-                    LEFloatValue{ ty: self.ty, llvm_value: llvm_builder.build_float_mul(cast_value, rhs.llvm_value, "") }
+                    LEFloatValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_float_mul(cast_value, rhs.llvm_value, "") }
                 )
             }
             Ordering::Equal => {
                 Ok(
-                    LEFloatValue{ ty: self.ty, llvm_value: llvm_builder.build_float_mul(self.llvm_value, rhs.llvm_value, "") }
+                    LEFloatValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_float_mul(self.llvm_value, rhs.llvm_value, "") }
                 )
             }
         }
     }
 
-    fn build_div(&self, llvm_builder: &Builder<'ctx>, llvm_context: &Context, rhs: &Self) -> Result<Self> {
-        let (left_providence, right_providence) = (get_float_promotion_providence(self.ty), get_float_promotion_providence(rhs.ty));
+    fn build_div(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
+        let (left_providence, right_providence) = (get_float_promotion_providence(self.ty.borrow()), get_float_promotion_providence(rhs.ty.borrow()));
         match left_providence.cmp(&right_providence) {
             Ordering::Less => {
                 //右边的类型要提升至左边的类型
-                let cast_value = llvm_builder.build_float_cast(self.llvm_value, rhs.ty, "");
+                let cast_value = le_context.llvm_builder.build_float_cast(rhs.llvm_value, self.ty.get_llvm_type(), "");
                 Ok(
-                    LEFloatValue{ ty: self.ty, llvm_value: llvm_builder.build_float_div(self.llvm_value, cast_value, "") }
+                    LEFloatValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_float_div(self.llvm_value, cast_value, "") }
                 )
             }
             Ordering::Greater => {
                 //左边的类型要提升至右边的类型
-                let cast_value = llvm_builder.build_float_cast(rhs.llvm_value, self.ty, "");
+                let cast_value = le_context.llvm_builder.build_float_cast(self.llvm_value, rhs.ty.get_llvm_type(), "");
                 Ok(
-                    LEFloatValue{ ty: self.ty, llvm_value: llvm_builder.build_float_div(cast_value, rhs.llvm_value, "") }
+                    LEFloatValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_float_div(cast_value, rhs.llvm_value, "") }
                 )
             }
             Ordering::Equal => {
                 Ok(
-                    LEFloatValue{ ty: self.ty, llvm_value: llvm_builder.build_float_div(self.llvm_value, rhs.llvm_value, "") }
+                    LEFloatValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_float_div(self.llvm_value, rhs.llvm_value, "") }
                 )
             }
         }
     }
 
-    fn build_cmp(&self, llvm_builder: &Builder<'ctx>, llvm_context: &Context, rhs: &Self, op: CompareOperator) -> Result<LEIntegerValue> {
-        let (left_providence, right_providence) = (get_float_promotion_providence(self.ty), get_float_promotion_providence(rhs.ty));
-        let (casted_left,casted_right) = match left_providence.cmp(&right_providence) {
+    fn build_cmp(self, le_context: &LEContext<'ctx>, rhs: Self, op: CompareOperator) -> Result<LEIntegerValue<'ctx>> {
+        let (left_providence, right_providence) = (get_float_promotion_providence(self.ty.borrow()), get_float_promotion_providence(rhs.ty.borrow()));
+        let (casted_left, casted_right) = match left_providence.cmp(&right_providence) {
             Ordering::Less => {
                 //右边的类型要提升至左边的类型
-                let cast_value = llvm_builder.build_int_cast(self.llvm_value, rhs.ty, "");
-                (LEFloatValue{ ty: self.ty, llvm_value: cast_value },rhs)
+                let cast_value = le_context.llvm_builder.build_float_cast(rhs.llvm_value, self.ty.get_llvm_type(), "");
+                (LEFloatValue { ty: self.ty.clone(), llvm_value: cast_value }, rhs)
             }
             Ordering::Greater => {
-                //右边的类型要提升至左边的类型
-                let cast_value = llvm_builder.build_int_cast(self.llvm_value, rhs.ty, "");
-                (LEFloatValue{ ty: self.ty, llvm_value: cast_value },rhs)
+                //左边的类型要提升至右边的类型
+                let cast_value = le_context.llvm_builder.build_float_cast(self.llvm_value, rhs.ty.get_llvm_type(), "");
+                (LEFloatValue { ty: self.ty.clone(), llvm_value: cast_value }, rhs)
             }
             Ordering::Equal => {
-                (self,rhs)
+                (self.clone(), rhs)
             }
         };
-        match op{
+        match op {
             CompareOperator::Equal => {
-                Ok(LEIntegerValue { ty: casted_left, llvm_value: llvm_builder.build_float_compare(FloatPredicate::OEQ, casted_left.llvm_value, casted_right.llvm_value, "") })
+                Ok(LEIntegerValue { ty: le_context.i8_type(), llvm_value: le_context.llvm_builder.build_float_compare(FloatPredicate::OEQ, casted_left.llvm_value, casted_right.llvm_value, "") })
             }
             CompareOperator::GreaterThan => {
-                Ok(LEIntegerValue { ty: &LEIntegerType {}, llvm_value: llvm_builder.build_float_compare(FloatPredicate::OGT, casted_left.llvm_value, casted_right.llvm_value, "") })
+                Ok(LEIntegerValue { ty: le_context.i8_type(), llvm_value: le_context.llvm_builder.build_float_compare(FloatPredicate::OGT, casted_left.llvm_value, casted_right.llvm_value, "") })
             }
             CompareOperator::LessThan => {
-                Ok(LEIntegerValue { ty: &LEIntegerType {}, llvm_value: llvm_builder.build_float_compare(FloatPredicate::OLT, casted_left.llvm_value, casted_right.llvm_value, "") })
+                Ok(LEIntegerValue { ty: le_context.i8_type(), llvm_value: le_context.llvm_builder.build_float_compare(FloatPredicate::OLT, casted_left.llvm_value, casted_right.llvm_value, "") })
             }
             CompareOperator::GreaterOrEqualThan => {
-                Ok(LEIntegerValue { ty: &LEIntegerType {}, llvm_value: llvm_builder.build_float_compare(FloatPredicate::OGE, casted_left.llvm_value, casted_right.llvm_value, "") })
+                Ok(LEIntegerValue { ty: le_context.i8_type(), llvm_value: le_context.llvm_builder.build_float_compare(FloatPredicate::OGE, casted_left.llvm_value, casted_right.llvm_value, "") })
             }
             CompareOperator::LessOrEqualThan => {
-                Ok(LEIntegerValue { ty: &LEIntegerType {}, llvm_value: llvm_builder.build_float_compare(FloatPredicate::OLE, casted_left.llvm_value, casted_right.llvm_value, "") })
+                Ok(LEIntegerValue { ty: le_context.i8_type(), llvm_value: le_context.llvm_builder.build_float_compare(FloatPredicate::OLE, casted_left.llvm_value, casted_right.llvm_value, "") })
             }
         }
-
     }
 }
 

@@ -32,7 +32,7 @@ le main(a:f64)->i32{
     var f:f64 = 10.034876; ## float number support
     no_ret();
     print_int(reti32(20));
-    print_float(-123124.111);
+    print_float(123124.111);
     print_int(Fibonacci(20));
     ret 0;
 }

@@ -11,7 +11,7 @@ use crate::lexer::{BinaryOperator, LELexer, LEToken};
 pub fn parse_variable_declaration(lexer: &mut LELexer) -> ParseResult<Variable> {
     lexer.consume_keyword()?;
     let (name, type_name) = parse_variable_annotation(lexer)?;
-    let equal_op = lexer.consume_operator()?;
+    let equal_op = lexer.consume_binary_operator()?;
     if BinaryOperator::Assign == equal_op {
         let initial_value = parse_expression(lexer)?;
         Ok(Variable {

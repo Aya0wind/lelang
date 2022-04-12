@@ -13,10 +13,12 @@ use inkwell::targets::FileType;
 
 use crate::arg_parser::{Args, OutputFormatEnum};
 use crate::ast::Ast;
-use crate::code_generator::CodeGenerator;
+use crate::code_generator::generator::CodeGenerator;
+use crate::driver::target::{initialize_target_machine, optimize_number_to_level};
 use crate::lexer;
 use crate::optimizer::Optimizer;
-use crate::target::{initialize_target_machine, optimize_number_to_level};
+
+mod target;
 
 pub fn compile_with_config(config: Args) -> Result<()> {
     let mut input = File::open(&config.input_path)?;
@@ -24,8 +26,10 @@ pub fn compile_with_config(config: Args) -> Result<()> {
     input.read_to_string(&mut buffer)?;
 
     //词法分析
-    let lexer = lexer::LELexer::new(&buffer)?;
-
+    let lexer = lexer::LELexer::new(&buffer).unwrap();
+    // for lex in lexer {
+    //     eprintln!("{:?}", lex);
+    // }
     //语法分析
     let ast = Ast::from_lexer(lexer)?;
 

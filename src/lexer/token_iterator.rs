@@ -50,6 +50,9 @@ pub enum LogosToken {
     #[token(":")]
     Colon,
 
+    #[token(".")]
+    Dot,
+
     #[token(";")]
     Semicolon,
 
@@ -110,7 +113,7 @@ pub enum LogosToken {
     #[regex(r"[\s]+", | lex | counter_line(lex.slice()))]
     WhiteCharacter(usize),
 
-    #[regex(r"##[\x20-\x7F]+\n+")]
+    #[regex(r"##[^\n]*")]
     Comment,
 
     #[regex("[a-zA-Z_]+[0-9]*", | lex | lex.slice().to_string())]
@@ -170,7 +173,9 @@ pub enum BinaryOperator {
 
 #[derive(Debug, PartialEq, Display, Clone)]
 pub enum UnaryOperator {
-
+    Plus,
+    Sub,
+    Dot,
 }
 
 
@@ -353,7 +358,7 @@ impl<'s> LELexer<'s> {
         }
     }
 
-    pub fn consume_operator(&mut self) -> ParseResult<BinaryOperator> {
+    pub fn consume_binary_operator(&mut self) -> ParseResult<BinaryOperator> {
         let consume = self.next_result()?;
         if let LEToken::Operator(operator) = consume {
             Ok(operator)
@@ -361,7 +366,14 @@ impl<'s> LELexer<'s> {
             Err(SyntaxError::unexpect_token(TokenType::Operator, consume).into())
         }
     }
-
+    pub fn consume_unary_operator(&mut self) -> ParseResult<BinaryOperator> {
+        let consume = self.next_result()?;
+        if let LEToken::Operator(operator) = consume {
+            Ok(operator)
+        } else {
+            Err(SyntaxError::unexpect_token(TokenType::Operator, consume).into())
+        }
+    }
     pub fn consume_number_literal(&mut self) -> ParseResult<Number> {
         let consume = self.next_result()?;
         if let LEToken::NumberLiteral(number) = consume {

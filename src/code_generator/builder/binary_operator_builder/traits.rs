@@ -1,7 +1,8 @@
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 
-use crate::code_generator::builder::llvm_type_wrapper::{LEBasicValue, LEIntegerValue};
+use crate::code_generator::builder::le_type::{LEBasicValue, LEIntegerValue};
+use crate::code_generator::builder::LEContext;
 
 use super::super::Result;
 
@@ -19,10 +20,10 @@ pub enum CompareOperator {
 }
 
 
-pub trait BinaryOpBuilder<'ctx,'a>: LEBasicValue<'ctx,'a>{
-    fn build_add(&self,llvm_builder: &Builder<'ctx>, llvm_context: &Context,rhs:&Self)->Result<Self>;
-    fn build_sub(&self,llvm_builder: &Builder<'ctx>, llvm_context: &Context,rhs:&Self)->Result<Self>;
-    fn build_mul(&self,llvm_builder: &Builder<'ctx>, llvm_context: &Context,rhs:&Self)->Result<Self>;
-    fn build_div(&self,llvm_builder: &Builder<'ctx>, llvm_context: &Context,rhs:&Self)->Result<Self>;
-    fn build_cmp(&self,llvm_builder: &Builder<'ctx>, llvm_context: &Context,rhs:&Self,op:CompareOperator)->Result<LEIntegerValue>;
+pub trait BinaryOpBuilder<'ctx>: LEBasicValue<'ctx> + Sized {
+    fn build_add(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self>;
+    fn build_sub(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self>;
+    fn build_mul(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self>;
+    fn build_div(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self>;
+    fn build_cmp(self, le_context: &LEContext<'ctx>, rhs: Self, op: CompareOperator) -> Result<LEIntegerValue<'ctx>>;
 }

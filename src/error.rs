@@ -5,7 +5,8 @@ use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
 use crate::ast::nodes::Position;
-use crate::lexer::{LELexer, LEToken};
+use crate::code_generator::builder::le_type::LEBasicTypeEnum;
+use crate::lexer::{BinaryOperator, LELexer, LEToken};
 
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
@@ -82,6 +83,12 @@ pub enum CompileError {
     CanOnlyAssignVariable {
         identifier: String,
     },
+
+    #[error("no suitable binary operator `{op}` for type: `{}`")]
+    NoSuitableBinaryOperator {
+        op: BinaryOperator,
+        ty: String,
+    },
     #[error("expect a type `{expect}`, but got `{found}`")]
     TypeMismatched {
         expect: String,
@@ -115,6 +122,10 @@ impl CompileError {
     pub fn type_mismatched(expect: String, found: String) -> Self {
         Self::TypeMismatched { expect, found }
     }
+
+    pub fn no_suitable_binary_operator(op: BinaryOperator, ty: String) -> Self {
+        Self::NoSuitableBinaryOperator { op, ty }
+    }
 }
 
 impl SyntaxError {
@@ -122,7 +133,7 @@ impl SyntaxError {
         Self::UnexpectToken { expect, found }
     }
     pub fn missing_expression() -> Self {
-        Self::MissingExpression {  }
+        Self::MissingExpression {}
     }
     pub fn missing_token(expect: TokenType) -> Self {
         Self::MissingToken { expect }
@@ -184,25 +195,25 @@ impl SyntaxError {
 }
 
 #[allow(unused)]
-#[derive(Debug,Error)]
+#[derive(Debug, Error)]
 pub enum LEError {
     #[error("[line:{pos}]SyntaxError:{syntax_error}")]
-    SyntaxError{
-        syntax_error:SyntaxError,
-        pos:Position
+    SyntaxError {
+        syntax_error: SyntaxError,
+        pos: Position,
     },
     #[error("[line:{pos}]CompileError:{compile_error}")]
-    CompileError{
-        compile_error:CompileError,
-        pos:Position
-    }
+    CompileError {
+        compile_error: CompileError,
+        pos: Position,
+    },
 }
 
 impl LEError {
-    pub fn new_syntax_error(error:SyntaxError,pos:Position)->Self{
-        Self::SyntaxError {syntax_error:error, pos }
+    pub fn new_syntax_error(error: SyntaxError, pos: Position) -> Self {
+        Self::SyntaxError { syntax_error: error, pos }
     }
-    pub fn new_compile_error(error:CompileError,pos:Position)->Self{
-        Self::CompileError {compile_error:error, pos }
+    pub fn new_compile_error(error: CompileError, pos: Position) -> Self {
+        Self::CompileError { compile_error: error, pos }
     }
 }

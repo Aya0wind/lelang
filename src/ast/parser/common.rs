@@ -4,7 +4,7 @@ use crate::ast::nodes::{BinaryOpExpression, CodeBlock, Expr, FunctionCall, Funct
 use crate::ast::parser::statement::parse_statement;
 use crate::ast::ParseResult;
 use crate::error::SyntaxError;
-use crate::lexer::{BinaryOperator, LELexer, LEToken};
+use crate::lexer::{BinaryOperator, LELexer, LEToken, UnaryOperator};
 
 fn get_operator_precedence(op: &BinaryOperator) -> usize {
     match op {
@@ -57,7 +57,7 @@ pub fn parse_binary_ops(lexer: &mut LELexer, mut lhs: Box<Expr>, expression_prec
             lexer.next_result()?;
             let mut rhs = parse_primary_expression(lexer)?;
             rhs = parse_binary_ops(lexer, rhs, precedence + 1)?;
-            lhs = Box::new(Expr::BinaryOperator(BinaryOpExpression{
+            lhs = Box::new(Expr::BinaryOperator(BinaryOpExpression {
                 op,
                 left: lhs,
                 right: rhs,
@@ -94,9 +94,9 @@ pub fn parse_little_par_expression(lexer: &mut LELexer) -> ParseResult<Box<Expr>
 }
 
 pub fn parse_unary_ops(lexer: &mut LELexer) -> ParseResult<Box<Expr>> {
-    let op = lexer.consume_operator()?;
+    let op = lexer.consume_binary_operator()?;
     Ok(Box::new(Expr::UnaryOperator(UnaryOpExpression {
-        op,
+        op: UnaryOperator::Sub,
         expr: parse_primary_expression(lexer)?,
         pos: lexer.pos(),
     })))
@@ -115,7 +115,7 @@ pub fn parse_primary_expression(lexer: &mut LELexer) -> ParseResult<Box<Expr>> {
             parse_identifier_expression(lexer)
         }
         LEToken::LeftPar => { parse_little_par_expression(lexer) }
-        _ => { Err(SyntaxError::missing_expression())}
+        _ => { Err(SyntaxError::missing_expression()) }
     }
 }
 
