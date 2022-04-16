@@ -1,13 +1,12 @@
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 
-use crate::code_generator::builder::le_type::{LEBasicValue, LEIntegerValue};
-use crate::code_generator::builder::LEContext;
+use crate::code_generator::builder::{LEBasicValue, LEBoolValue, LEContext, LEIntegerValue, LEPointerValue};
 
 use super::super::Result;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CompareOperator {
+pub enum CompareBinaryOperator {
     Equal,
 
     GreaterThan,
@@ -20,10 +19,27 @@ pub enum CompareOperator {
 }
 
 
-pub trait BinaryOpBuilder<'ctx>: LEBasicValue<'ctx> + Sized {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LogicBinaryOperator {
+    LogicAnd,
+
+    LogicOr,
+
+    LogicNot,
+
+    LogicXor,
+}
+
+pub trait ArithmeticOperatorBuilder<'ctx>: LEBasicValue<'ctx> + Sized {
     fn build_add(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self>;
     fn build_sub(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self>;
     fn build_mul(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self>;
     fn build_div(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self>;
-    fn build_cmp(self, le_context: &LEContext<'ctx>, rhs: Self, op: CompareOperator) -> Result<LEIntegerValue<'ctx>>;
+    fn build_cmp(self, le_context: &LEContext<'ctx>, rhs: Self, op: CompareBinaryOperator) -> Result<LEBoolValue<'ctx>>;
+    fn build_logic(self, le_context: &LEContext<'ctx>, rhs: Self, logic_op: LogicBinaryOperator) -> Result<LEBoolValue<'ctx>>;
+}
+
+pub trait MemberAccessOperatorBuilder<'ctx> {
+    fn build_dot(&self, le_context: &LEContext<'ctx>, member_name: &str) -> Result<LEPointerValue<'ctx>>;
+    fn build_index(&self, le_context: &LEContext<'ctx>, member_name: &str) -> Result<LEPointerValue<'ctx>>;
 }

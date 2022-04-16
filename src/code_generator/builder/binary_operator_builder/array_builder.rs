@@ -2,13 +2,13 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::values::{ArrayValue, StructValue};
 
-use crate::code_generator::builder::binary_operator_builder::traits::{BinaryOpBuilder, CompareOperator};
-use crate::code_generator::builder::le_type::{LEArrayValue, LEIntegerValue};
-use crate::code_generator::builder::LEContext;
+use crate::code_generator::builder::{LEArrayValue, LEBoolValue, LEContext, LEIntegerValue, LEPointerValue};
+use crate::code_generator::builder::binary_operator_builder::LogicBinaryOperator;
+use crate::code_generator::builder::binary_operator_builder::traits::{ArithmeticOperatorBuilder, CompareBinaryOperator};
 
 use super::super::Result;
 
-impl<'ctx> BinaryOpBuilder<'ctx> for LEArrayValue<'ctx> {
+impl<'ctx> ArithmeticOperatorBuilder<'ctx> for LEArrayValue<'ctx> {
     fn build_add(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
         todo!()
     }
@@ -25,7 +25,11 @@ impl<'ctx> BinaryOpBuilder<'ctx> for LEArrayValue<'ctx> {
         todo!()
     }
 
-    fn build_cmp(self, le_context: &LEContext<'ctx>, rhs: Self, op: CompareOperator) -> Result<LEIntegerValue<'ctx>> {
+    fn build_cmp(self, le_context: &LEContext<'ctx>, rhs: Self, op: CompareBinaryOperator) -> Result<LEBoolValue<'ctx>> {
+        todo!()
+    }
+
+    fn build_logic(self, le_context: &LEContext<'ctx>, rhs: Self, logic_op: LogicBinaryOperator) -> Result<LEBoolValue<'ctx>> {
         todo!()
     }
 }

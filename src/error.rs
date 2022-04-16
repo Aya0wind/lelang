@@ -5,8 +5,7 @@ use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
 use crate::ast::nodes::Position;
-use crate::code_generator::builder::le_type::LEBasicTypeEnum;
-use crate::lexer::{BinaryOperator, LELexer, LEToken};
+use crate::lexer::{LELexer, LEToken, Operator};
 
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
@@ -25,7 +24,7 @@ pub enum TokenType {
     LeftBrace,
     Comma,
     Operator,
-    ReturnTypeAllow,
+    SingleAllow,
     Identifier,
     NumberLiteral,
     StringLiteral,
@@ -40,7 +39,7 @@ impl Display for TokenType {
 #[allow(unused)]
 #[derive(Debug, Error)]
 pub enum SyntaxError {
-    #[error("Unexpected token: `{found}`, expect: `{expect}`")]
+    #[error("unexpected token: `{found}`, expect: `{expect}`")]
     UnexpectToken {
         expect: TokenType,
         found: LEToken,
@@ -49,150 +48,71 @@ pub enum SyntaxError {
     MissingToken {
         expect: TokenType,
     },
-    #[error("Missing expression.")]
+    #[error("missing expression.")]
     MissingExpression {},
-    #[error("End of file")]
+    #[error("end of file")]
     EOF,
 }
 
 #[allow(unused)]
 #[derive(Debug, Error)]
 pub enum CompileError {
-    #[error("unknown identifier:{identifier}")]
+    #[error("unknown identifier:{name}")]
     UnknownIdentifier {
-        identifier: String,
+        name: String,
     },
-    #[error("expect a type name, but identifier `{identifier}` is not a type")]
+
+    #[error("expect a type name, but identifier `{name}` is not a type")]
     IdentifierIsNotType {
-        identifier: String,
+        name: String,
     },
-    #[error("expect a variable, but identifier `{identifier}` is not a variable")]
-    IdentifierIsNotVariable {
-        identifier: String,
+
+    #[error("expect a call able expression, but expression `{name}` is not a function")]
+    IdentifierIsNotCallable {
+        name: String,
     },
-    #[error("expect a function name, but identifier `{identifier}` is not a function")]
-    IdentifierIsNotFunction {
-        identifier: String,
-    },
-    #[error("identifier `{identifier}` is already defined, which is a `{symbol_name}`")]
+
+    #[error("expect a left value expression, but expression is not")]
+    ExpressionIsNotLeftValueExpression,
+
+    #[error("expect a right value expression, but expression is not")]
+    ExpressionIsNotRightValueExpression,
+
+    #[error("identifier `{identifier}` is already defined, at: `{defined_position}`")]
     IdentifierAlreadyDefined {
         identifier: String,
-        symbol_name: String,
-    },
-    #[error("expect a variable, but identifier `{identifier}` is not a variable")]
-    CanOnlyAssignVariable {
-        identifier: String,
+        defined_position: Position,
     },
 
     #[error("no suitable binary operator `{op}` for type: `{}`")]
     NoSuitableBinaryOperator {
-        op: BinaryOperator,
-        ty: String,
+        op: Operator,
+        left: String,
+        right: String,
     },
-    #[error("expect a type `{expect}`, but got `{found}`")]
+
+    #[error("no suitable unary operator `{op}` for type: `{}`")]
+    NoSuitableUnaryOperator {
+        op: Operator,
+        target: String,
+    },
+
+    #[error("type mismatched: expect a type `{expect}`, but got `{found}`")]
     TypeMismatched {
         expect: String,
         found: String,
     },
 
+    #[error("type have no member which called :`{member_name}`")]
+    NoMember {
+        member_name: String,
+    },
+
+    #[error("not allowed zero length array")]
+    NotAllowZeroLengthArray,
+
 }
 
-
-impl CompileError {
-    pub fn identifier_is_not_type(identifier: String) -> Self {
-        Self::IdentifierIsNotType { identifier }
-    }
-    pub fn can_only_assign_variable(identifier: String) -> Self {
-        Self::CanOnlyAssignVariable { identifier }
-    }
-    pub fn unknown_identifier(identifier: String) -> Self {
-        Self::UnknownIdentifier { identifier }
-    }
-    pub fn identifier_is_not_variable(identifier: String) -> Self {
-        Self::IdentifierIsNotVariable { identifier }
-    }
-    pub fn identifier_is_not_function(identifier: String) -> Self {
-        Self::IdentifierIsNotFunction { identifier }
-    }
-
-    pub fn identifier_already_defined(identifier: String, symbol_name: String) -> Self {
-        Self::IdentifierIsNotFunction { identifier }
-    }
-
-    pub fn type_mismatched(expect: String, found: String) -> Self {
-        Self::TypeMismatched { expect, found }
-    }
-
-    pub fn no_suitable_binary_operator(op: BinaryOperator, ty: String) -> Self {
-        Self::NoSuitableBinaryOperator { op, ty }
-    }
-}
-
-impl SyntaxError {
-    pub fn unexpect_token(expect: TokenType, found: LEToken) -> Self {
-        Self::UnexpectToken { expect, found }
-    }
-    pub fn missing_expression() -> Self {
-        Self::MissingExpression {}
-    }
-    pub fn missing_token(expect: TokenType) -> Self {
-        Self::MissingToken { expect }
-    }
-    pub fn missing_if() -> Self {
-        Self::MissingToken { expect: TokenType::If }
-    }
-    pub fn missing_else() -> Self {
-        Self::MissingToken { expect: TokenType::Else }
-    }
-    pub fn missing_function_declare() -> Self {
-        Self::MissingToken { expect: TokenType::FunctionDeclare }
-    }
-    pub fn missing_variable_declare() -> Self {
-        Self::MissingToken { expect: TokenType::VariableDeclare }
-    }
-    pub fn missing_return() -> Self {
-        Self::MissingToken { expect: TokenType::Return }
-    }
-    pub fn missing_colon() -> Self {
-        Self::MissingToken { expect: TokenType::Colon }
-    }
-    pub fn missing_left_little_brace() -> Self {
-        Self::MissingToken { expect: TokenType::LeftPar }
-    }
-    pub fn missing_right_little_brace() -> Self {
-        Self::MissingToken { expect: TokenType::RightPar }
-    }
-    pub fn missing_left_middle_brace() -> Self {
-        Self::MissingToken { expect: TokenType::LeftBracket }
-    }
-    pub fn missing_right_middle_brace() -> Self {
-        Self::MissingToken { expect: TokenType::RightBracket }
-    }
-    pub fn missing_left_big_brace() -> Self {
-        Self::MissingToken { expect: TokenType::LeftBrace }
-    }
-    pub fn missing_right_big_brace() -> Self {
-        Self::MissingToken { expect: TokenType::RightBrace }
-    }
-    pub fn missing_comma() -> Self {
-        Self::MissingToken { expect: TokenType::Comma }
-    }
-    pub fn missing_operator() -> Self {
-        Self::MissingToken { expect: TokenType::Operator }
-    }
-    pub fn missing_return_type_allow() -> Self {
-        Self::MissingToken { expect: TokenType::ReturnTypeAllow }
-    }
-    pub fn missing_identifier() -> Self {
-        Self::MissingToken { expect: TokenType::Identifier }
-    }
-    pub fn missing_number_literal() -> Self {
-        Self::MissingToken { expect: TokenType::NumberLiteral }
-    }
-    pub fn missing_string_literal() -> Self {
-        Self::MissingToken { expect: TokenType::StringLiteral }
-    }
-}
 
 #[allow(unused)]
 #[derive(Debug, Error)]

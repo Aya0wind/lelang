@@ -2,13 +2,11 @@ extern crate nom;
 
 use anyhow::Result;
 use logos::Lexer;
-use nom::{bytes::complete::tag, Err, error, IResult, Needed, Parser, sequence::tuple};
+use nom::{Err, IResult, Needed};
 use nom::character::is_digit;
-use nom::combinator::{map, opt};
 use nom::number::complete::double;
 
-use crate::error::{SyntaxError, TokenType};
-use crate::lexer::{LEToken, LogosToken};
+use crate::lexer::LogosToken;
 
 use super::token_iterator::Number;
 

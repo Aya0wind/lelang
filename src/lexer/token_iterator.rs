@@ -32,6 +32,9 @@ pub enum LogosToken {
     #[token("le")]
     FunctionDeclare,
 
+    #[token("struct")]
+    StructureDeclare,
+
     #[token("for")]
     For,
 
@@ -44,8 +47,14 @@ pub enum LogosToken {
     #[token("ret")]
     Return,
 
+    #[token("true")]
+    True,
+
+    #[token("false")]
+    False,
+
     #[token("->")]
-    ReturnTypeAllow,
+    SingleArrow,
 
     #[token(":")]
     Colon,
@@ -79,6 +88,21 @@ pub enum LogosToken {
 
     #[token(",")]
     Comma,
+
+    #[token("&&")]
+    And,
+
+    #[token("||")]
+    Or,
+
+    #[token("^")]
+    Xor,
+
+    #[token("!")]
+    Not,
+
+    #[token("~")]
+    Rev,
 
     #[token("+")]
     Plus,
@@ -119,7 +143,7 @@ pub enum LogosToken {
     #[regex("[a-zA-Z_]+[0-9]*", | lex | lex.slice().to_string())]
     Identifier(String),
 
-    #[regex(r#""[0-9a-zA-Z\-\.]*""#, | lex | parse_string_literal_token(lex.slice()))]
+    #[regex(r#""[^\n]*""#, | lex | parse_string_literal_token(lex.slice()))]
     StringLiteral(String),
 
     #[regex(r#"[0-9]*(\.[0-9]+)?"#, | lex | parse_number(lex).ok())]
@@ -146,10 +170,14 @@ pub enum KeyWord {
     For,
 
     While,
+
+    StructureDeclare,
+
+    Ref,
 }
 
 #[derive(Debug, PartialEq, Display, Clone)]
-pub enum BinaryOperator {
+pub enum Operator {
     Plus,
 
     Sub,
@@ -169,13 +197,18 @@ pub enum BinaryOperator {
     GreaterOrEqualThan,
 
     LessOrEqualThan,
-}
 
-#[derive(Debug, PartialEq, Display, Clone)]
-pub enum UnaryOperator {
-    Plus,
-    Sub,
     Dot,
+
+    And,
+
+    Or,
+
+    Xor,
+
+    Not,
+
+    Rev,
 }
 
 
@@ -190,7 +223,7 @@ pub enum Number {
 pub enum LEToken {
     KeyWord(KeyWord),
 
-    Operator(BinaryOperator),
+    Operator(Operator),
 
     NumberLiteral(Number),
 
@@ -233,7 +266,6 @@ impl From<LogosToken> for LEToken {
             LogosToken::FunctionDeclare => { Self::KeyWord(KeyWord::FunctionDefine) }
             LogosToken::VariableDeclare => { Self::KeyWord(KeyWord::VariableDeclare) }
             LogosToken::Return => { Self::KeyWord(KeyWord::Return) }
-            LogosToken::Return => { Self::KeyWord(KeyWord::Return) }
             LogosToken::Colon => { Self::Colon }
             LogosToken::Comma => { Self::Comma }
             LogosToken::Semicolon => { Self::Semicolon }
@@ -243,23 +275,33 @@ impl From<LogosToken> for LEToken {
             LogosToken::RightBracket => { Self::RightBracket }
             LogosToken::RightBrace => { Self::RightBrace }
             LogosToken::LeftBrace => { Self::LeftBrace }
-            LogosToken::ReturnTypeAllow => { Self::ReturnTypeAllow }
-            LogosToken::Plus => { Self::Operator(BinaryOperator::Plus) }
-            LogosToken::Sub => { Self::Operator(BinaryOperator::Sub) }
-            LogosToken::Mul => { Self::Operator(BinaryOperator::Mul) }
-            LogosToken::Div => { Self::Operator(BinaryOperator::Div) }
-            LogosToken::Assign => { Self::Operator(BinaryOperator::Assign) }
-            LogosToken::Equal => { Self::Operator(BinaryOperator::Equal) }
+            LogosToken::SingleArrow => { Self::ReturnTypeAllow }
+            LogosToken::Plus => { Self::Operator(Operator::Plus) }
+            LogosToken::Sub => { Self::Operator(Operator::Sub) }
+            LogosToken::Mul => { Self::Operator(Operator::Mul) }
+            LogosToken::Div => { Self::Operator(Operator::Div) }
+            LogosToken::Assign => { Self::Operator(Operator::Assign) }
+            LogosToken::Equal => { Self::Operator(Operator::Equal) }
             LogosToken::StringLiteral(literal) => { Self::StringLiteral(literal) }
             LogosToken::NumberLiteral(num) => { Self::NumberLiteral(num) }
             LogosToken::Identifier(identifier) => { Self::Identifier(identifier) }
             LogosToken::Error => { Self::Error("unknown character".into()) }
-            LogosToken::GreaterThan => { Self::Operator(BinaryOperator::GreaterThan) }
-            LogosToken::LessThan => { Self::Operator(BinaryOperator::LessThan) }
-            LogosToken::GreaterOrEqualThan => { Self::Operator(BinaryOperator::GreaterOrEqualThan) }
-            LogosToken::LessOrEqualThan => { Self::Operator(BinaryOperator::LessOrEqualThan) }
+            LogosToken::GreaterThan => { Self::Operator(Operator::GreaterThan) }
+            LogosToken::LessThan => { Self::Operator(Operator::LessThan) }
+            LogosToken::GreaterOrEqualThan => { Self::Operator(Operator::GreaterOrEqualThan) }
+            LogosToken::LessOrEqualThan => { Self::Operator(Operator::LessOrEqualThan) }
             LogosToken::Declare => { Self::KeyWord(KeyWord::Declare) }
             LogosToken::While => { Self::KeyWord(KeyWord::While) }
+            LogosToken::StructureDeclare => { Self::KeyWord(KeyWord::StructureDeclare) }
+            LogosToken::Dot => { Self::Operator(Operator::Dot) }
+            LogosToken::Ref => { Self::KeyWord(KeyWord::Ref) }
+            LogosToken::And => { Self::Operator(Operator::And) }
+            LogosToken::Or => { Self::Operator(Operator::Or) }
+            LogosToken::Xor => { Self::Operator(Operator::Xor) }
+            LogosToken::Not => { Self::Operator(Operator::Not) }
+            LogosToken::Rev => { Self::Operator(Operator::Rev) }
+            LogosToken::True => { Self::Identifier("true".into()) }
+            LogosToken::False => { Self::Identifier("false".into()) }
             _ => { unreachable!("unknown character handling not implement yet") }
         }
     }
@@ -307,6 +349,7 @@ impl<'s> Iterator for LELexer<'s> {
                 _ => { true }
             }
         });
+
         match inner_iter {
             None => { self.current.take() }
             Some(x) => { self.current.replace(x.into()) }
@@ -316,7 +359,13 @@ impl<'s> Iterator for LELexer<'s> {
 
 impl<'s> LELexer<'s> {
     pub fn new(s: &'s str) -> Option<Self> {
-        let mut s = Self { inner: LogosToken::lexer(s), current_pos: 0.into(), current: None };
+        let mut s = Self {
+            inner: LogosToken::lexer(s),
+            current_pos: Position {
+                line: 0,
+            },
+            current: None,
+        };
         s.next();
         Some(s)
     }
@@ -354,24 +403,24 @@ impl<'s> LELexer<'s> {
         if let LEToken::KeyWord(keyword) = consume {
             Ok(keyword)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Identifier, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::Identifier, found: consume })
         }
     }
 
-    pub fn consume_binary_operator(&mut self) -> ParseResult<BinaryOperator> {
+    pub fn consume_binary_operator(&mut self) -> ParseResult<Operator> {
         let consume = self.next_result()?;
         if let LEToken::Operator(operator) = consume {
             Ok(operator)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Operator, consume).into())
+            Err(SyntaxError::UnexpectToken { expect: TokenType::Operator, found: consume })
         }
     }
-    pub fn consume_unary_operator(&mut self) -> ParseResult<BinaryOperator> {
+    pub fn consume_unary_operator(&mut self) -> ParseResult<Operator> {
         let consume = self.next_result()?;
         if let LEToken::Operator(operator) = consume {
             Ok(operator)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Operator, consume).into())
+            Err(SyntaxError::UnexpectToken { expect: TokenType::Operator, found: consume }.into())
         }
     }
     pub fn consume_number_literal(&mut self) -> ParseResult<Number> {
@@ -379,7 +428,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::NumberLiteral(number) = consume {
             Ok(number)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::NumberLiteral, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::NumberLiteral, found: consume })
         }
     }
 
@@ -388,7 +437,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::StringLiteral(string_literal) = consume {
             Ok(string_literal)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::StringLiteral, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::StringLiteral, found: consume })
         }
     }
 
@@ -397,7 +446,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Identifier(identifier) = consume {
             Ok(identifier)
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Identifier, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::Identifier, found: consume })
         }
     }
 
@@ -406,7 +455,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Colon = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Colon, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::Colon, found: consume })
         }
     }
 
@@ -415,7 +464,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Comma = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Comma, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::Comma, found: consume })
         }
     }
 
@@ -424,7 +473,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::Semicolon = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::Semicolon, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::Semicolon, found: consume })
         }
     }
 
@@ -433,7 +482,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::LeftPar = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::LeftPar, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::LeftPar, found: consume })
         }
     }
     pub fn consume_right_par(&mut self) -> ParseResult<()> {
@@ -441,24 +490,24 @@ impl<'s> LELexer<'s> {
         if let LEToken::RightPar = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightPar, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::RightPar, found: consume })
         }
     }
 
-    pub fn consume_left_middle_brace(&mut self) -> ParseResult<()> {
+    pub fn consume_left_bracket(&mut self) -> ParseResult<()> {
         let consume = self.next_result()?;
-        if let LEToken::RightBracket = consume {
+        if let LEToken::LeftBracket = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::LeftBracket, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::LeftBracket, found: consume })
         }
     }
-    pub fn consume_right_middle_brace(&mut self) -> ParseResult<()> {
+    pub fn consume_right_bracket(&mut self) -> ParseResult<()> {
         let consume = self.next_result()?;
         if let LEToken::RightBracket = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightBracket, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::RightBracket, found: consume })
         }
     }
 
@@ -467,7 +516,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::LeftBrace = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::LeftBrace, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::LeftBrace, found: consume })
         }
     }
 
@@ -476,7 +525,7 @@ impl<'s> LELexer<'s> {
         if let LEToken::RightBrace = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::RightBrace, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::RightBrace, found: consume })
         }
     }
 
@@ -485,18 +534,18 @@ impl<'s> LELexer<'s> {
         if let LEToken::ReturnTypeAllow = consume {
             Ok(())
         } else {
-            Err(SyntaxError::unexpect_token(TokenType::ReturnTypeAllow, consume))
+            Err(SyntaxError::UnexpectToken { expect: TokenType::SingleAllow, found: consume })
         }
     }
 
-    pub fn check_current_keyword(&mut self) -> ParseResult<&KeyWord> {
-        let check_current = self.current_result()?;
-        if let LEToken::KeyWord(keyword) = check_current {
-            Ok(keyword)
-        } else {
-            Err(SyntaxError::unexpect_token(TokenType::Identifier, check_current.clone()))
-        }
-    }
+    // pub fn check_current_keyword(&mut self) -> ParseResult<&KeyWord> {
+    //     let check_current = self.current_result()?;
+    //     if let LEToken::KeyWord(keyword) = check_current {
+    //         Ok(keyword)
+    //     } else {
+    //         Err(SyntaxError::unexpect_token(TokenType::Identifier, check_current.clone()))
+    //     }
+    // }
 
     // pub fn check_current_operator(&mut self) -> ParseResult<&Operator> {
     //     let check_current = self.current_result()?;
@@ -525,8 +574,8 @@ impl<'s> LELexer<'s> {
     // }
     // pub fn check_current_identifier(&mut self) -> ParseResult<&String> {
     //     let check_current = self.current_result()?;
-    //     if let LEToken::Identifier(identifier) = check_current {
-    //         Ok(identifier)
+    //     if let LEToken::Identifier(Identifier) = check_current {
+    //         Ok(Identifier)
     //     } else {
     //         Err(SyntaxError::unexpect_token(TokenType::Identifier, check_current.clone()))
     //     }

@@ -1,22 +1,30 @@
+use std::env::VarError::NotPresent;
+
 use anyhow::Result;
 
 use crate::ast::nodes::{Variable, VariablePrototype};
+use crate::ast::parser::{parse_annotation, parse_type_declarator};
 use crate::ast::parser::common::parse_expression;
-use crate::ast::parser::function_parser::parse_variable_annotation;
 use crate::ast::ParseResult;
 use crate::error::SyntaxError;
 use crate::error::TokenType;
-use crate::lexer::{BinaryOperator, LELexer, LEToken};
+use crate::lexer::{LELexer, LEToken, Operator};
 
 pub fn parse_variable_declaration(lexer: &mut LELexer) -> ParseResult<Variable> {
     lexer.consume_keyword()?;
-    let (name, type_name) = parse_variable_annotation(lexer)?;
+    let name = lexer.consume_identifier()?;
+    let type_declarator = if let LEToken::Colon = lexer.current_result()? {
+        lexer.consume_colon()?;
+        Some(parse_type_declarator(lexer)?)
+    } else {
+        None
+    };
     let equal_op = lexer.consume_binary_operator()?;
-    if BinaryOperator::Assign == equal_op {
+    if Operator::Assign == equal_op {
         let initial_value = parse_expression(lexer)?;
         Ok(Variable {
             prototype: VariablePrototype {
-                type_name,
+                type_declarator,
                 name,
                 pos: lexer.pos(),
             },
@@ -24,6 +32,6 @@ pub fn parse_variable_declaration(lexer: &mut LELexer) -> ParseResult<Variable> 
             pos: lexer.pos(),
         })
     } else {
-        Err(SyntaxError::unexpect_token(TokenType::Operator, LEToken::Operator(equal_op)))
+        Err(SyntaxError::UnexpectToken { expect: TokenType::Operator, found: LEToken::Operator(equal_op) })
     }
 }

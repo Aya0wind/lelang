@@ -27,13 +27,11 @@ pub fn compile_with_config(config: Args) -> Result<()> {
 
     //词法分析
     let lexer = lexer::LELexer::new(&buffer).unwrap();
-    // for lex in lexer {
-    //     eprintln!("{:?}", lex);
-    // }
+
     //语法分析
     let ast = Ast::from_lexer(lexer)?;
 
-    //LLVM IR生成
+    //类型检查和LLVM IR生成
     let context = Context::create();
     let mut code_generator = CodeGenerator::create(&context);
     let module = context.create_module("main");

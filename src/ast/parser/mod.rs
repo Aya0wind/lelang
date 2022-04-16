@@ -1,8 +1,11 @@
+pub use array::*;
 pub use common::*;
-pub use condition::*;
 pub use for_loop::*;
 pub use function_parser::*;
+pub use if_statement::*;
 pub use statement::*;
+pub use structure::*;
+pub use type_declarator::*;
 pub use variable_parser::*;
 pub use while_loop::*;
 
@@ -10,7 +13,9 @@ mod common;
 mod function_parser;
 mod variable_parser;
 mod statement;
-mod condition;
+mod if_statement;
 mod for_loop;
 mod while_loop;
-
+mod structure;
+mod array;
+mod type_declarator;

@@ -8,7 +8,7 @@ use inkwell::context::Context;
 
 use lelang::arg_parser::{Args, OutputFormatEnum};
 use lelang::ast::Ast;
-use lelang::code_generator::CodeGenerator;
+use lelang::code_generator::generator::CodeGenerator;
 use lelang::lexer::LELexer;
 
 fn bench_lexer(c: &mut Criterion) {

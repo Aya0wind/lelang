@@ -6,9 +6,9 @@ use inkwell::values::FunctionValue;
 
 use builder::Result;
 
-use crate::ast::nodes::Position;
+use crate::ast::nodes::{Position, TypeDeclarator};
 use crate::code_generator::builder;
-use crate::code_generator::builder::le_type::{LEBasicType, LEBasicTypeEnum, LEBasicValue, LEBasicValueEnum, LEFunctionValue, LEPointerValue};
+use crate::code_generator::builder::{LEBasicType, LEBasicTypeEnum, LEFunctionValue, LEPointerValue};
 use crate::code_generator::builder::symbol_table::{Symbol, SymbolTable};
 use crate::error::CompileError;
 
@@ -83,12 +83,8 @@ impl<'ctx> CompilerContext<'ctx> {
         self.symbols.get_function(identifier)
     }
 
-    pub fn get_type<T: LEBasicType<'ctx>>(&self, identifier: &str) -> Result<T> {
-        self.symbols.get_type::<T>(identifier)
-    }
-
-    pub fn get_generic_type(&self, identifier: &str) -> Result<LEBasicTypeEnum<'ctx>> {
-        self.symbols.get_generic_type(identifier)
+    pub fn get_type(&self, declarator: &TypeDeclarator) -> Result<LEBasicTypeEnum<'ctx>> {
+        self.symbols.get_type(declarator)
     }
 
     pub fn get_symbol(&self, identifier: &str) -> Option<Symbol<'ctx>> {

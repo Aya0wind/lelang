@@ -1,26 +1,42 @@
 use anyhow::Result;
 
-use crate::ast::nodes::{BinaryOpExpression, CodeBlock, Expr, FunctionCall, FunctionDefinition, Identifier, NumberLiteral, Position, UnaryOpExpression};
+use crate::ast::nodes::{BinaryOpExpression, CodeBlock, Expr, FunctionCall, FunctionDefinition, Identifier, NumberLiteral, Position, Structure, StructureInitializer, TypeDeclarator, UnaryOpExpression};
+use crate::ast::parser::array::parse_array_initializer;
+use crate::ast::parser::parse_structure_initializer;
 use crate::ast::parser::statement::parse_statement;
+use crate::ast::parser::type_declarator::parse_type_declarator;
 use crate::ast::ParseResult;
 use crate::error::SyntaxError;
-use crate::lexer::{BinaryOperator, LELexer, LEToken, UnaryOperator};
+use crate::lexer::{LELexer, LEToken, Operator};
 
-fn get_operator_precedence(op: &BinaryOperator) -> usize {
+fn get_operator_precedence(op: &Operator) -> usize {
     match op {
-        BinaryOperator::Plus => { 20 }
-        BinaryOperator::Sub => { 20 }
-        BinaryOperator::Mul => { 40 }
-        BinaryOperator::Div => { 40 }
-        BinaryOperator::Assign => { 10 }
-        BinaryOperator::Equal => { 10 }
-        BinaryOperator::GreaterThan => { 10 }
-        BinaryOperator::LessThan => { 10 }
-        BinaryOperator::GreaterOrEqualThan => { 10 }
-        BinaryOperator::LessOrEqualThan => { 10 }
+        Operator::Plus => { 20 }
+        Operator::Sub => { 20 }
+        Operator::Mul => { 40 }
+        Operator::Div => { 40 }
+        Operator::Assign => { 10 }
+        Operator::Equal => { 10 }
+        Operator::GreaterThan => { 10 }
+        Operator::LessThan => { 10 }
+        Operator::GreaterOrEqualThan => { 10 }
+        Operator::LessOrEqualThan => { 10 }
+        Operator::Dot => { 60 }
+        Operator::And => { 5 }
+        Operator::Or => { 5 }
+        Operator::Xor => { 5 }
+        Operator::Not => { 5 }
+        Operator::Rev => { 5 }
     }
 }
 
+
+pub fn parse_annotation(lexer: &mut LELexer) -> ParseResult<(String, TypeDeclarator)> {
+    let identifier = lexer.consume_identifier()?;
+    lexer.consume_colon()?;
+    let type_declarator = parse_type_declarator(lexer)?;
+    Ok((identifier, type_declarator))
+}
 
 pub fn parse_call_expression(lexer: &mut LELexer, function_name: String) -> ParseResult<Box<Expr>> {
     lexer.next_result()?;
@@ -75,6 +91,10 @@ pub fn parse_identifier_expression(lexer: &mut LELexer) -> ParseResult<Box<Expr>
         LEToken::LeftPar => {
             Ok(parse_call_expression(lexer, identifier)?)
         }
+        LEToken::LeftBrace => {
+            let initializer = parse_structure_initializer(lexer)?;
+            Ok(Box::new(Expr::StructureInitializer(StructureInitializer { structure_name: identifier, member_initial_values: initializer })))
+        }
         _ => {
             Ok(Box::new(Expr::Identifier(Identifier { name: identifier, pos: lexer.pos() })))
         }
@@ -96,7 +116,7 @@ pub fn parse_little_par_expression(lexer: &mut LELexer) -> ParseResult<Box<Expr>
 pub fn parse_unary_ops(lexer: &mut LELexer) -> ParseResult<Box<Expr>> {
     let op = lexer.consume_binary_operator()?;
     Ok(Box::new(Expr::UnaryOperator(UnaryOpExpression {
-        op: UnaryOperator::Sub,
+        op: Operator::Sub,
         expr: parse_primary_expression(lexer)?,
         pos: lexer.pos(),
     })))
@@ -114,8 +134,11 @@ pub fn parse_primary_expression(lexer: &mut LELexer) -> ParseResult<Box<Expr>> {
         LEToken::Identifier(_) => {
             parse_identifier_expression(lexer)
         }
+        LEToken::LeftBracket => {
+            parse_array_initializer(lexer)
+        }
         LEToken::LeftPar => { parse_little_par_expression(lexer) }
-        _ => { Err(SyntaxError::missing_expression()) }
+        _ => { Err(SyntaxError::MissingExpression {}) }
     }
 }
 

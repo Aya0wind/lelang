@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+extern crate core;
+
 pub mod lexer;
 pub mod code_generator;
 pub mod error;

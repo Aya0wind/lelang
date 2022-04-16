@@ -1,171 +1,240 @@
-use std::process::id;
-use std::rc::Rc;
-
-use inkwell::AddressSpace;
 use inkwell::basic_block::BasicBlock;
 use inkwell::context::Context;
 use inkwell::module::{Linkage, Module};
-use inkwell::types::{BasicMetadataTypeEnum, BasicTypeEnum};
-use inkwell::values::FunctionValue;
+use inkwell::types::BasicMetadataTypeEnum;
+use inkwell::values::{ArrayValue, BasicValue, FunctionValue};
 use nom::combinator::value;
 
-use builder::Result;
-
-use crate::ast::nodes::{Ast, BinaryOpExpression, CodeBlock, Expr, ExternalFunction, ForLoop, FunctionCall, FunctionDefinition, Identifier, IfStatement, NumberLiteral, Position, Statement, UnaryOpExpression, Variable, WhileLoop};
-use crate::code_generator;
-use crate::code_generator::builder;
-use crate::code_generator::builder::binary_operator_builder::CompareOperator;
-use crate::code_generator::builder::compile_context::CompilerContext;
-use crate::code_generator::builder::le_type::{LEBasicType, LEBasicTypeEnum, LEBasicValue, LEBasicValueEnum, LEFloatValue, LEFunctionType, LEFunctionValue, LEIntegerValue, LEPointerValue};
-use crate::code_generator::builder::LEGenerator;
+use crate::ast::nodes::{ArrayInitializer, Ast, BinaryOpExpression, CodeBlock, Expr, ForLoop, FunctionCall, FunctionDefinition, FunctionPrototype, Identifier, IfStatement, NumberLiteral, Position, Statement, StructureInitializer, TypeDeclarator, UnaryOpExpression, Variable, WhileLoop};
+use crate::code_generator::builder::{LEArrayValue, LEBasicType, LEBasicTypeEnum, LEBasicValue, LEBasicValueEnum, LEBoolType, LEBoolValue, LEFloatValue, LEFunctionType, LEFunctionValue, LEGenerator, LEIntegerValue, LEPointerValue, LEStructType, LEStructValue, LEType, LEValue, LEVectorValue, Result};
+use crate::code_generator::builder::binary_operator_builder::CompareBinaryOperator;
+use crate::code_generator::builder::expression::ExpressionValue;
 use crate::error::CompileError;
-use crate::lexer::{BinaryOperator, Number, UnaryOperator};
+use crate::lexer::{Number, Operator};
 
 pub struct CodeGenerator<'ctx> {
     pub generator: LEGenerator<'ctx>,
     pub current_pos: Position,
 }
 
-
 impl<'ctx> CodeGenerator<'ctx> {
-    fn build_expression(&mut self, value: &Expr) -> Result<Option<LEBasicValueEnum<'ctx>>> {
+    fn build_expression(&mut self, value: &Expr) -> Result<ExpressionValue<'ctx>> {
         match value {
             Expr::UnaryOperator(n) => { self.build_unary_operator_expression(n) }
             Expr::BinaryOperator(n) => { self.build_binary_operator_expression(n) }
-            Expr::NumberLiteral(n) => { Ok(Some(self.build_number_literal_expression(n)?)) }
+            Expr::NumberLiteral(n) => { self.build_number_literal_expression(n) }
             Expr::CallExpression(n) => { self.build_call_expression(n) }
-            Expr::Identifier(n) => { Ok(Some(self.build_identifier_expression(n)?)) }
+            Expr::Identifier(n) => { self.build_identifier_expression(n) }
+            Expr::ArrayInitializer(n) => { self.build_array_initializer(n) }
+            Expr::StructureInitializer(n) => { self.build_structure_initializer(n) }
+            _ => { unimplemented!() }
+            // Expr::StringLiteral(n) => { Ok(Some(self.build_string_literal(n)?)) }
         }
     }
 
-    fn build_unary_operator_expression(&mut self, expr: &UnaryOpExpression) -> Result<Option<LEBasicValueEnum<'ctx>>> {
-        // match expr.op {
-        //     UnaryOperator::Plus => {}
-        //     UnaryOperator::Sub => {
-        //         let expr_value =
-        //     }
-        //     UnaryOperator::Dot => {}
-        // }
-        unimplemented!()
+
+    fn build_structure_initializer(&mut self, expr: &StructureInitializer) -> Result<ExpressionValue<'ctx>> {
+        let struct_type = self.generator.get_generic_type(&TypeDeclarator::TypeIdentifier(expr.structure_name.clone()))?;
+        if let LEBasicTypeEnum::StructType(struct_type) = struct_type {
+            let initializer_member_num = expr.member_initial_values.len();
+            if struct_type.get_llvm_type().get_field_types().len() != initializer_member_num {
+                return Err(CompileError::TypeMismatched { expect: struct_type.to_string(), found: expr.structure_name.clone() });
+            }
+            let mut value_array = vec![];
+            for (name, initial_value) in expr.member_initial_values.iter() {
+                let value = self.build_expression(initial_value.as_ref())?;
+                value_array.push((struct_type.get_member_offset(name).unwrap(), value));
+            }
+            value_array.sort_unstable_by(|x, y| x.0.cmp(&y.0));
+            let struct_llvm_value = &value_array.into_iter().map(|x| self.generator.read_expression_value(x.1).unwrap().to_llvm_basic_value_enum()).collect::<Vec<_>>();
+            let struct_value = struct_type.get_llvm_type().const_named_struct(&struct_llvm_value);
+            Ok(ExpressionValue::Right(LEStructValue { ty: struct_type, llvm_value: struct_value }.to_le_value_enum()))
+        } else {
+            Err(CompileError::TypeMismatched { expect: "Struct".into(), found: struct_type.name().into() })
+        }
+    }
+
+    fn build_unary_operator_expression(&mut self, expr: &UnaryOpExpression) -> Result<ExpressionValue<'ctx>> {
+        let value = self.build_expression(expr.expr.as_ref())?;
+        match expr.op {
+            Operator::Plus => {
+                Ok(value)
+            }
+            Operator::Sub => {
+                Ok(ExpressionValue::Right(self.generator.build_neg(value)?))
+            }
+            _ => { unimplemented!() }
+        }
     }
 
 
-    fn build_binary_operator_expression(&mut self, value: &BinaryOpExpression) -> Result<Option<LEBasicValueEnum<'ctx>>> {
-        let lhs = &value.left;
-        let rhs = &value.right;
-        match value.op {
-            BinaryOperator::Plus => {
-                let left = self.build_expression(lhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::Plus, "unit type".into()))?;
-                let right = self.build_expression(rhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::Plus, "unit type".into()))?;
-                Ok(Some(self.generator.build_add(left, right)?))
+    fn build_array_initializer(&mut self, value: &ArrayInitializer) -> Result<ExpressionValue<'ctx>> {
+        if value.elements.is_empty() {
+            Err(CompileError::NotAllowZeroLengthArray)
+        } else {
+            let mut array_values = vec![];
+            for v in value.elements.iter() {
+                let expr = self.build_expression(v)?;
+                array_values.push(self.generator.read_expression_value(expr)?);
             }
-            BinaryOperator::Sub => {
-                let left = self.build_expression(lhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::Plus, "unit type".into()))?;
-                let right = self.build_expression(rhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::Plus, "unit type".into()))?;
-                Ok(Some(self.generator.build_sub(left, right)?))
-            }
-            BinaryOperator::Mul => {
-                let left = self.build_expression(lhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::Plus, "unit type".into()))?;
-                let right = self.build_expression(rhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::Plus, "unit type".into()))?;
-                Ok(Some(self.generator.build_mul(left, right)?))
-            }
-            BinaryOperator::Div => {
-                let left = self.build_expression(lhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::Plus, "unit type".into()))?;
-                let right = self.build_expression(rhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::Plus, "unit type".into()))?;
-                Ok(Some(self.generator.build_div(left, right)?))
-            }
-            BinaryOperator::Assign => {
-                if let Expr::Identifier(identifier) = lhs.as_ref() {
-                    let value = self.build_expression(rhs.as_ref())?
-                        .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::Plus, "unit type".into()))?;
-                    ;
-                    Ok(Some(self.generator.build_store_variable(&identifier.name, value)?))
-                } else {
-                    Err(CompileError::can_only_assign_variable(format!("{:?}", lhs)))
+            let first_value = array_values.first().unwrap();
+            let element_type = LEBasicValue::get_le_type(first_value);
+            let array_type = LEBasicType::get_array_type(&element_type, value.elements.len() as u32);
+            for others in array_values.iter().skip(1) {
+                if others.get_le_type() != element_type {
+                    return Err(CompileError::TypeMismatched { expect: first_value.get_le_type().to_string(), found: others.get_le_type().to_string() });
                 }
             }
-            BinaryOperator::Equal => {
-                let left = self.build_expression(lhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::Equal, "unit type".into()))?;
-                let right = self.build_expression(rhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::Equal, "unit type".into()))?;
-                Ok(Some(self.generator.build_compare(left, right, CompareOperator::Equal)?.as_le_basic_value_enum()))
-            }
-            BinaryOperator::GreaterThan => {
-                let left = self.build_expression(lhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::GreaterThan, "unit type".into()))?;
-                let right = self.build_expression(rhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::GreaterThan, "unit type".into()))?;
-                Ok(Some(self.generator.build_compare(left, right, CompareOperator::GreaterThan)?.as_le_basic_value_enum()))
-            }
-            BinaryOperator::LessThan => {
-                let left = self.build_expression(lhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::LessThan, "unit type".into()))?;
-                let right = self.build_expression(rhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::LessThan, "unit type".into()))?;
-                Ok(Some(self.generator.build_compare(left, right, CompareOperator::LessThan)?.as_le_basic_value_enum()))
-            }
-            BinaryOperator::GreaterOrEqualThan => {
-                let left = self.build_expression(lhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::GreaterOrEqualThan, "unit type".into()))?;
-                let right = self.build_expression(rhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::GreaterOrEqualThan, "unit type".into()))?;
-                Ok(Some(self.generator.build_compare(left, right, CompareOperator::GreaterOrEqualThan)?.as_le_basic_value_enum()))
-            }
-            BinaryOperator::LessOrEqualThan => {
-                let left = self.build_expression(lhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::LessOrEqualThan, "unit type".into()))?;
-                let right = self.build_expression(rhs)?
-                    .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::LessOrEqualThan, "unit type".into()))?;
-                Ok(Some(self.generator.build_compare(left, right, CompareOperator::LessOrEqualThan)?.as_le_basic_value_enum()))
+
+            match element_type {
+                LEBasicTypeEnum::IntegerType(t) => {
+                    let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEIntegerValue>>();
+                    Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
+                }
+                LEBasicTypeEnum::FloatType(t) => {
+                    let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEFloatValue>>();
+                    Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
+                }
+                LEBasicTypeEnum::BoolType(t) => {
+                    let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEBoolValue>>();
+                    Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
+                }
+                LEBasicTypeEnum::PointerType(t) => {
+                    let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEPointerValue>>();
+                    Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
+                }
+                LEBasicTypeEnum::ArrayType(t) => {
+                    let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEArrayValue>>();
+                    Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
+                }
+                LEBasicTypeEnum::StructType(t) => {
+                    let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEStructValue>>();
+                    Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
+                }
+                LEBasicTypeEnum::VectorType(t) => {
+                    let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEVectorValue>>();
+                    Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
+                }
             }
         }
     }
 
-    fn build_identifier_expression(&mut self, value: &Identifier) -> Result<LEBasicValueEnum<'ctx>> {
-        let name = &value.name;
-        self.generator.build_load_variable(name)
+    // fn build_string_literal(&mut self, value: &StringLiteral) -> Result<LEBasicValueEnum<'ctx>> {
+    //     self.generator.context.llvm_context.const_string()
+    // }
+
+    fn build_binary_operator_expression(&mut self, value: &BinaryOpExpression) -> Result<ExpressionValue<'ctx>> {
+        match value.op {
+            Operator::Plus => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_add(left, right)?))
+            }
+            Operator::Sub => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_sub(left, right)?))
+            }
+            Operator::Mul => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_mul(left, right)?))
+            }
+            Operator::Div => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_div(left, right)?))
+            }
+            Operator::Assign => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Left(self.generator.build_assign(left, right)?))
+            }
+            Operator::Equal => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_compare(left, right, CompareBinaryOperator::Equal)?.to_le_value_enum()))
+            }
+            Operator::GreaterThan => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_compare(left, right, CompareBinaryOperator::GreaterThan)?.to_le_value_enum()))
+            }
+            Operator::LessThan => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_compare(left, right, CompareBinaryOperator::LessThan)?.to_le_value_enum()))
+            }
+            Operator::GreaterOrEqualThan => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_compare(left, right, CompareBinaryOperator::GreaterOrEqualThan)?.to_le_value_enum()))
+            }
+            Operator::LessOrEqualThan => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_compare(left, right, CompareBinaryOperator::LessOrEqualThan)?.to_le_value_enum()))
+            }
+            Operator::Dot => {
+                let left = self.build_expression(value.left.as_ref())?;
+                if let Expr::Identifier(identifier) = value.right.as_ref() {
+                    Ok(ExpressionValue::Left(self.generator.build_dot(left, &identifier.name)?))
+                } else {
+                    Err(CompileError::NoSuitableBinaryOperator {
+                        op: Operator::Dot,
+                        left: "".to_string(),
+                        right: "".to_string(),
+                    })
+                }
+            }
+            Operator::And => { unimplemented!() }
+            Operator::Or => { unimplemented!() }
+            Operator::Xor => { unimplemented!() }
+            Operator::Not => { unimplemented!() }
+            Operator::Rev => { unimplemented!() }
+        }
     }
 
-    fn build_number_literal_expression(&mut self, value: &NumberLiteral) -> Result<LEBasicValueEnum<'ctx>> {
+    fn build_identifier_expression(&mut self, value: &Identifier) -> Result<ExpressionValue<'ctx>> {
+        match value.name.as_str() {
+            "true" => { Ok(ExpressionValue::Right(self.generator.context.bool_type().const_true_value().to_le_value_enum())) }
+            "false" => { Ok(ExpressionValue::Right(self.generator.context.bool_type().const_false_value().to_le_value_enum())) }
+            _ => { Ok(ExpressionValue::Left(self.generator.get_variable(&value.name)?)) }
+        }
+    }
+
+    fn build_number_literal_expression(&mut self, value: &NumberLiteral) -> Result<ExpressionValue<'ctx>> {
         match value.number {
             Number::Integer(i) => {
-                let ty = self.generator.context.i64_type();
+                let ty = self.generator.context.i32_type();
                 let value = ty.get_llvm_type().const_int(i, true);
-
-                Ok(LEIntegerValue { ty, llvm_value: value }.as_le_basic_value_enum())
+                Ok(ExpressionValue::Right(LEIntegerValue { ty, llvm_value: value }.to_le_value_enum()))
             }
             Number::Float(f) => {
                 let ty = self.generator.context.double_type();
                 let value = ty.get_llvm_type().const_float(f);
-                Ok(LEFloatValue { ty, llvm_value: value }.as_le_basic_value_enum())
+                Ok(ExpressionValue::Right(LEFloatValue { ty, llvm_value: value }.to_le_value_enum()))
             }
         }
     }
 
-    fn build_call_expression(&mut self, value: &FunctionCall) -> Result<Option<LEBasicValueEnum<'ctx>>> {
+    fn build_call_expression(&mut self, value: &FunctionCall) -> Result<ExpressionValue<'ctx>> {
         let function = self.generator.context.compiler_context.get_function(&value.function_name)?;
         let mut params = vec![];
         for param in value.params.iter() {
-            params.push(self.build_expression(param)?
-                .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::GreaterOrEqualThan, "unit type".into()))?);
+            params.push(self.build_expression(param)?)
         }
         self.generator.build_call(function, &params)
     }
 
-    fn build_local_variable_definition(&mut self, value: &Variable) -> Result<LEPointerValue> {
-        let name = value.prototype.name.clone();
-        let initial_value = self.build_expression(value.value.as_ref())?
-            .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::GreaterOrEqualThan, "unit type".into()))?;
-        self.generator.create_local_variable(value.prototype.name.clone(), initial_value)
+    fn build_local_variable_definition(&mut self, value: &Variable) -> Result<ExpressionValue<'ctx>> {
+        let initial_value = self.build_expression(value.value.as_ref())?;
+        if let Some(variable_type) = &value.prototype.type_declarator {
+            self.generator.create_local_variable_with_exact_type(value.prototype.name.clone(), initial_value, variable_type)?;
+        } else {
+            self.generator.create_local_variable(value.prototype.name.clone(), initial_value)?;
+        }
+        Ok(ExpressionValue::Unit)
     }
 
     fn build_code_block(&mut self, code_block: &CodeBlock) -> Result<bool> {
@@ -197,15 +266,11 @@ impl<'ctx> CodeGenerator<'ctx> {
         Ok(false)
     }
 
-    fn build_return(&mut self, value: Option<LEBasicValueEnum>) -> Result<()> {
+    fn build_return(&mut self, value: ExpressionValue) -> Result<()> {
         let return_variable = &self.generator.context.compiler_context.return_variable;
         let return_block = self.generator.context.compiler_context.return_block.unwrap();
         if let Some(return_variable) = return_variable {
-            if let Some(return_value) = value {
-                self.generator.build_store(return_variable.clone(), return_value)?;
-            } else {
-                return Err(CompileError::type_mismatched("".into(), "".into()));
-            }
+            self.generator.build_store(return_variable.clone(), value);
         }
         self.generator.context.llvm_builder.build_unconditional_branch(return_block);
         Ok(())
@@ -224,12 +289,11 @@ impl<'ctx> CodeGenerator<'ctx> {
             }
             self.generator.context.llvm_builder.build_unconditional_branch(cond_block);
             self.generator.context.llvm_builder.position_at_end(cond_block);
-            if let LEBasicValueEnum::IntegerValue(int) = self.build_expression(cond_expr.as_ref())?
-                .ok_or_else(|| CompileError::no_suitable_binary_operator(BinaryOperator::GreaterOrEqualThan, "unit type".into()))? {
-                let cond_boolean = self.generator.context.llvm_builder.build_int_cast(int.llvm_value, self.generator.context.llvm_context.bool_type(), "");
-                self.generator.context.llvm_builder.build_conditional_branch(cond_boolean, body_block, after_block);
+            let cond = self.build_expression(cond_expr.as_ref())?;
+            if let LEBasicValueEnum::Bool(bool_cond) = self.generator.read_expression_value(cond)? {
+                self.generator.context.llvm_builder.build_conditional_branch(bool_cond.get_llvm_value(), body_block, after_block);
             } else {
-                return Err(CompileError::type_mismatched("".into(), "".into()));
+                return Err(CompileError::TypeMismatched { expect: "".into(), found: "".into() });
             }
             self.generator.context.llvm_builder.position_at_end(body_block);
             self.build_code_block(&for_loop.code_block)?;
@@ -252,12 +316,11 @@ impl<'ctx> CodeGenerator<'ctx> {
         self.generator.context.llvm_builder.position_at_end(cond_block);
         self.generator.context.compiler_context.push_block_table();
         if let Some(cond_expr) = &while_loop.condition {
-            if let LEBasicValueEnum::IntegerValue(int) = self.build_expression(cond_expr.as_ref())?
-                .ok_or(CompileError::no_suitable_binary_operator(BinaryOperator::GreaterOrEqualThan, "unit type".into()))? {
-                let cond_boolean = self.generator.context.llvm_builder.build_int_cast(int.llvm_value, self.generator.context.llvm_context.bool_type(), "");
-                self.generator.context.llvm_builder.build_conditional_branch(cond_boolean, body_block, after_block);
+            let cond = self.build_expression(cond_expr.as_ref())?;
+            if let LEBasicValueEnum::Bool(bool_cond) = self.generator.read_expression_value(cond)? {
+                self.generator.context.llvm_builder.build_conditional_branch(bool_cond.get_llvm_value(), body_block, after_block);
             } else {
-                return Err(CompileError::type_mismatched("".into(), "".into()));
+                return Err(CompileError::TypeMismatched { expect: "".into(), found: "".into() });
             }
         } else {
             self.generator.context.llvm_builder.build_unconditional_branch(body_block);
@@ -271,16 +334,14 @@ impl<'ctx> CodeGenerator<'ctx> {
     }
 
     fn build_if_statement(&mut self, statement: &IfStatement) -> Result<()> {
-        let cond_value = self.build_expression(statement.cond.as_ref())?;
         let then_block = self.generator.context.llvm_context.insert_basic_block_after(self.generator.context.llvm_builder.get_insert_block().unwrap(), "");
         let else_block = self.generator.context.llvm_context.insert_basic_block_after(then_block, "");
         let merge_block = self.generator.context.llvm_context.insert_basic_block_after(else_block, "");
-        if let LEBasicValueEnum::IntegerValue(int) = cond_value
-            .ok_or(CompileError::no_suitable_binary_operator(BinaryOperator::GreaterOrEqualThan, "unit type".into()))? {
-            let cond_boolean = self.generator.context.llvm_builder.build_int_cast(int.llvm_value, self.generator.context.llvm_context.bool_type(), "");
-            self.generator.context.llvm_builder.build_conditional_branch(cond_boolean, then_block, else_block);
+        let cond_value = self.build_expression(statement.cond.as_ref())?;
+        if let LEBasicValueEnum::Bool(bool_cond) = self.generator.read_expression_value(cond_value)? {
+            self.generator.context.llvm_builder.build_conditional_branch(bool_cond.get_llvm_value(), then_block, else_block);
         } else {
-            return Err(CompileError::type_mismatched("".into(), "".into()).into());
+            return Err(CompileError::TypeMismatched { expect: "".into(), found: "".into() });
         }
         self.generator.context.llvm_builder.position_at_end(then_block);
         self.generator.context.compiler_context.push_block_table();
@@ -302,13 +363,13 @@ impl<'ctx> CodeGenerator<'ctx> {
         Ok(())
     }
 
-    fn build_function_prototype(&mut self, module: &Module<'ctx>, prototype: &ExternalFunction) -> Result<LEFunctionValue<'ctx>> {
+    fn build_function_prototype(&mut self, module: &Module<'ctx>, prototype: &FunctionPrototype) -> Result<LEFunctionValue<'ctx>> {
         let mut param_llvm_metadata_types = vec![];
         let mut param_types = vec![];
         for param_type in prototype.param_types.iter() {
             let ty = self.generator.get_generic_type(param_type)?;
             param_types.push(ty.clone());
-            param_llvm_metadata_types.push(BasicMetadataTypeEnum::from(ty.get_basic_llvm_type()))
+            param_llvm_metadata_types.push(BasicMetadataTypeEnum::from(ty.get_llvm_basic_type()))
         }
         let mut return_type;
         let external_function = match &prototype.return_type {
@@ -316,11 +377,12 @@ impl<'ctx> CodeGenerator<'ctx> {
                 return_type = None;
                 self.generator.context.llvm_context.void_type().fn_type(&param_llvm_metadata_types, false)
             }
-            Some(type_name) => {
-                let ty = self.generator.get_generic_type(type_name)?;
+            Some(type_declarator) => {
+                let ty = self.generator.get_generic_type(type_declarator)?;
                 return_type = Some(ty.clone());
                 match ty {
                     LEBasicTypeEnum::IntegerType(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
+                    LEBasicTypeEnum::BoolType(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
                     LEBasicTypeEnum::FloatType(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
                     LEBasicTypeEnum::PointerType(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
                     LEBasicTypeEnum::ArrayType(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
@@ -368,8 +430,8 @@ impl<'ctx> CodeGenerator<'ctx> {
         let function = &function_value;
         let names = &function_node.param_names;
         for ((param, name), param_type) in function.llvm_value.get_param_iter().zip(names).zip(function.ty.param_types().iter()) {
-            let param_value = LEBasicValueEnum::from_llvm_basic_value_enum_and_type(param, param_type.clone());
-            self.create_local_variable(name, param_type.clone(), param_value)?;
+            let param_value = LEBasicValueEnum::from_type_and_llvm_value(param_type.clone(), param)?;
+            self.create_local_variable(name, param_type.clone(), ExpressionValue::Right(param_value))?;
         }
 
         let is_return_block = self.build_code_block(&function_node.code_block)?;
@@ -381,7 +443,7 @@ impl<'ctx> CodeGenerator<'ctx> {
     }
 
 
-    pub fn create_local_variable(&mut self, name: &str, target_type: LEBasicTypeEnum<'ctx>, initial_value: LEBasicValueEnum<'ctx>) -> Result<LEPointerValue<'ctx>> {
+    pub fn create_local_variable(&mut self, name: &str, target_type: LEBasicTypeEnum<'ctx>, initial_value: ExpressionValue<'ctx>) -> Result<LEPointerValue<'ctx>> {
         let current_insert_block = self.generator.context.llvm_builder.get_insert_block().unwrap();
         let parent_function = self.generator.context.compiler_context.current_function.unwrap();
         let entry_block = parent_function.get_first_basic_block().unwrap();
@@ -390,8 +452,7 @@ impl<'ctx> CodeGenerator<'ctx> {
         } else {
             self.generator.context.llvm_builder.position_at_end(entry_block);
         }
-        let cast_value = self.generator.build_cast(initial_value.clone(), target_type.clone())?;
-        let le_variable = self.generator.create_local_variable(name.into(), cast_value)?;
+        let le_variable = self.generator.create_local_variable(name.into(), initial_value)?;
         self.generator.context.llvm_builder.position_at_end(current_insert_block);
         Ok(le_variable)
     }
@@ -409,20 +470,30 @@ impl<'ctx> CodeGenerator<'ctx> {
     }
 
     fn generate_all_global_variables(&mut self, module: &Module<'ctx>, ast: &Ast) -> Result<()> {
-        for variable in ast.globals.iter() {
-            let ty = self.generator.get_generic_type(&variable.prototype.type_name)?;
-            let value = self.build_expression(variable.value.as_ref())?.unwrap();
-            self.generator.create_global_variable(
-                variable.prototype.name.clone(),
-                value,
-                module,
-            )?;
+        for variable in ast.globals_variables.iter() {
+            let expr_value = self.build_expression(variable.value.as_ref())?;
+            if let Some(exact_type) = &variable.prototype.type_declarator {
+                let ty = self.generator.get_generic_type(exact_type)?;
+                self.generator.create_global_variable_with_exact_type(
+                    variable.prototype.name.clone(),
+                    expr_value,
+                    ty,
+                    module,
+                )?;
+            } else {
+                self.generator.create_global_variable(
+                    variable.prototype.name.clone(),
+                    expr_value,
+                    module,
+                )?;
+            }
         }
         Ok(())
     }
 
     pub fn compile(&mut self, module: &Module<'ctx>, ast: &Ast) -> Result<()> {
         self.generate_all_global_variables(module, ast)?;
+        self.generate_all_global_structures(module, ast)?;
         self.generate_all_functions(module, ast)?;
         Ok(())
     }
@@ -433,6 +504,19 @@ impl<'ctx> CodeGenerator<'ctx> {
             generator: LEGenerator::new(context, llvm_builder),
             current_pos: Position { line: 0 },
         }
+    }
+    fn generate_all_global_structures(&mut self, module: &Module, ast: &Ast) -> Result<()> {
+        for structure in ast.globals_structures.iter() {
+            let mut names = vec![];
+            let mut types = vec![];
+            for (name, ty) in structure.members.iter() {
+                names.push(name.as_str());
+                types.push(self.generator.get_generic_type(ty)?);
+            }
+            let structure_type = LEStructType::from_llvm_type(&self.generator.context, &names, &types);
+            self.generator.insert_global_type(structure.name.clone(), structure_type.to_le_type_enum())?;
+        }
+        Ok(())
     }
 }
 

@@ -1,6 +1,6 @@
 use inkwell::values::FunctionValue;
 
-use crate::code_generator::builder::le_type::LEFunctionType;
+use crate::code_generator::builder::LEFunctionType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LEFunctionValue<'ctx> {

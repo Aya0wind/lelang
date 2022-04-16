@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use inkwell::types::FunctionType;
 
-use crate::code_generator::builder::le_type::LEBasicTypeEnum;
+use crate::code_generator::builder::le_wrapper::LEBasicTypeEnum;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct LEFunctionTypeInner<'ctx> {

@@ -1,4 +1,3 @@
-## Attention! not allow unicode character in comments now!
 decl le print_int(i64); ##external function declaration
 decl le print_float(f64);
 
@@ -9,6 +8,15 @@ le no_ret(){
     }
 }
 ##function with params and return type
+
+## recursive function with params and return value
+le Fibonacci(step:u32)->u32{
+    if(step<3){
+        ret 1;
+    }el{
+        ret Fibonacci(step-1)+Fibonacci(step-2);
+    }
+}
 le reti32(number:i32)->i32{
     while(number>0){ ## while loop
         if (number==5){
@@ -19,20 +27,11 @@ le reti32(number:i32)->i32{
     }
     ret number;
 }
-## recursive function with params and return value
-le Fibonacci(step:u32)->u32{
-    if(step<3){
-        ret 1;
-    }el{
-        ret Fibonacci(step-1)+Fibonacci(step-2);
-    }
-}
-
-le main(a:f64)->i32{
+le main()->i32{
     var f:f64 = 10.034876; ## float number support
     no_ret();
     print_int(reti32(20));
-    print_float(123124.111);
+    print_float(-123124.111);
     print_int(Fibonacci(20));
     ret 0;
 }

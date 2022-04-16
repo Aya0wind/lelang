@@ -5,7 +5,7 @@ use crate::ast::parser::common::{parse_code_block, parse_little_par_expression};
 use crate::ast::ParseResult;
 use crate::lexer::{KeyWord, LELexer, LEToken};
 
-pub fn parse_if_condition(lexer: &mut LELexer) -> ParseResult<IfStatement> {
+pub fn parse_if_statement(lexer: &mut LELexer) -> ParseResult<IfStatement> {
     lexer.next_result()?;
     let cond_value = parse_little_par_expression(lexer)?;
     let then_block = parse_code_block(lexer)?;
