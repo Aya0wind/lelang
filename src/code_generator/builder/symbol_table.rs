@@ -54,17 +54,17 @@ impl<'ctx> SymbolTable<'ctx> {
         let f64_type = LEFloatType::from_llvm_type(llvm_context.f64_type(), true);
 
         let intrinsic_types = [
-            ("bool".into(), Symbol::Type(LEBasicTypeEnum::BoolType(bool_type.clone()))),
-            ("i8".into(), Symbol::Type(LEBasicTypeEnum::IntegerType(i8_type.clone()))),
-            ("i16".into(), Symbol::Type(LEBasicTypeEnum::IntegerType(i16_type.clone()))),
-            ("i32".into(), Symbol::Type(LEBasicTypeEnum::IntegerType(i32_type.clone()))),
-            ("i64".into(), Symbol::Type(LEBasicTypeEnum::IntegerType(i64_type.clone()))),
-            ("u8".into(), Symbol::Type(LEBasicTypeEnum::IntegerType(u8_type.clone()))),
-            ("u16".into(), Symbol::Type(LEBasicTypeEnum::IntegerType(u16_type.clone()))),
-            ("u32".into(), Symbol::Type(LEBasicTypeEnum::IntegerType(u32_type.clone()))),
-            ("u64".into(), Symbol::Type(LEBasicTypeEnum::IntegerType(u64_type.clone()))),
-            ("f32".into(), Symbol::Type(LEBasicTypeEnum::FloatType(f32_type.clone()))),
-            ("f64".into(), Symbol::Type(LEBasicTypeEnum::FloatType(f64_type.clone()))),
+            ("bool".into(), Symbol::Type(LEBasicTypeEnum::Bool(bool_type.clone()))),
+            ("i8".into(), Symbol::Type(LEBasicTypeEnum::Integer(i8_type.clone()))),
+            ("i16".into(), Symbol::Type(LEBasicTypeEnum::Integer(i16_type.clone()))),
+            ("i32".into(), Symbol::Type(LEBasicTypeEnum::Integer(i32_type.clone()))),
+            ("i64".into(), Symbol::Type(LEBasicTypeEnum::Integer(i64_type.clone()))),
+            ("u8".into(), Symbol::Type(LEBasicTypeEnum::Integer(u8_type.clone()))),
+            ("u16".into(), Symbol::Type(LEBasicTypeEnum::Integer(u16_type.clone()))),
+            ("u32".into(), Symbol::Type(LEBasicTypeEnum::Integer(u32_type.clone()))),
+            ("u64".into(), Symbol::Type(LEBasicTypeEnum::Integer(u64_type.clone()))),
+            ("f32".into(), Symbol::Type(LEBasicTypeEnum::Float(f32_type.clone()))),
+            ("f64".into(), Symbol::Type(LEBasicTypeEnum::Float(f64_type.clone()))),
         ];
         Self {
             table: vec![HashMap::from(intrinsic_types)],

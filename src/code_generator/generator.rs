@@ -7,7 +7,7 @@ use nom::combinator::value;
 
 use crate::ast::nodes::{ArrayInitializer, Ast, BinaryOpExpression, CodeBlock, Expr, ForLoop, FunctionCall, FunctionDefinition, FunctionPrototype, Identifier, IfStatement, NumberLiteral, Position, Statement, StructureInitializer, TypeDeclarator, UnaryOpExpression, Variable, WhileLoop};
 use crate::code_generator::builder::{LEArrayValue, LEBasicType, LEBasicTypeEnum, LEBasicValue, LEBasicValueEnum, LEBoolType, LEBoolValue, LEFloatValue, LEFunctionType, LEFunctionValue, LEGenerator, LEIntegerValue, LEPointerValue, LEStructType, LEStructValue, LEType, LEValue, LEVectorValue, Result};
-use crate::code_generator::builder::binary_operator_builder::CompareBinaryOperator;
+use crate::code_generator::builder::binary_operator_builder::{CompareBinaryOperator, LogicBinaryOperator};
 use crate::code_generator::builder::expression::ExpressionValue;
 use crate::error::CompileError;
 use crate::lexer::{Number, Operator};
@@ -35,7 +35,7 @@ impl<'ctx> CodeGenerator<'ctx> {
 
     fn build_structure_initializer(&mut self, expr: &StructureInitializer) -> Result<ExpressionValue<'ctx>> {
         let struct_type = self.generator.get_generic_type(&TypeDeclarator::TypeIdentifier(expr.structure_name.clone()))?;
-        if let LEBasicTypeEnum::StructType(struct_type) = struct_type {
+        if let LEBasicTypeEnum::Struct(struct_type) = struct_type {
             let initializer_member_num = expr.member_initial_values.len();
             if struct_type.get_llvm_type().get_field_types().len() != initializer_member_num {
                 return Err(CompileError::TypeMismatched { expect: struct_type.to_string(), found: expr.structure_name.clone() });
@@ -63,6 +63,10 @@ impl<'ctx> CodeGenerator<'ctx> {
             Operator::Sub => {
                 Ok(ExpressionValue::Right(self.generator.build_neg(value)?))
             }
+            // Operator::Not => {
+            //
+            // }
+            // Operator::Rev => {}
             _ => { unimplemented!() }
         }
     }
@@ -87,31 +91,31 @@ impl<'ctx> CodeGenerator<'ctx> {
             }
 
             match element_type {
-                LEBasicTypeEnum::IntegerType(t) => {
+                LEBasicTypeEnum::Integer(t) => {
                     let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEIntegerValue>>();
                     Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
                 }
-                LEBasicTypeEnum::FloatType(t) => {
+                LEBasicTypeEnum::Float(t) => {
                     let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEFloatValue>>();
                     Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
                 }
-                LEBasicTypeEnum::BoolType(t) => {
+                LEBasicTypeEnum::Bool(t) => {
                     let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEBoolValue>>();
                     Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
                 }
-                LEBasicTypeEnum::PointerType(t) => {
+                LEBasicTypeEnum::Pointer(t) => {
                     let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEPointerValue>>();
                     Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
                 }
-                LEBasicTypeEnum::ArrayType(t) => {
+                LEBasicTypeEnum::Array(t) => {
                     let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEArrayValue>>();
                     Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
                 }
-                LEBasicTypeEnum::StructType(t) => {
+                LEBasicTypeEnum::Struct(t) => {
                     let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEStructValue>>();
                     Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
                 }
-                LEBasicTypeEnum::VectorType(t) => {
+                LEBasicTypeEnum::Vector(t) => {
                     let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEVectorValue>>();
                     Ok(ExpressionValue::Right(t.const_array(&array_initial_values).to_le_value_enum()))
                 }
@@ -155,6 +159,11 @@ impl<'ctx> CodeGenerator<'ctx> {
                 let right = self.build_expression(value.right.as_ref())?;
                 Ok(ExpressionValue::Right(self.generator.build_compare(left, right, CompareBinaryOperator::Equal)?.to_le_value_enum()))
             }
+            Operator::NotEqual => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_compare(left, right, CompareBinaryOperator::NotEqual)?.to_le_value_enum()))
+            }
             Operator::GreaterThan => {
                 let left = self.build_expression(value.left.as_ref())?;
                 let right = self.build_expression(value.right.as_ref())?;
@@ -187,11 +196,28 @@ impl<'ctx> CodeGenerator<'ctx> {
                     })
                 }
             }
-            Operator::And => { unimplemented!() }
-            Operator::Or => { unimplemented!() }
-            Operator::Xor => { unimplemented!() }
-            Operator::Not => { unimplemented!() }
-            Operator::Rev => { unimplemented!() }
+            Operator::And => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_binary_logic(left, right, LogicBinaryOperator::LogicAnd)?.to_le_value_enum()))
+            }
+            Operator::Or => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_binary_logic(left, right, LogicBinaryOperator::LogicOr)?.to_le_value_enum()))
+            }
+            Operator::Xor => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_binary_logic(left, right, LogicBinaryOperator::LogicXor)?.to_le_value_enum()))
+            }
+
+            Operator::Mod => {
+                let left = self.build_expression(value.left.as_ref())?;
+                let right = self.build_expression(value.right.as_ref())?;
+                Ok(ExpressionValue::Right(self.generator.build_mod(left, right)?.to_le_value_enum()))
+            }
+            _ => { unimplemented!() }
         }
     }
 
@@ -381,13 +407,13 @@ impl<'ctx> CodeGenerator<'ctx> {
                 let ty = self.generator.get_generic_type(type_declarator)?;
                 return_type = Some(ty.clone());
                 match ty {
-                    LEBasicTypeEnum::IntegerType(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
-                    LEBasicTypeEnum::BoolType(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
-                    LEBasicTypeEnum::FloatType(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
-                    LEBasicTypeEnum::PointerType(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
-                    LEBasicTypeEnum::ArrayType(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
-                    LEBasicTypeEnum::StructType(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
-                    LEBasicTypeEnum::VectorType(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
+                    LEBasicTypeEnum::Integer(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
+                    LEBasicTypeEnum::Bool(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
+                    LEBasicTypeEnum::Float(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
+                    LEBasicTypeEnum::Pointer(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
+                    LEBasicTypeEnum::Array(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
+                    LEBasicTypeEnum::Struct(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
+                    LEBasicTypeEnum::Vector(i) => { i.get_llvm_type().fn_type(&param_llvm_metadata_types, false) }
                 }
             }
         };

@@ -14,9 +14,11 @@ fn get_operator_precedence(op: &Operator) -> usize {
         Operator::Plus => { 20 }
         Operator::Sub => { 20 }
         Operator::Mul => { 40 }
+        Operator::Mod => { 40 }
         Operator::Div => { 40 }
         Operator::Assign => { 10 }
         Operator::Equal => { 10 }
+        Operator::NotEqual => { 10 }
         Operator::GreaterThan => { 10 }
         Operator::LessThan => { 10 }
         Operator::GreaterOrEqualThan => { 10 }

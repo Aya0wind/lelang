@@ -11,7 +11,7 @@ use inkwell::values::{FloatValue, IntValue, PointerValue};
 use lazy_static::lazy_static;
 
 use crate::code_generator::builder::{LEBoolValue, LEContext, LEFloatType, LEFloatValue, LEIntegerType, LEIntegerValue, LEPointerValue, LEType};
-use crate::code_generator::builder::binary_operator_builder::LogicBinaryOperator;
+use crate::code_generator::builder::binary_operator_builder::{LogicBinaryOperator, MathOperatorBuilder};
 use crate::error::CompileError;
 
 use super::super::Result;
@@ -46,6 +46,50 @@ pub fn get_integer_promotion_providence(ty: &LEIntegerType) -> u32 {
     *INT_TYPE_PROMOTION_PROVIDENCE.get(&(signed, width)).unwrap()
 }
 
+impl<'ctx> MathOperatorBuilder<'ctx> for LEIntegerValue<'ctx> {
+    fn build_mod(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
+        let (left_providence, right_providence) = (get_integer_promotion_providence(&self.ty), get_integer_promotion_providence(&rhs.ty));
+        match left_providence.cmp(&right_providence) {
+            Ordering::Less => {
+                //右边的类型要提升至左边的类型
+                let cast_value = le_context.llvm_builder.build_int_cast(self.llvm_value, rhs.ty.get_llvm_type(), "");
+                if self.ty.signed() {
+                    Ok(
+                        LEIntegerValue { ty: self.ty.clone().clone(), llvm_value: le_context.llvm_builder.build_int_signed_rem(self.llvm_value, cast_value, "") }
+                    )
+                } else {
+                    Ok(
+                        LEIntegerValue { ty: self.ty.clone().clone(), llvm_value: le_context.llvm_builder.build_int_unsigned_rem(self.llvm_value, cast_value, "") }
+                    )
+                }
+            }
+            Ordering::Greater => {
+                //左边的类型要提升至右边的类型
+                let cast_value = le_context.llvm_builder.build_int_cast(rhs.llvm_value, self.ty.get_llvm_type(), "");
+                if self.ty.signed() {
+                    Ok(
+                        LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_signed_rem(cast_value, rhs.llvm_value, "") }
+                    )
+                } else {
+                    Ok(
+                        LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_unsigned_rem(cast_value, rhs.llvm_value, "") }
+                    )
+                }
+            }
+            Ordering::Equal => {
+                if self.ty.signed() {
+                    Ok(
+                        LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_signed_rem(self.llvm_value, rhs.llvm_value, "") }
+                    )
+                } else {
+                    Ok(
+                        LEIntegerValue { ty: self.ty.clone(), llvm_value: le_context.llvm_builder.build_int_unsigned_rem(self.llvm_value, rhs.llvm_value, "") }
+                    )
+                }
+            }
+        }
+    }
+}
 
 impl<'ctx> ArithmeticOperatorBuilder<'ctx> for LEIntegerValue<'ctx> {
     fn build_add(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
@@ -201,6 +245,9 @@ impl<'ctx> ArithmeticOperatorBuilder<'ctx> for LEIntegerValue<'ctx> {
                 CompareBinaryOperator::LessOrEqualThan => {
                     Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::SLE, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
+                CompareBinaryOperator::NotEqual => {
+                    Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::EQ, casted_left.llvm_value, casted_right.llvm_value, "").const_not() })
+                }
             }
         } else {
             match op {
@@ -219,13 +266,13 @@ impl<'ctx> ArithmeticOperatorBuilder<'ctx> for LEIntegerValue<'ctx> {
                 CompareBinaryOperator::LessOrEqualThan => {
                     Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::ULE, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
+                CompareBinaryOperator::NotEqual => {
+                    Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::EQ, casted_left.llvm_value, casted_right.llvm_value, "").const_not() })
+                }
             }
         }
     }
 
-    fn build_logic(self, le_context: &LEContext<'ctx>, rhs: Self, logic_op: LogicBinaryOperator) -> Result<LEBoolValue<'ctx>> {
-        todo!()
-    }
 }
 
 
@@ -364,11 +411,11 @@ impl<'ctx> ArithmeticOperatorBuilder<'ctx> for LEFloatValue<'ctx> {
             CompareBinaryOperator::LessOrEqualThan => {
                 Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_float_compare(FloatPredicate::OLE, casted_left.llvm_value, casted_right.llvm_value, "") })
             }
+            CompareBinaryOperator::NotEqual => {
+                Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_float_compare(FloatPredicate::OEQ, casted_left.llvm_value, casted_right.llvm_value, "").const_not() })
+            }
         }
     }
 
-    fn build_logic(self, le_context: &LEContext<'ctx>, rhs: Self, logic_op: LogicBinaryOperator) -> Result<LEBoolValue<'ctx>> {
-        todo!()
-    }
 }
 

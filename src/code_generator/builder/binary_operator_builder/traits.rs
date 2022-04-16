@@ -9,6 +9,8 @@ use super::super::Result;
 pub enum CompareBinaryOperator {
     Equal,
 
+    NotEqual,
+
     GreaterThan,
 
     LessThan,
@@ -25,8 +27,6 @@ pub enum LogicBinaryOperator {
 
     LogicOr,
 
-    LogicNot,
-
     LogicXor,
 }
 
@@ -36,7 +36,14 @@ pub trait ArithmeticOperatorBuilder<'ctx>: LEBasicValue<'ctx> + Sized {
     fn build_mul(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self>;
     fn build_div(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self>;
     fn build_cmp(self, le_context: &LEContext<'ctx>, rhs: Self, op: CompareBinaryOperator) -> Result<LEBoolValue<'ctx>>;
-    fn build_logic(self, le_context: &LEContext<'ctx>, rhs: Self, logic_op: LogicBinaryOperator) -> Result<LEBoolValue<'ctx>>;
+}
+
+pub trait MathOperatorBuilder<'ctx>: LEBasicValue<'ctx> + Sized {
+    fn build_mod(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self>;
+}
+
+pub trait LogicBinaryOperatorBuilder<'ctx>: LEBasicValue<'ctx> + Sized {
+    fn build_binary_logic(self, le_context: &LEContext<'ctx>, rhs: Self, op: CompareBinaryOperator) -> Result<LEBoolValue<'ctx>>;
 }
 
 pub trait MemberAccessOperatorBuilder<'ctx> {

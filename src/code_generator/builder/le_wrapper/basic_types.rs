@@ -42,7 +42,7 @@ impl<'ctx> LEType<'ctx> for LEIntegerType<'ctx> {
 
 impl<'ctx> LEBasicType<'ctx> for LEIntegerType<'ctx> {
     fn to_le_type_enum(&self) -> LEBasicTypeEnum<'ctx> {
-        LEBasicTypeEnum::IntegerType(self.clone())
+        LEBasicTypeEnum::Integer(self.clone())
     }
 
     fn get_array_type(&self, len: u32) -> LEArrayType<'ctx> {
@@ -115,7 +115,7 @@ impl<'ctx> LEType<'ctx> for LEFloatType<'ctx> {
 
 impl<'ctx> LEBasicType<'ctx> for LEFloatType<'ctx> {
     fn to_le_type_enum(&self) -> LEBasicTypeEnum<'ctx> {
-        LEBasicTypeEnum::FloatType(self.clone())
+        LEBasicTypeEnum::Float(self.clone())
     }
 
     fn get_array_type(&self, len: u32) -> LEArrayType<'ctx> {
@@ -187,7 +187,7 @@ impl<'ctx> LEType<'ctx> for LEBoolType<'ctx> {
 
 impl<'ctx> LEBasicType<'ctx> for LEBoolType<'ctx> {
     fn to_le_type_enum(&self) -> LEBasicTypeEnum<'ctx> {
-        LEBasicTypeEnum::BoolType(self.clone())
+        LEBasicTypeEnum::Bool(self.clone())
     }
 
     fn get_array_type(&self, len: u32) -> LEArrayType<'ctx> {
@@ -266,7 +266,7 @@ impl<'ctx> LEType<'ctx> for LEPointerType<'ctx> {
 
 impl<'ctx> LEBasicType<'ctx> for LEPointerType<'ctx> {
     fn to_le_type_enum(&self) -> LEBasicTypeEnum<'ctx> {
-        LEBasicTypeEnum::PointerType(self.clone())
+        LEBasicTypeEnum::Pointer(self.clone())
     }
 
 
@@ -358,7 +358,7 @@ impl<'ctx> LEType<'ctx> for LEArrayType<'ctx> {
 
 impl<'ctx> LEBasicType<'ctx> for LEArrayType<'ctx> {
     fn to_le_type_enum(&self) -> LEBasicTypeEnum<'ctx> {
-        LEBasicTypeEnum::ArrayType(self.clone())
+        LEBasicTypeEnum::Array(self.clone())
     }
 
 
@@ -435,7 +435,7 @@ impl<'ctx> LEType<'ctx> for LEStructType<'ctx> {
 
 impl<'ctx> LEBasicType<'ctx> for LEStructType<'ctx> {
     fn to_le_type_enum(&self) -> LEBasicTypeEnum<'ctx> {
-        LEBasicTypeEnum::StructType(self.clone())
+        LEBasicTypeEnum::Struct(self.clone())
     }
 
 
@@ -539,7 +539,7 @@ impl<'ctx> LEType<'ctx> for LEVectorType<'ctx> {
 
 impl<'ctx> LEBasicType<'ctx> for LEVectorType<'ctx> {
     fn to_le_type_enum(&self) -> LEBasicTypeEnum<'ctx> {
-        LEBasicTypeEnum::VectorType(self.clone())
+        LEBasicTypeEnum::Vector(self.clone())
     }
 
     fn get_array_type(&self, len: u32) -> LEArrayType<'ctx> {
@@ -576,19 +576,19 @@ impl<'ctx> Display for LEVectorType<'ctx> {
 #[enum_dispatch]
 pub enum LEBasicTypeEnum<'ctx> {
     /// An integer or float type.
-    IntegerType(LEIntegerType<'ctx>),
+    Integer(LEIntegerType<'ctx>),
     //An float type
-    FloatType(LEFloatType<'ctx>),
+    Float(LEFloatType<'ctx>),
     //An bool type
-    BoolType(LEBoolType<'ctx>),
+    Bool(LEBoolType<'ctx>),
     /// A pointer type.
-    PointerType(LEPointerType<'ctx>),
+    Pointer(LEPointerType<'ctx>),
     //A array type
-    ArrayType(LEArrayType<'ctx>),
+    Array(LEArrayType<'ctx>),
     /// A contiguous heterogeneous container type.
-    StructType(LEStructType<'ctx>),
+    Struct(LEStructType<'ctx>),
     /// A contiguous homogeneous "SIMD" container type.
-    VectorType(LEVectorType<'ctx>),
+    Vector(LEVectorType<'ctx>),
 }
 
 // impl<'ctx> LEBasicType<'ctx> for LEBasicTypeEnum<'ctx> {
@@ -626,25 +626,25 @@ impl<'ctx> LEType<'ctx> for LEBasicTypeEnum<'ctx> {
 
     fn get_llvm_type(&self) -> Self::LLVM_Type {
         match self {
-            LEBasicTypeEnum::IntegerType(t) => { t.get_llvm_basic_type() }
-            LEBasicTypeEnum::FloatType(t) => { t.get_llvm_basic_type() }
-            LEBasicTypeEnum::BoolType(t) => { t.get_llvm_basic_type() }
-            LEBasicTypeEnum::PointerType(t) => { t.get_llvm_basic_type() }
-            LEBasicTypeEnum::ArrayType(t) => { t.get_llvm_basic_type() }
-            LEBasicTypeEnum::StructType(t) => { t.get_llvm_basic_type() }
-            LEBasicTypeEnum::VectorType(t) => { t.get_llvm_basic_type() }
+            LEBasicTypeEnum::Integer(t) => { t.get_llvm_basic_type() }
+            LEBasicTypeEnum::Float(t) => { t.get_llvm_basic_type() }
+            LEBasicTypeEnum::Bool(t) => { t.get_llvm_basic_type() }
+            LEBasicTypeEnum::Pointer(t) => { t.get_llvm_basic_type() }
+            LEBasicTypeEnum::Array(t) => { t.get_llvm_basic_type() }
+            LEBasicTypeEnum::Struct(t) => { t.get_llvm_basic_type() }
+            LEBasicTypeEnum::Vector(t) => { t.get_llvm_basic_type() }
         }
     }
 
     fn name(&self) -> &'static str {
         match self {
-            LEBasicTypeEnum::IntegerType(t) => { t.name() }
-            LEBasicTypeEnum::FloatType(t) => { t.name() }
-            LEBasicTypeEnum::BoolType(t) => { t.name() }
-            LEBasicTypeEnum::PointerType(t) => { t.name() }
-            LEBasicTypeEnum::ArrayType(t) => { t.name() }
-            LEBasicTypeEnum::StructType(t) => { t.name() }
-            LEBasicTypeEnum::VectorType(t) => { t.name() }
+            LEBasicTypeEnum::Integer(t) => { t.name() }
+            LEBasicTypeEnum::Float(t) => { t.name() }
+            LEBasicTypeEnum::Bool(t) => { t.name() }
+            LEBasicTypeEnum::Pointer(t) => { t.name() }
+            LEBasicTypeEnum::Array(t) => { t.name() }
+            LEBasicTypeEnum::Struct(t) => { t.name() }
+            LEBasicTypeEnum::Vector(t) => { t.name() }
         }
     }
 
@@ -655,42 +655,42 @@ impl<'ctx> LEType<'ctx> for LEBasicTypeEnum<'ctx> {
 
 impl<'ctx> LEBasicTypeEnum<'ctx> {
     pub fn into_int_type(self) -> Option<LEIntegerType<'ctx>> {
-        if let LEBasicTypeEnum::IntegerType(i) = self {
+        if let LEBasicTypeEnum::Integer(i) = self {
             Some(i)
         } else {
             None
         }
     }
     pub fn into_float_type(self) -> Option<LEFloatType<'ctx>> {
-        if let LEBasicTypeEnum::FloatType(i) = self {
+        if let LEBasicTypeEnum::Float(i) = self {
             Some(i)
         } else {
             None
         }
     }
     pub fn into_pointer_type(self) -> Option<LEPointerType<'ctx>> {
-        if let LEBasicTypeEnum::PointerType(i) = self {
+        if let LEBasicTypeEnum::Pointer(i) = self {
             Some(i)
         } else {
             None
         }
     }
     pub fn into_array_type(self) -> Option<LEArrayType<'ctx>> {
-        if let LEBasicTypeEnum::ArrayType(i) = self {
+        if let LEBasicTypeEnum::Array(i) = self {
             Some(i)
         } else {
             None
         }
     }
     pub fn into_struct_type(self) -> Option<LEStructType<'ctx>> {
-        if let LEBasicTypeEnum::StructType(i) = self {
+        if let LEBasicTypeEnum::Struct(i) = self {
             Some(i)
         } else {
             None
         }
     }
     pub fn into_vector_type(self) -> Option<LEVectorType<'ctx>> {
-        if let LEBasicTypeEnum::VectorType(i) = self {
+        if let LEBasicTypeEnum::Vector(i) = self {
             Some(i)
         } else {
             None
@@ -698,63 +698,34 @@ impl<'ctx> LEBasicTypeEnum<'ctx> {
     }
 
     pub fn into_bool_type(self) -> Option<LEBoolType<'ctx>> {
-        if let LEBasicTypeEnum::BoolType(i) = self {
+        if let LEBasicTypeEnum::Bool(i) = self {
             Some(i)
         } else {
             None
         }
     }
-    // pub fn as_le_basic_type_enum(&self) -> LEBasicTypeEnum<'ctx> {
-    //     unsafe {
-    //         match self {
-    //             LEBasicTypeEnum::IntegerType(t) => { t.as_le_basic_type_enum() }
-    //             LEBasicTypeEnum::FloatType(t) => { t.as_le_basic_type_enum() }
-    //             LEBasicTypeEnum::PointerType(t) => { t.as_le_basic_type_enum() }
-    //             LEBasicTypeEnum::ArrayType(t) => { t.as_le_basic_type_enum() }
-    //             LEBasicTypeEnum::StructType(t) => { t.as_le_basic_type_enum() }
-    //             LEBasicTypeEnum::VectorType(t) => { t.as_le_basic_type_enum() }
-    //         }
-    //     }
-    // }
-    //
-    // pub fn get_llvm_type(&self) -> BasicTypeEnum<'ctx> {
-    //     match self {
-    //         LEBasicTypeEnum::IntegerType(t) => { t.get_basic_llvm_type() }
-    //         LEBasicTypeEnum::FloatType(t) => { t.get_basic_llvm_type() }
-    //         LEBasicTypeEnum::PointerType(t) => { t.get_basic_llvm_type() }
-    //         LEBasicTypeEnum::ArrayType(t) => { t.get_basic_llvm_type() }
-    //         LEBasicTypeEnum::StructType(t) => { t.get_basic_llvm_type() }
-    //         LEBasicTypeEnum::VectorType(t) => { t.get_basic_llvm_type() }
-    //     }
-    // }
-    //
-    // pub fn get_basic_llvm_type(&self) -> BasicTypeEnum<'ctx> {
-    //     self.get_llvm_type().into()
-    // }
-    //
-    //
-    //
-    // pub fn get_array_type(&self, llvm_context: &Context, len: u32) -> LEArrayType<'ctx> {
-    //     match self {
-    //         LEBasicTypeEnum::IntegerType(t) => {t.get_array_type(llvm_context, len)}
-    //         LEBasicTypeEnum::FloatType(t) => {t.get_array_type(llvm_context, len)}
-    //         LEBasicTypeEnum::PointerType(t) => {t.get_array_type(llvm_context, len)}
-    //         LEBasicTypeEnum::ArrayType(t) => {t.get_array_type(llvm_context, len)}
-    //         LEBasicTypeEnum::StructType(t) => {t.get_array_type(llvm_context, len)}
-    //         LEBasicTypeEnum::VectorType(t) => {t.get_array_type(llvm_context, len)}
-    //     }
-    // }
-    //
-    // pub fn get_pointer_type(&self, llvm_context: &Context) -> LEPointerType<'ctx> {
-    //     match self {
-    //         LEBasicTypeEnum::IntegerType(t) => {t.get_pointer_type(llvm_context)}
-    //         LEBasicTypeEnum::FloatType(t) => {t.get_pointer_type(llvm_context)}
-    //         LEBasicTypeEnum::PointerType(t) => {t.get_pointer_type(llvm_context)}
-    //         LEBasicTypeEnum::ArrayType(t) => {t.get_pointer_type(llvm_context)}
-    //         LEBasicTypeEnum::StructType(t) => {t.get_pointer_type(llvm_context)}
-    //         LEBasicTypeEnum::VectorType(t) => {t.get_pointer_type(llvm_context)}
-    //     }
-    // }
+
+    pub fn is_integer_type(&self) -> bool {
+        matches!(self,LEBasicTypeEnum::Integer(_))
+    }
+    pub fn is_float_type(&self) -> bool {
+        matches!(self,LEBasicTypeEnum::Float(_))
+    }
+    pub fn is_bool_type(&self) -> bool {
+        matches!(self,LEBasicTypeEnum::Bool(_))
+    }
+    pub fn is_pointer_type(&self) -> bool {
+        matches!(self,LEBasicTypeEnum::Pointer(_))
+    }
+    pub fn is_struct_type(&self) -> bool {
+        matches!(self,LEBasicTypeEnum::Struct(_))
+    }
+    pub fn is_array_type(&self) -> bool {
+        matches!(self,LEBasicTypeEnum::Array(_))
+    }
+    pub fn is_vector_type(&self) -> bool {
+        matches!(self,LEBasicTypeEnum::Vector(_))
+    }
 }
 
 
@@ -762,13 +733,13 @@ impl<'ctx> Display for LEBasicTypeEnum<'ctx> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         unsafe {
             match self {
-                LEBasicTypeEnum::ArrayType(t) => { t.fmt(f) }
-                LEBasicTypeEnum::IntegerType(t) => { t.fmt(f) }
-                LEBasicTypeEnum::BoolType(t) => { t.fmt(f) }
-                LEBasicTypeEnum::FloatType(t) => { t.fmt(f) }
-                LEBasicTypeEnum::PointerType(t) => { t.fmt(f) }
-                LEBasicTypeEnum::StructType(t) => { t.fmt(f) }
-                LEBasicTypeEnum::VectorType(t) => { t.fmt(f) }
+                LEBasicTypeEnum::Array(t) => { t.fmt(f) }
+                LEBasicTypeEnum::Integer(t) => { t.fmt(f) }
+                LEBasicTypeEnum::Bool(t) => { t.fmt(f) }
+                LEBasicTypeEnum::Float(t) => { t.fmt(f) }
+                LEBasicTypeEnum::Pointer(t) => { t.fmt(f) }
+                LEBasicTypeEnum::Struct(t) => { t.fmt(f) }
+                LEBasicTypeEnum::Vector(t) => { t.fmt(f) }
             }
         }
     }

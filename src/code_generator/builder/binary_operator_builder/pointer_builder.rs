@@ -5,7 +5,7 @@ use crate::error::CompileError;
 impl<'ctx> MemberAccessOperatorBuilder<'ctx> for LEPointerValue<'ctx> {
     fn build_dot(&self, le_context: &LEContext<'ctx>, member_name: &str) -> crate::code_generator::builder::Result<LEPointerValue<'ctx>> {
         let pointed_type = self.ty.get_point_type();
-        if let LEBasicTypeEnum::StructType(struct_type) = pointed_type {
+        if let LEBasicTypeEnum::Struct(struct_type) = pointed_type {
             let (offset, member_type) = struct_type.get_member_offset_and_type(member_name)
                 .ok_or_else(|| CompileError::NoMember { member_name: member_name.into() })?;
 

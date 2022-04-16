@@ -5,14 +5,16 @@ use inkwell::builder::Builder;
 use inkwell::module::Module;
 use inkwell::types::BasicType;
 use inkwell::values::{BasicMetadataValueEnum, BasicValue, BasicValueEnum, FunctionValue, InstructionValue};
+use nom::error::context;
 
 use crate::ast::nodes::{Position, TypeDeclarator};
 use crate::code_generator::builder::{LEBasicType, LEBasicTypeEnum, LEBasicValue, LEBasicValueEnum, LEBoolType, LEBoolValue, LEFloatType, LEFloatValue, LEFunctionValue, LEIntegerType, LEIntegerValue, LEPointerType, LEPointerValue, LEType, LEValue};
-use crate::code_generator::builder::binary_operator_builder::{CompareBinaryOperator, GenericBuilder, MemberAccessOperatorBuilder};
+use crate::code_generator::builder::binary_operator_builder::{CompareBinaryOperator, GenericBuilder, LogicBinaryOperator, MathOperatorBuilder, MemberAccessOperatorBuilder};
 use crate::code_generator::builder::compile_context::CompilerContext;
 use crate::code_generator::builder::expression::ExpressionValue;
 use crate::error::CompileError;
 use crate::lexer::LEToken::Semicolon;
+use crate::lexer::Operator;
 
 pub type Result<T> = std::result::Result<T, CompileError>;
 
@@ -203,6 +205,36 @@ impl<'ctx> LEGenerator<'ctx> {
         }
     }
 
+    pub fn build_binary_logic(&self, lhs: ExpressionValue<'ctx>, rhs: ExpressionValue<'ctx>, op: LogicBinaryOperator) -> Result<LEBoolValue<'ctx>> {
+        let left_value = GenericBuilder::build_cast(
+            &self.context,
+            self.read_expression_value(lhs)?,
+            self.context.bool_type().to_le_type_enum(),
+        )?;
+        let right_value = GenericBuilder::build_cast(
+            &self.context,
+            self.read_expression_value(rhs)?,
+            self.context.bool_type().to_le_type_enum(),
+        )?;
+        GenericBuilder::build_logic(&self.context, left_value.into_bool_value().unwrap(), right_value.into_bool_value().unwrap(), op)
+    }
+
+    pub fn build_mod(&self, lhs: ExpressionValue<'ctx>, rhs: ExpressionValue<'ctx>) -> Result<LEBasicValueEnum<'ctx>> {
+        match (self.read_expression_value(lhs)?, self.read_expression_value(rhs)?) {
+            (LEBasicValueEnum::Integer(left_int), LEBasicValueEnum::Integer(right_int)) => {
+                Ok(left_int.build_mod(&self.context, right_int)?.to_le_value_enum())
+            }
+            _ => {
+                Err(CompileError::NoSuitableBinaryOperator {
+                    op: Operator::Mod,
+                    left: "".to_string(),
+                    right: "".to_string(),
+                })
+            }
+        }
+    }
+
+
     pub fn build_store(&self, ptr: LEPointerValue<'ctx>, value: ExpressionValue<'ctx>) -> Result<()> {
         self.context.llvm_builder.build_store(ptr.llvm_value, self.read_expression_value(value)?.to_llvm_basic_value_enum());
         Ok(())
@@ -232,13 +264,13 @@ impl<'ctx> LEGenerator<'ctx> {
         let value = self.read_expression_value(initial_value)?;
         let variable_type = LEBasicValue::get_le_type(&value);
         let variable = match variable_type.clone() {
-            LEBasicTypeEnum::IntegerType(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
-            LEBasicTypeEnum::BoolType(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
-            LEBasicTypeEnum::FloatType(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
-            LEBasicTypeEnum::PointerType(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
-            LEBasicTypeEnum::ArrayType(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
-            LEBasicTypeEnum::StructType(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
-            LEBasicTypeEnum::VectorType(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Integer(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Bool(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Float(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Pointer(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Array(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Struct(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Vector(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
         };
         let pointer_value = LEPointerValue::from_type_and_llvm_value(variable_type, BasicValueEnum::PointerValue(variable.as_pointer_value()))?;
         self.context.compiler_context.insert_global_variable(name, pointer_value)?;
@@ -247,13 +279,13 @@ impl<'ctx> LEGenerator<'ctx> {
 
     fn build_alloca_global(ty: LEBasicTypeEnum<'ctx>, module: &Module<'ctx>) -> LEPointerValue<'ctx> {
         let global_ptr = match ty {
-            LEBasicTypeEnum::IntegerType(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
-            LEBasicTypeEnum::BoolType(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
-            LEBasicTypeEnum::FloatType(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
-            LEBasicTypeEnum::PointerType(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
-            LEBasicTypeEnum::ArrayType(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
-            LEBasicTypeEnum::StructType(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
-            LEBasicTypeEnum::VectorType(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Integer(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Bool(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Float(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Pointer(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Array(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Struct(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
+            LEBasicTypeEnum::Vector(ref t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
         }.as_pointer_value();
         LEPointerValue::from_type_and_llvm_value(ty, BasicValueEnum::PointerValue(global_ptr)).unwrap()
     }

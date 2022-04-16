@@ -27,7 +27,7 @@ impl<'ctx> LEValue<'ctx> for LEIntegerValue<'ctx> {
 
     fn from_type_and_llvm_value(ty: LEBasicTypeEnum<'ctx>, value: BasicValueEnum<'ctx>) -> Result<Self> {
         if let BasicValueEnum::IntValue(i) = value {
-            if let LEBasicTypeEnum::IntegerType(t) = ty {
+            if let LEBasicTypeEnum::Integer(t) = ty {
                 return Ok(LEIntegerValue { ty: t, llvm_value: i });
             }
         }
@@ -69,7 +69,7 @@ impl<'ctx> LEValue<'ctx> for LEFloatValue<'ctx> {
 
     fn from_type_and_llvm_value(ty: LEBasicTypeEnum<'ctx>, value: BasicValueEnum<'ctx>) -> Result<Self> {
         if let BasicValueEnum::FloatValue(i) = value {
-            if let LEBasicTypeEnum::FloatType(t) = ty {
+            if let LEBasicTypeEnum::Float(t) = ty {
                 return Ok(LEFloatValue { ty: t, llvm_value: i });
             }
         }
@@ -110,7 +110,7 @@ impl<'ctx> LEValue<'ctx> for LEBoolValue<'ctx> {
 
     fn from_type_and_llvm_value(ty: LEBasicTypeEnum<'ctx>, value: BasicValueEnum<'ctx>) -> Result<Self> {
         if let BasicValueEnum::IntValue(i) = value {
-            if let LEBasicTypeEnum::BoolType(t) = ty {
+            if let LEBasicTypeEnum::Bool(t) = ty {
                 return Ok(LEBoolValue { ty: t, llvm_value: i });
             }
         }
@@ -153,7 +153,7 @@ impl<'ctx> LEValue<'ctx> for LEArrayValue<'ctx> {
 
     fn from_type_and_llvm_value(ty: LEBasicTypeEnum<'ctx>, value: BasicValueEnum<'ctx>) -> Result<Self> {
         if let BasicValueEnum::ArrayValue(i) = value {
-            if let LEBasicTypeEnum::ArrayType(t) = ty {
+            if let LEBasicTypeEnum::Array(t) = ty {
                 return Ok(LEArrayValue { ty: t, llvm_value: i });
             }
         }
@@ -235,7 +235,7 @@ impl<'ctx> LEValue<'ctx> for LEStructValue<'ctx> {
 
     fn from_type_and_llvm_value(ty: LEBasicTypeEnum<'ctx>, value: BasicValueEnum<'ctx>) -> Result<Self> {
         if let BasicValueEnum::StructValue(i) = value {
-            if let LEBasicTypeEnum::StructType(t) = ty {
+            if let LEBasicTypeEnum::Struct(t) = ty {
                 return Ok(LEStructValue { ty: t, llvm_value: i });
             }
         }
@@ -277,7 +277,7 @@ impl<'ctx> LEValue<'ctx> for LEVectorValue<'ctx> {
 
     fn from_type_and_llvm_value(ty: LEBasicTypeEnum<'ctx>, value: BasicValueEnum<'ctx>) -> Result<Self> {
         if let BasicValueEnum::VectorValue(i) = value {
-            if let LEBasicTypeEnum::VectorType(t) = ty {
+            if let LEBasicTypeEnum::Vector(t) = ty {
                 return Ok(LEVectorValue { ty: t, llvm_value: i });
             }
         }
@@ -333,13 +333,13 @@ impl<'ctx> LEValue<'ctx> for LEBasicValueEnum<'ctx> {
 
     fn from_type_and_llvm_value(ty: LEBasicTypeEnum<'ctx>, v: BasicValueEnum<'ctx>) -> Result<Self> {
         match (v, ty) {
-            (BasicValueEnum::IntValue(v), LEBasicTypeEnum::IntegerType(t)) => { Ok(LEBasicValueEnum::Integer(LEIntegerValue { ty: t, llvm_value: v })) }
-            (BasicValueEnum::IntValue(v), LEBasicTypeEnum::BoolType(t)) => { Ok(LEBasicValueEnum::Bool(LEBoolValue { ty: t, llvm_value: v })) }
-            (BasicValueEnum::FloatValue(v), LEBasicTypeEnum::FloatType(t)) => { Ok(LEBasicValueEnum::Float(LEFloatValue { ty: t, llvm_value: v })) }
-            (BasicValueEnum::ArrayValue(v), LEBasicTypeEnum::ArrayType(t)) => { Ok(LEBasicValueEnum::Array(LEArrayValue { ty: t, llvm_value: v })) }
-            (BasicValueEnum::StructValue(v), LEBasicTypeEnum::StructType(t)) => { Ok(LEBasicValueEnum::Struct(LEStructValue { ty: t, llvm_value: v })) }
-            (BasicValueEnum::VectorValue(v), LEBasicTypeEnum::VectorType(t)) => { Ok(LEBasicValueEnum::Vector(LEVectorValue { ty: t, llvm_value: v })) }
-            (BasicValueEnum::PointerValue(v), LEBasicTypeEnum::PointerType(t)) => { Ok(LEBasicValueEnum::Pointer(LEPointerValue { ty: t, llvm_value: v })) }
+            (BasicValueEnum::IntValue(v), LEBasicTypeEnum::Integer(t)) => { Ok(LEBasicValueEnum::Integer(LEIntegerValue { ty: t, llvm_value: v })) }
+            (BasicValueEnum::IntValue(v), LEBasicTypeEnum::Bool(t)) => { Ok(LEBasicValueEnum::Bool(LEBoolValue { ty: t, llvm_value: v })) }
+            (BasicValueEnum::FloatValue(v), LEBasicTypeEnum::Float(t)) => { Ok(LEBasicValueEnum::Float(LEFloatValue { ty: t, llvm_value: v })) }
+            (BasicValueEnum::ArrayValue(v), LEBasicTypeEnum::Array(t)) => { Ok(LEBasicValueEnum::Array(LEArrayValue { ty: t, llvm_value: v })) }
+            (BasicValueEnum::StructValue(v), LEBasicTypeEnum::Struct(t)) => { Ok(LEBasicValueEnum::Struct(LEStructValue { ty: t, llvm_value: v })) }
+            (BasicValueEnum::VectorValue(v), LEBasicTypeEnum::Vector(t)) => { Ok(LEBasicValueEnum::Vector(LEVectorValue { ty: t, llvm_value: v })) }
+            (BasicValueEnum::PointerValue(v), LEBasicTypeEnum::Pointer(t)) => { Ok(LEBasicValueEnum::Pointer(LEPointerValue { ty: t, llvm_value: v })) }
             _ => { unreachable!() }
         }
     }
@@ -347,43 +347,76 @@ impl<'ctx> LEValue<'ctx> for LEBasicValueEnum<'ctx> {
 
 
 impl<'ctx> LEBasicValueEnum<'ctx> {
-    // fn as_le_basic_value_enum(&self) -> LEBasicValueEnum<'ctx> {
-    //     self.clone()
-    // }
-    //
-    // pub(crate) fn get_le_type(&self) -> LEBasicTypeEnum<'ctx> {
-    //     match self {
-    //         LEBasicValueEnum::Integer(v) => { v.get_le_type().as_le_basic_type_enum() }
-    //         LEBasicValueEnum::Float(v) => { v.get_le_type().as_le_basic_type_enum() }
-    //         LEBasicValueEnum::Pointer(v) => { v.get_le_type().as_le_basic_type_enum() }
-    //         LEBasicValueEnum::Array(v) => { v.get_le_type().as_le_basic_type_enum() }
-    //         LEBasicValueEnum::Struct(v) => { v.get_le_type().as_le_basic_type_enum() }
-    //         LEBasicValueEnum::Vector(v) => { v.get_le_type().as_le_basic_type_enum() }
-    //     }
-    // }
-    //
-    // fn get_basic_llvm_value(&self) -> BasicValueEnum<'ctx> {
-    //     match self {
-    //         LEBasicValueEnum::Integer(v) => { v.llvm_value.into() }
-    //         LEBasicValueEnum::Float(v) => { v.llvm_value.into() }
-    //         LEBasicValueEnum::Pointer(v) => { v.llvm_value.into() }
-    //         LEBasicValueEnum::Array(v) => { v.llvm_value.into() }
-    //         LEBasicValueEnum::Struct(v) => { v.llvm_value.into() }
-    //         LEBasicValueEnum::Vector(v) => { v.llvm_value.into() }
-    //     }
-    // }
-
-    // pub fn from_llvm_basic_value_enum_and_type(v: BasicValueEnum<'ctx>, ty: LEBasicTypeEnum<'ctx>) -> Self {
-    //     match (v, ty) {
-    //         (BasicValueEnum::IntValue(v), LEBasicTypeEnum::IntegerType(t)) => { LEBasicValueEnum::Integer(LEIntegerValue { ty: t, llvm_value: v }) }
-    //         (BasicValueEnum::FloatValue(v), LEBasicTypeEnum::FloatType(t)) => { LEBasicValueEnum::Float(LEFloatValue { ty: t, llvm_value: v }) }
-    //         (BasicValueEnum::ArrayValue(v), LEBasicTypeEnum::ArrayType(t)) => { LEBasicValueEnum::Array(LEArrayValue { ty: t, llvm_value: v }) }
-    //         (BasicValueEnum::StructValue(v), LEBasicTypeEnum::StructType(t)) => { LEBasicValueEnum::Struct(LEStructValue { ty: t, llvm_value: v }) }
-    //         (BasicValueEnum::VectorValue(v), LEBasicTypeEnum::VectorType(t)) => { LEBasicValueEnum::Vector(LEVectorValue { ty: t, llvm_value: v }) }
-    //         (BasicValueEnum::PointerValue(v), LEBasicTypeEnum::PointerType(t)) => { LEBasicValueEnum::Pointer(LEPointerValue { ty: t, llvm_value: v }) }
-    //         _ => { unreachable!() }
-    //     }
-    // }
+    pub fn into_int_value(self) -> Option<LEIntegerValue<'ctx>> {
+        if let LEBasicValueEnum::Integer(i) = self {
+            Some(i)
+        } else {
+            None
+        }
+    }
+    pub fn into_float_value(self) -> Option<LEFloatValue<'ctx>> {
+        if let LEBasicValueEnum::Float(i) = self {
+            Some(i)
+        } else {
+            None
+        }
+    }
+    pub fn into_bool_value(self) -> Option<LEBoolValue<'ctx>> {
+        if let LEBasicValueEnum::Bool(i) = self {
+            Some(i)
+        } else {
+            None
+        }
+    }
+    pub fn into_array_value(self) -> Option<LEArrayValue<'ctx>> {
+        if let LEBasicValueEnum::Array(i) = self {
+            Some(i)
+        } else {
+            None
+        }
+    }
+    pub fn into_pointer_value(self) -> Option<LEPointerValue<'ctx>> {
+        if let LEBasicValueEnum::Pointer(i) = self {
+            Some(i)
+        } else {
+            None
+        }
+    }
+    pub fn into_struct_value(self) -> Option<LEStructValue<'ctx>> {
+        if let LEBasicValueEnum::Struct(i) = self {
+            Some(i)
+        } else {
+            None
+        }
+    }
+    pub fn into_vector_value(self) -> Option<LEVectorValue<'ctx>> {
+        if let LEBasicValueEnum::Vector(i) = self {
+            Some(i)
+        } else {
+            None
+        }
+    }
+    pub fn is_integer_value(&self) -> bool {
+        matches!(self,LEBasicValueEnum::Integer(_))
+    }
+    pub fn is_float_value(&self) -> bool {
+        matches!(self,LEBasicValueEnum::Float(_))
+    }
+    pub fn is_bool_value(&self) -> bool {
+        matches!(self,LEBasicValueEnum::Bool(_))
+    }
+    pub fn is_pointer_value(&self) -> bool {
+        matches!(self,LEBasicValueEnum::Pointer(_))
+    }
+    pub fn is_struct_value(&self) -> bool {
+        matches!(self,LEBasicValueEnum::Struct(_))
+    }
+    pub fn is_array_value(&self) -> bool {
+        matches!(self,LEBasicValueEnum::Array(_))
+    }
+    pub fn is_vector_value(&self) -> bool {
+        matches!(self,LEBasicValueEnum::Vector(_))
+    }
 
     pub fn to_llvm_basic_value_enum(&self) -> BasicValueEnum<'ctx> {
         match self {

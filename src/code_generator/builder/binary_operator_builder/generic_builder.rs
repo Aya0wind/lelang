@@ -4,6 +4,7 @@ use inkwell::values::{AnyValue, BasicMetadataValueEnum, FunctionValue};
 
 use crate::ast::nodes::Position;
 use crate::code_generator::builder::{LEBasicType, LEBasicTypeEnum, LEBasicValue, LEBasicValueEnum, LEBoolValue, LEContext, LEFloatType, LEFloatValue, LEIntegerType, LEIntegerValue, LEType};
+use crate::code_generator::builder::binary_operator_builder::{LogicBinaryOperator, MathOperatorBuilder};
 use crate::code_generator::builder::binary_operator_builder::traits::{ArithmeticOperatorBuilder, CompareBinaryOperator};
 use crate::error::CompileError;
 
@@ -26,6 +27,14 @@ impl GenericBuilder {
         } else {
             Ok(LEFloatValue { ty: rhs.clone(), llvm_value: le_context.llvm_builder.build_unsigned_int_to_float(int_value.llvm_value, rhs.get_llvm_type(), "") })
         }
+    }
+
+    pub fn build_integer_to_integer<'ctx>(le_context: &LEContext<'ctx>, lhs: LEIntegerValue<'ctx>, rhs: LEIntegerType<'ctx>) -> Result<LEIntegerValue<'ctx>> {
+        Ok(LEIntegerValue { ty: rhs.clone(), llvm_value: le_context.llvm_builder.build_int_cast(lhs.llvm_value, rhs.get_llvm_type(), "") })
+    }
+
+    pub fn build_float_to_float<'ctx>(le_context: &LEContext<'ctx>, lhs: LEFloatValue<'ctx>, rhs: LEFloatType<'ctx>) -> Result<LEFloatValue<'ctx>> {
+        Ok(LEFloatValue { ty: rhs.clone(), llvm_value: le_context.llvm_builder.build_float_cast(lhs.llvm_value, rhs.get_llvm_type(), "") })
     }
 
     pub fn build_add<'ctx>(le_context: &LEContext<'ctx>, lhs: LEBasicValueEnum<'ctx>, rhs: LEBasicValueEnum<'ctx>) -> Result<LEBasicValueEnum<'ctx>> {
@@ -142,27 +151,33 @@ impl GenericBuilder {
 
     pub fn build_cast<'ctx>(le_context: &LEContext<'ctx>, lhs: LEBasicValueEnum<'ctx>, rhs: LEBasicTypeEnum<'ctx>) -> Result<LEBasicValueEnum<'ctx>> {
         match (lhs.clone(), rhs) {
-            (LEBasicValueEnum::Integer(left), LEBasicTypeEnum::IntegerType(right)) => {
-                Ok(LEIntegerValue { ty: right.clone(), llvm_value: le_context.llvm_builder.build_int_cast(left.llvm_value, right.get_llvm_type(), "") }.to_le_value_enum())
+            (LEBasicValueEnum::Integer(left), LEBasicTypeEnum::Integer(right)) => {
+                Ok(Self::build_integer_to_integer(le_context, left, right)?.to_le_value_enum())
             }
-            (LEBasicValueEnum::Float(left), LEBasicTypeEnum::FloatType(right)) => {
-                Ok(LEFloatValue { ty: right.clone(), llvm_value: le_context.llvm_builder.build_float_cast(left.llvm_value, right.get_llvm_type(), "") }.to_le_value_enum())
+            (LEBasicValueEnum::Float(left), LEBasicTypeEnum::Float(right)) => {
+                Ok(Self::build_float_to_float(le_context, left, right)?.to_le_value_enum())
             }
-            (LEBasicValueEnum::Integer(left), LEBasicTypeEnum::FloatType(right)) => {
-                if left.ty.signed() {
-                    Ok(LEFloatValue { ty: right.clone(), llvm_value: le_context.llvm_builder.build_signed_int_to_float(left.llvm_value, right.get_llvm_type(), "") }.to_le_value_enum())
-                } else {
-                    Ok(LEFloatValue { ty: right.clone(), llvm_value: le_context.llvm_builder.build_unsigned_int_to_float(left.llvm_value, right.get_llvm_type(), "") }.to_le_value_enum())
-                }
+            (LEBasicValueEnum::Integer(left), LEBasicTypeEnum::Float(right)) => {
+                Ok(Self::build_integer_to_float(le_context, left, right)?.to_le_value_enum())
             }
-            (LEBasicValueEnum::Float(left), LEBasicTypeEnum::IntegerType(right)) => {
-                if right.signed() {
-                    Ok(LEIntegerValue { ty: right.clone(), llvm_value: le_context.llvm_builder.build_float_to_signed_int(left.llvm_value, right.get_llvm_type(), "") }.to_le_value_enum())
-                } else {
-                    Ok(LEIntegerValue { ty: right.clone(), llvm_value: le_context.llvm_builder.build_float_to_unsigned_int(left.llvm_value, right.get_llvm_type(), "") }.to_le_value_enum())
-                }
+            (LEBasicValueEnum::Float(left), LEBasicTypeEnum::Integer(right)) => {
+                Ok(Self::build_float_to_integer(le_context, left, right)?.to_le_value_enum())
             }
             _ => { Ok(lhs) }
         }
+    }
+
+    pub fn build_mod<'ctx>(le_context: &LEContext<'ctx>, lhs: LEIntegerValue<'ctx>, rhs: LEIntegerValue<'ctx>) -> Result<LEIntegerValue<'ctx>> {
+        lhs.build_mod(le_context, rhs)
+    }
+
+
+    pub fn build_logic<'ctx>(le_context: &LEContext<'ctx>, lhs: LEBoolValue<'ctx>, rhs: LEBoolValue<'ctx>, op: LogicBinaryOperator) -> Result<LEBoolValue<'ctx>> {
+        let result = match op {
+            LogicBinaryOperator::LogicAnd => { le_context.llvm_builder.build_and(lhs.llvm_value, rhs.llvm_value, "") }
+            LogicBinaryOperator::LogicOr => { le_context.llvm_builder.build_or(lhs.llvm_value, rhs.llvm_value, "") }
+            LogicBinaryOperator::LogicXor => { le_context.llvm_builder.build_xor(lhs.llvm_value, rhs.llvm_value, "") }
+        };
+        Ok(LEBoolValue { ty: lhs.ty.clone(), llvm_value: result })
     }
 }

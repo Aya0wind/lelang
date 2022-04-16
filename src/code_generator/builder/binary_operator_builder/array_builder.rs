@@ -28,8 +28,4 @@ impl<'ctx> ArithmeticOperatorBuilder<'ctx> for LEArrayValue<'ctx> {
     fn build_cmp(self, le_context: &LEContext<'ctx>, rhs: Self, op: CompareBinaryOperator) -> Result<LEBoolValue<'ctx>> {
         todo!()
     }
-
-    fn build_logic(self, le_context: &LEContext<'ctx>, rhs: Self, logic_op: LogicBinaryOperator) -> Result<LEBoolValue<'ctx>> {
-        todo!()
-    }
 }

@@ -7,6 +7,7 @@ use crate::ast::nodes::Position;
 use crate::ast::ParseResult;
 use crate::error::{SyntaxError, TokenType};
 use crate::error::LEError;
+use crate::lexer::LEToken::Semicolon;
 use crate::lexer::number_parser::parse_number;
 
 fn counter_line(white: &str) -> usize {
@@ -89,17 +90,6 @@ pub enum LogosToken {
     #[token(",")]
     Comma,
 
-    #[token("&&")]
-    And,
-
-    #[token("||")]
-    Or,
-
-    #[token("^")]
-    Xor,
-
-    #[token("!")]
-    Not,
 
     #[token("~")]
     Rev,
@@ -116,11 +106,17 @@ pub enum LogosToken {
     #[token("/")]
     Div,
 
+    #[token("%")]
+    Mod,
+
     #[token("=")]
     Assign,
 
     #[token("==")]
     Equal,
+
+    #[token("!=")]
+    NotEqual,
 
     #[token(">")]
     GreaterThan,
@@ -133,6 +129,18 @@ pub enum LogosToken {
 
     #[token("<=")]
     LessOrEqualThan,
+
+    #[token("&&")]
+    And,
+
+    #[token("||")]
+    Or,
+
+    #[token("!")]
+    Not,
+
+    #[token("^")]
+    Xor,
 
     #[regex(r"[\s]+", | lex | counter_line(lex.slice()))]
     WhiteCharacter(usize),
@@ -190,6 +198,8 @@ pub enum Operator {
 
     Equal,
 
+    NotEqual,
+
     GreaterThan,
 
     LessThan,
@@ -209,6 +219,8 @@ pub enum Operator {
     Not,
 
     Rev,
+
+    Mod,
 }
 
 
@@ -302,6 +314,8 @@ impl From<LogosToken> for LEToken {
             LogosToken::Rev => { Self::Operator(Operator::Rev) }
             LogosToken::True => { Self::Identifier("true".into()) }
             LogosToken::False => { Self::Identifier("false".into()) }
+            LogosToken::Mod => { Self::Operator(Operator::Mod) }
+            LogosToken::NotEqual => { Self::Operator(Operator::NotEqual) }
             _ => { unreachable!("unknown character handling not implement yet") }
         }
     }
