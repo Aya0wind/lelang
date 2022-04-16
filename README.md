@@ -34,6 +34,7 @@ leang是一门使用Rust编写，基于LLVM(inkwell llvm safe binding library)�
 
 + binary  
   https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.0
+### 由于windows下的LLVM pre-build 包没有提供llvm-config，所以需要自己编译，可以使用LLVM官方教程进行编译，或使用llvmenv工具进行编译。
 
 2. 安装rust
 

@@ -21,7 +21,6 @@ pub struct Args {
     /// Set compiler source file path
     #[clap(short = 'i', parse(from_os_str), value_name = "SOURCE_FILE_PATH", value_hint = clap::ValueHint::DirPath,)]
     pub input_path: std::path::PathBuf,
-
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum, Debug)]

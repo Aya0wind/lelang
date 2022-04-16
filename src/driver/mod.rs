@@ -6,16 +6,19 @@ use std::process::Command;
 
 use anyhow::Result;
 use inkwell::context::Context;
+use inkwell::data_layout::DataLayout;
 use inkwell::memory_buffer::MemoryBuffer;
 use inkwell::OptimizationLevel;
 use inkwell::targets::FileType;
 
 use crate::arg_parser::{Args, OutputFormatEnum};
 use crate::ast::Ast;
-use crate::code_generator::CodeGenerator;
+use crate::code_generator::generator::CodeGenerator;
+use crate::driver::target::{initialize_target_machine, optimize_number_to_level};
 use crate::lexer;
 use crate::optimizer::Optimizer;
-use crate::target::{initialize_target_machine, optimize_number_to_level};
+
+mod target;
 
 pub fn compile_with_config(config: Args) -> Result<()> {
     let mut input = File::open(&config.input_path)?;
@@ -28,7 +31,7 @@ pub fn compile_with_config(config: Args) -> Result<()> {
     //语法分析
     let ast = Ast::from_lexer(lexer)?;
 
-    //LLVM IR生成
+    //类型检查和LLVM IR生成
     let context = Context::create();
     let mut code_generator = CodeGenerator::create(&context);
     let module = context.create_module("main");

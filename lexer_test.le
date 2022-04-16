@@ -1,0 +1,29 @@
+## 运算符
+## Attention! not allow unicode character in comments now!
+decl le print_int(i64);
+decl le print_float(f64);
+struct Mystruct{
+    member1:i32,
+    member2:f64
+}
+struct Mystruct1{
+    member2222:i32,
+}
+
+le reti32(number:Mystruct)->i32{
+    ret number.member1;
+}
+
+le main()->i32{
+    var s:Mystruct = Mystruct{
+        member1:10,
+        member2:-20.111
+    };
+    var bool_value:bool = true;
+    var array:[i32;2] = [1,2];
+    var s1:Mystruct1 = Mystruct1{
+        member2222:-9990
+    };
+    print_int(reti32(s));
+    ret 0;
+}
