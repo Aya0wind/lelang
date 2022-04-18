@@ -57,6 +57,9 @@ pub enum LogosToken {
     #[token("->")]
     SingleArrow,
 
+    #[token("=>")]
+    DoubleArrow,
+
     #[token(":")]
     Colon,
 
@@ -148,7 +151,7 @@ pub enum LogosToken {
     #[regex(r"##[^\n]*")]
     Comment,
 
-    #[regex("[a-zA-Z_]+[0-9]*", | lex | lex.slice().to_string())]
+    #[regex("[a-zA-Z_]+[a-zA-Z_0-9]*", | lex | lex.slice().to_string())]
     Identifier(String),
 
     #[regex(r#""[^\n]*""#, | lex | parse_string_literal_token(lex.slice()))]
@@ -261,7 +264,9 @@ pub enum LEToken {
 
     LeftBrace,
 
-    ReturnTypeAllow,
+    SingleArrow,
+
+    DoubleArrow,
 
     EOF,
 
@@ -287,7 +292,7 @@ impl From<LogosToken> for LEToken {
             LogosToken::RightBracket => { Self::RightBracket }
             LogosToken::RightBrace => { Self::RightBrace }
             LogosToken::LeftBrace => { Self::LeftBrace }
-            LogosToken::SingleArrow => { Self::ReturnTypeAllow }
+            LogosToken::SingleArrow => { Self::SingleArrow }
             LogosToken::Plus => { Self::Operator(Operator::Plus) }
             LogosToken::Sub => { Self::Operator(Operator::Sub) }
             LogosToken::Mul => { Self::Operator(Operator::Mul) }
@@ -316,6 +321,7 @@ impl From<LogosToken> for LEToken {
             LogosToken::False => { Self::Identifier("false".into()) }
             LogosToken::Mod => { Self::Operator(Operator::Mod) }
             LogosToken::NotEqual => { Self::Operator(Operator::NotEqual) }
+            LogosToken::DoubleArrow => { Self::DoubleArrow }
             _ => { unreachable!("unknown character handling not implement yet") }
         }
     }
@@ -545,7 +551,7 @@ impl<'s> LELexer<'s> {
 
     pub fn consume_return_type_allow(&mut self) -> ParseResult<()> {
         let consume = self.next_result()?;
-        if let LEToken::ReturnTypeAllow = consume {
+        if let LEToken::SingleArrow = consume {
             Ok(())
         } else {
             Err(SyntaxError::UnexpectToken { expect: TokenType::SingleAllow, found: consume })

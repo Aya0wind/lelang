@@ -62,7 +62,7 @@ pub fn parse_function_prototype(lexer: &mut LELexer) -> ParseResult<FunctionProt
 }
 
 pub fn parse_function_return_type(lexer: &mut LELexer) -> ParseResult<Option<TypeDeclarator>> {
-    if let LEToken::ReturnTypeAllow = lexer.current_result()? {
+    if let LEToken::SingleArrow = lexer.current_result()? {
         lexer.next_result()?;
         Ok(Some(parse_type_declarator(lexer)?))
     } else {

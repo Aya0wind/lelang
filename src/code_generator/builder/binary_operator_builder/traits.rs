@@ -23,11 +23,11 @@ pub enum CompareBinaryOperator {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LogicBinaryOperator {
-    LogicAnd,
+    And,
 
-    LogicOr,
+    Or,
 
-    LogicXor,
+    Xor,
 }
 
 pub trait ArithmeticOperatorBuilder<'ctx>: LEBasicValue<'ctx> + Sized {

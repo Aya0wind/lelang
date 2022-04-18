@@ -199,17 +199,17 @@ impl<'ctx> CodeGenerator<'ctx> {
             Operator::And => {
                 let left = self.build_expression(value.left.as_ref())?;
                 let right = self.build_expression(value.right.as_ref())?;
-                Ok(ExpressionValue::Right(self.generator.build_binary_logic(left, right, LogicBinaryOperator::LogicAnd)?.to_le_value_enum()))
+                Ok(ExpressionValue::Right(self.generator.build_binary_logic(left, right, LogicBinaryOperator::And)?.to_le_value_enum()))
             }
             Operator::Or => {
                 let left = self.build_expression(value.left.as_ref())?;
                 let right = self.build_expression(value.right.as_ref())?;
-                Ok(ExpressionValue::Right(self.generator.build_binary_logic(left, right, LogicBinaryOperator::LogicOr)?.to_le_value_enum()))
+                Ok(ExpressionValue::Right(self.generator.build_binary_logic(left, right, LogicBinaryOperator::Or)?.to_le_value_enum()))
             }
             Operator::Xor => {
                 let left = self.build_expression(value.left.as_ref())?;
                 let right = self.build_expression(value.right.as_ref())?;
-                Ok(ExpressionValue::Right(self.generator.build_binary_logic(left, right, LogicBinaryOperator::LogicXor)?.to_le_value_enum()))
+                Ok(ExpressionValue::Right(self.generator.build_binary_logic(left, right, LogicBinaryOperator::Xor)?.to_le_value_enum()))
             }
 
             Operator::Mod => {

@@ -1,35 +1,34 @@
 decl le print_int(i64); ## 外部函数声明
 decl le print_float(f64);
-
 ## 无返回值的函数
 le no_ret(){
-    for(var i:i32 = 10;i<10;i=i+1;){ ## for 循环
+    for(var i:i32 = 1;i<10;i=i+1;){ ## for 循环
         print_int(i);
     }
 }
 ## 结构体声明
-struct Mystruct{
+struct MyStruct{
     member1:i32,
     member2:f64,
     member3:[i32;2]
 }
 
 ##带返回值的函数，结构体参数，成员访问
-le reti32(number:Mystruct)->i32{
+le ret_i32(number:MyStruct)->i32{
     ret number.member1;
 }
 
 ## 带返回值的递归函数，计算斐波那契数
-le Fibonacci(step:u32)->u32{
+le fibonacci(step:u32)->u32{
     if(step<3){
         ret 1;
     }el{
-        ret Fibonacci(step-1)+Fibonacci(step-2);
+        ret fibonacci(step-1)+fibonacci(step-2);
     }
 }
 
 
-le reti32(number:i32)->i32{
+le ret_i32_1(number:i32)->i32{
     while(number>0){ ## while循环，if else分支
         if (number==5){
             ret number;
@@ -40,8 +39,8 @@ le reti32(number:i32)->i32{
     ret number;
 }
 
-## leetcode题解示例
-le isPalindrome(x:i32)->bool {
+## leetcode题解示例，判断一个数是否是回文数
+le is_palindrome(x:i32)->bool {
         ## 特殊情况：
         ## 如上所述，当 x < 0 时，x 不是回文数。
         ## 同样地，如果数字的最后一位是 0，为了使该数字为回文，
@@ -62,10 +61,21 @@ le isPalindrome(x:i32)->bool {
         ## 由于处于中位的数字不影响回文（它总是与自己相等），所以我们可以简单地将其去除。
         ret x == revertedNumber || x == revertedNumber / 10;
 }
+
 ## main函数，调用外部函数
 le main()->i32{
+    no_ret();
+    var my_struct_object = MyStruct{
+        member1:999,
+        member2:1.234,
+        member3:[1,2]
+    };
+    var return_i32_value = ret_i32(my_struct_object);
+    print_int(return_i32_value);
+    print_int(fibonacci(20));
+    print_int(ret_i32_1(6));
     for(var i =0;i<20;i=i+1;){
-        print_int(isPalindrome(i));
+        print_int(is_palindrome(i));
     }
     ret 0;
 }

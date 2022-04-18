@@ -246,7 +246,7 @@ impl<'ctx> ArithmeticOperatorBuilder<'ctx> for LEIntegerValue<'ctx> {
                     Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::SLE, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
                 CompareBinaryOperator::NotEqual => {
-                    Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::EQ, casted_left.llvm_value, casted_right.llvm_value, "").const_not() })
+                    Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::NE, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
             }
         } else {
@@ -267,7 +267,7 @@ impl<'ctx> ArithmeticOperatorBuilder<'ctx> for LEIntegerValue<'ctx> {
                     Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::ULE, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
                 CompareBinaryOperator::NotEqual => {
-                    Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::EQ, casted_left.llvm_value, casted_right.llvm_value, "").const_not() })
+                    Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_int_compare(IntPredicate::NE, casted_left.llvm_value, casted_right.llvm_value, "") })
                 }
             }
         }
@@ -412,7 +412,7 @@ impl<'ctx> ArithmeticOperatorBuilder<'ctx> for LEFloatValue<'ctx> {
                 Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_float_compare(FloatPredicate::OLE, casted_left.llvm_value, casted_right.llvm_value, "") })
             }
             CompareBinaryOperator::NotEqual => {
-                Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_float_compare(FloatPredicate::OEQ, casted_left.llvm_value, casted_right.llvm_value, "").const_not() })
+                Ok(LEBoolValue { ty: le_context.bool_type(), llvm_value: le_context.llvm_builder.build_float_compare(FloatPredicate::ONE, casted_left.llvm_value, casted_right.llvm_value, "") })
             }
         }
     }

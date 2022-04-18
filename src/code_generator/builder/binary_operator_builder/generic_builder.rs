@@ -32,6 +32,9 @@ impl GenericBuilder {
     pub fn build_integer_to_integer<'ctx>(le_context: &LEContext<'ctx>, lhs: LEIntegerValue<'ctx>, rhs: LEIntegerType<'ctx>) -> Result<LEIntegerValue<'ctx>> {
         Ok(LEIntegerValue { ty: rhs.clone(), llvm_value: le_context.llvm_builder.build_int_cast(lhs.llvm_value, rhs.get_llvm_type(), "") })
     }
+    pub fn build_bool_to_integer<'ctx>(le_context: &LEContext<'ctx>, lhs: LEBoolValue<'ctx>, rhs: LEIntegerType<'ctx>) -> Result<LEIntegerValue<'ctx>> {
+        Ok(LEIntegerValue { ty: rhs.clone(), llvm_value: le_context.llvm_builder.build_int_cast(lhs.llvm_value, rhs.get_llvm_type(), "") })
+    }
 
     pub fn build_float_to_float<'ctx>(le_context: &LEContext<'ctx>, lhs: LEFloatValue<'ctx>, rhs: LEFloatType<'ctx>) -> Result<LEFloatValue<'ctx>> {
         Ok(LEFloatValue { ty: rhs.clone(), llvm_value: le_context.llvm_builder.build_float_cast(lhs.llvm_value, rhs.get_llvm_type(), "") })
@@ -163,6 +166,9 @@ impl GenericBuilder {
             (LEBasicValueEnum::Float(left), LEBasicTypeEnum::Integer(right)) => {
                 Ok(Self::build_float_to_integer(le_context, left, right)?.to_le_value_enum())
             }
+            (LEBasicValueEnum::Bool(left), LEBasicTypeEnum::Integer(right)) => {
+                Ok(Self::build_bool_to_integer(le_context, left, right)?.to_le_value_enum())
+            }
             _ => { Ok(lhs) }
         }
     }
@@ -174,9 +180,9 @@ impl GenericBuilder {
 
     pub fn build_logic<'ctx>(le_context: &LEContext<'ctx>, lhs: LEBoolValue<'ctx>, rhs: LEBoolValue<'ctx>, op: LogicBinaryOperator) -> Result<LEBoolValue<'ctx>> {
         let result = match op {
-            LogicBinaryOperator::LogicAnd => { le_context.llvm_builder.build_and(lhs.llvm_value, rhs.llvm_value, "") }
-            LogicBinaryOperator::LogicOr => { le_context.llvm_builder.build_or(lhs.llvm_value, rhs.llvm_value, "") }
-            LogicBinaryOperator::LogicXor => { le_context.llvm_builder.build_xor(lhs.llvm_value, rhs.llvm_value, "") }
+            LogicBinaryOperator::And => { le_context.llvm_builder.build_and(lhs.llvm_value, rhs.llvm_value, "") }
+            LogicBinaryOperator::Or => { le_context.llvm_builder.build_or(lhs.llvm_value, rhs.llvm_value, "") }
+            LogicBinaryOperator::Xor => { le_context.llvm_builder.build_xor(lhs.llvm_value, rhs.llvm_value, "") }
         };
         Ok(LEBoolValue { ty: lhs.ty.clone(), llvm_value: result })
     }
