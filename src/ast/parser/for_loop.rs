@@ -1,12 +1,11 @@
-use anyhow::Result;
-
 use crate::ast::nodes::ForLoop;
 use crate::ast::parser::common::parse_code_block;
 use crate::ast::parser::statement::parse_statement;
-use crate::ast::ParseResult;
+use crate::error::Result;
 use crate::lexer::LELexer;
 
-pub fn parse_for_loop(lexer: &mut LELexer) -> ParseResult<ForLoop> {
+pub fn parse_for_loop(lexer: &mut LELexer) -> Result<ForLoop> {
+    let start_pos = lexer.pos();
     lexer.consume_keyword()?;
     lexer.consume_left_par()?;
     let initial = parse_statement(lexer)?;
@@ -19,6 +18,6 @@ pub fn parse_for_loop(lexer: &mut LELexer) -> ParseResult<ForLoop> {
         condition: Box::from(cond),
         iterate: Box::new(step),
         code_block,
-        pos: lexer.pos(),
+        pos: start_pos.sum(&lexer.pos()),
     })
 }

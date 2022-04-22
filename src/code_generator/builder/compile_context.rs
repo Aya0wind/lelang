@@ -6,11 +6,12 @@ use inkwell::values::FunctionValue;
 
 use builder::Result;
 
-use crate::ast::nodes::{Position, TypeDeclarator};
+use crate::ast::nodes::TypeDeclarator;
 use crate::code_generator::builder;
 use crate::code_generator::builder::{LEBasicType, LEBasicTypeEnum, LEFunctionValue, LEPointerValue};
 use crate::code_generator::builder::symbol_table::{Symbol, SymbolTable};
 use crate::error::CompileError;
+use crate::lexer::Position;
 
 #[derive(Debug)]
 pub struct CompilerContext<'ctx> {
@@ -45,32 +46,32 @@ impl<'ctx> CompilerContext<'ctx> {
         self.return_block = Some(return_block);
     }
 
-    pub fn insert_global_variable(&mut self, name: String, variable: LEPointerValue<'ctx>) -> Result<LEPointerValue<'ctx>> {
-        self.symbols.insert_global_variable(name.into(), variable.clone())?;
+    pub fn insert_global_variable(&mut self, name: String, variable: LEPointerValue<'ctx>, defined_position: Position) -> Result<LEPointerValue<'ctx>> {
+        self.symbols.insert_global_variable(name.into(), variable.clone(), defined_position)?;
         Ok(variable)
     }
 
-    pub fn insert_local_variable(&mut self, name: String, variable: LEPointerValue<'ctx>) -> Result<LEPointerValue<'ctx>> {
-        self.symbols.insert_local_variable(name, variable.clone())?;
+    pub fn insert_local_variable(&mut self, name: String, variable: LEPointerValue<'ctx>, defined_position: Position) -> Result<LEPointerValue<'ctx>> {
+        self.symbols.insert_local_variable(name, variable.clone(), defined_position)?;
         Ok(variable)
     }
 
-    pub fn insert_global_type(&mut self, name: String, ty: LEBasicTypeEnum<'ctx>) -> Result<LEBasicTypeEnum<'ctx>> {
-        self.symbols.insert_global_type(name.into(), ty.clone())?;
+    pub fn insert_global_type(&mut self, name: String, ty: LEBasicTypeEnum<'ctx>, defined_position: Position) -> Result<LEBasicTypeEnum<'ctx>> {
+        self.symbols.insert_global_type(name.into(), ty.clone(), defined_position)?;
         Ok(ty)
     }
 
-    pub fn insert_local_type(&mut self, name: String, ty: LEBasicTypeEnum<'ctx>) -> Result<LEBasicTypeEnum<'ctx>> {
-        self.symbols.insert_local_type(name.into(), ty.clone())?;
+    pub fn insert_local_type(&mut self, name: String, ty: LEBasicTypeEnum<'ctx>, defined_position: Position) -> Result<LEBasicTypeEnum<'ctx>> {
+        self.symbols.insert_local_type(name.into(), ty.clone(), defined_position)?;
         Ok(ty)
     }
 
-    pub fn insert_global_function(&mut self, name: String, function: LEFunctionValue<'ctx>) -> Result<LEFunctionValue<'ctx>> {
-        self.symbols.insert_global_function(name, function.clone())?;
+    pub fn insert_global_function(&mut self, name: String, function: LEFunctionValue<'ctx>, defined_position: Position) -> Result<LEFunctionValue<'ctx>> {
+        self.symbols.insert_global_function(name, function.clone(), defined_position)?;
         Ok(function)
     }
-    pub fn insert_local_function(&mut self, name: String, function: LEFunctionValue<'ctx>) -> Result<LEFunctionValue<'ctx>> {
-        self.symbols.insert_local_function(name, function.clone())?;
+    pub fn insert_local_function(&mut self, name: String, function: LEFunctionValue<'ctx>, defined_position: Position) -> Result<LEFunctionValue<'ctx>> {
+        self.symbols.insert_local_function(name, function.clone(), defined_position)?;
         Ok(function)
     }
 

@@ -15,7 +15,7 @@ pub fn optimize_number_to_level(number: usize) -> OptimizationLevel {
 }
 
 
-pub fn initialize_target_machine(config: &Args) -> Result<TargetMachine> {
+pub fn initialize_target_machine(config: &Args) -> TargetMachine {
     inkwell::targets::Target::initialize_native(&InitializationConfig {
         asm_parser: false,
         asm_printer: true,
@@ -30,12 +30,12 @@ pub fn initialize_target_machine(config: &Args) -> Result<TargetMachine> {
     let cpu_features = inkwell::targets::TargetMachine::get_host_cpu_features();
     let reloc = RelocMode::Default;
     let model = CodeModel::Default;
-    Ok(target.create_target_machine(
+    target.create_target_machine(
         &target_triple,
         cpu.to_str().unwrap(),
         cpu_features.to_str().unwrap(),
         optimize_number_to_level(config.optimization),
         reloc,
         model,
-    ).unwrap())
+    ).unwrap()
 }

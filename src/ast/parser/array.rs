@@ -1,33 +1,41 @@
-use crate::ast::nodes::{ArrayDeclarator, ArrayInitializer, Expr, FunctionCall, Position};
+use crate::ast::nodes::{ArrayDeclarator, ArrayInitializer, Expr, FunctionCall};
 use crate::ast::parser::{parse_call_expression, parse_expression};
 use crate::ast::parser::type_declarator::parse_type_declarator;
-use crate::ast::ParseResult;
+use crate::error::{LEError, Result};
 use crate::error::{SyntaxError, TokenType};
+use crate::error::TokenType::Identifier;
 use crate::lexer::{LELexer, LEToken, Number};
 
-pub fn parse_array_initializer(lexer: &mut LELexer) -> ParseResult<Box<Expr>> {
+pub fn parse_array_initializer(lexer: &mut LELexer) -> Result<Box<Expr>> {
+    let start_pos = lexer.pos();
     lexer.consume_left_bracket()?;
     let mut elements = vec![];
     loop {
-        let current_token = lexer.current_result()?;
+        let current_token = lexer.current().ok_or(
+            LEError::new_syntax_error(
+                SyntaxError::missing_token(vec![TokenType::RightBracket]),
+                lexer.pos(),
+            )
+        )?;
         match current_token {
             LEToken::RightBracket => {
-                lexer.next_result()?;
+                lexer.consume();
                 break;
             }
             LEToken::Comma => {
-                lexer.next_result()?;
+                lexer.consume();
             }
             _ => {
                 elements.push(*parse_expression(lexer)?);
             }
         }
     }
-    Ok(Box::new(Expr::ArrayInitializer(ArrayInitializer { elements, pos: lexer.pos() })))
+    Ok(Box::new(Expr::ArrayInitializer(ArrayInitializer { elements, pos: start_pos.sum(&lexer.pos()) })))
 }
 
 
-pub fn parse_array_declarator(lexer: &mut LELexer) -> ParseResult<ArrayDeclarator> {
+pub fn parse_array_declarator(lexer: &mut LELexer) -> Result<ArrayDeclarator> {
+    let start_pos = lexer.pos();
     lexer.consume_left_bracket()?;
     let element_type = parse_type_declarator(lexer)?;
     lexer.consume_semicolon()?;
@@ -37,9 +45,9 @@ pub fn parse_array_declarator(lexer: &mut LELexer) -> ParseResult<ArrayDeclarato
         Ok(ArrayDeclarator {
             element_type,
             len: len as u32,
-            pos: lexer.pos(),
+            pos: start_pos.sum(&lexer.pos()),
         })
     } else {
-        Err(SyntaxError::UnexpectToken { expect: TokenType::NumberLiteral, found: LEToken::NumberLiteral(len) })
+        Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::NumberLiteral, Identifier], LEToken::NumberLiteral(len)), lexer.pos()))
     }
 }

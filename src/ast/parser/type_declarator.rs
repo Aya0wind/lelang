@@ -1,13 +1,19 @@
-use crate::ast::nodes::TypeDeclarator;
+use crate::ast::nodes::{Identifier, TypeDeclarator};
 use crate::ast::parser::array::parse_array_declarator;
-use crate::ast::ParseResult;
-use crate::lexer::{KeyWord, LELexer, LEToken};
+use crate::error::{LEError, Result};
+use crate::error::{SyntaxError, TokenType};
+use crate::lexer::{KeyWord, LELexer, LEToken, Position};
 
-pub fn parse_type_declarator(lexer: &mut LELexer) -> ParseResult<TypeDeclarator> {
-    match lexer.current_result()? {
+pub fn parse_type_declarator(lexer: &mut LELexer) -> Result<TypeDeclarator> {
+    let current_token = lexer.current().ok_or_else(|| LEError::new_syntax_error(
+        SyntaxError::missing_token(vec![TokenType::Identifier, TokenType::LeftBracket]),
+        lexer.pos(),
+    ))?;
+    match current_token {
         LEToken::Identifier(identifier) => {
+            let pos = lexer.pos();
             let identifier = lexer.consume_identifier()?;
-            Ok(TypeDeclarator::TypeIdentifier(identifier))
+            Ok(TypeDeclarator::TypeIdentifier(Identifier { name: identifier, pos }))
         }
         LEToken::KeyWord(KeyWord::Ref) => {
             lexer.consume_keyword()?;
@@ -17,6 +23,11 @@ pub fn parse_type_declarator(lexer: &mut LELexer) -> ParseResult<TypeDeclarator>
         LEToken::LeftBracket => {
             Ok(TypeDeclarator::Array(Box::new(parse_array_declarator(lexer)?)))
         }
-        _ => { unreachable!() }
+        _ => {
+            Err(LEError::new_syntax_error(
+                SyntaxError::unexpect_token(vec![TokenType::Identifier, TokenType::LeftBracket], current_token),
+                lexer.pos(),
+            ))
+        }
     }
 }

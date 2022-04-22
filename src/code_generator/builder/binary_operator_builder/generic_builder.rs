@@ -2,7 +2,6 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::values::{AnyValue, BasicMetadataValueEnum, FunctionValue};
 
-use crate::ast::nodes::Position;
 use crate::code_generator::builder::{LEBasicType, LEBasicTypeEnum, LEBasicValue, LEBasicValueEnum, LEBoolValue, LEContext, LEFloatType, LEFloatValue, LEIntegerType, LEIntegerValue, LEType};
 use crate::code_generator::builder::binary_operator_builder::{LogicBinaryOperator, MathOperatorBuilder};
 use crate::code_generator::builder::binary_operator_builder::traits::{ArithmeticOperatorBuilder, CompareBinaryOperator};
@@ -153,7 +152,11 @@ impl GenericBuilder {
     }
 
     pub fn build_cast<'ctx>(le_context: &LEContext<'ctx>, lhs: LEBasicValueEnum<'ctx>, rhs: LEBasicTypeEnum<'ctx>) -> Result<LEBasicValueEnum<'ctx>> {
-        match (lhs.clone(), rhs) {
+        let left_type = LEBasicValue::get_le_type(&lhs);
+        if left_type == rhs {
+            return Ok(lhs)
+        }
+        match (lhs.clone(), rhs.clone()) {
             (LEBasicValueEnum::Integer(left), LEBasicTypeEnum::Integer(right)) => {
                 Ok(Self::build_integer_to_integer(le_context, left, right)?.to_le_value_enum())
             }
@@ -169,7 +172,7 @@ impl GenericBuilder {
             (LEBasicValueEnum::Bool(left), LEBasicTypeEnum::Integer(right)) => {
                 Ok(Self::build_bool_to_integer(le_context, left, right)?.to_le_value_enum())
             }
-            _ => { Ok(lhs) }
+            _ => { Err(CompileError::TypeMismatched { expect: rhs.to_string(), found: rhs.to_string() }) }
         }
     }
 

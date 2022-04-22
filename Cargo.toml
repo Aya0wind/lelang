@@ -27,7 +27,7 @@ nom = "7.1.0"
 clap = { version = "3.1.7", features = ["derive"] }
 lazy_static = "1.4.0"
 enum_dispatch = "0.3.8"
-
+ariadne = "0.1.5"
 [profile.release]
 opt-level = 3
 debug=false

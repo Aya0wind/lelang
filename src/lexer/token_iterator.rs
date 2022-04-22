@@ -1,163 +1,192 @@
 #![allow(unused)]
 
+use std::fmt::{Display, Formatter, write};
+use std::ops::Range;
+use std::rc::Rc;
+
 use logos::{Lexer, Logos};
 use strum_macros::Display;
 
-use crate::ast::nodes::Position;
-use crate::ast::ParseResult;
-use crate::error::{SyntaxError, TokenType};
-use crate::error::LEError;
+use crate::error::{LEError, Result, SyntaxError, TokenType};
 use crate::lexer::LEToken::Semicolon;
 use crate::lexer::number_parser::parse_number;
 
-fn counter_line(white: &str) -> usize {
-    white.bytes().filter(|&x| x == b'\n').count()
+fn record_span(lexer: &mut Lexer<LogosToken>) {
+    let token_start = lexer.span().start;
+    let token_range = lexer.slice().len();
+    lexer.extras.last_pos = lexer.extras.current_pos.clone();
+    lexer.extras.current_pos.range = (token_start..token_start + token_range);
 }
 
 fn parse_string_literal_token(s: &str) -> Option<String> {
     Some(s.into())
 }
 
+#[derive(Debug, Clone)]
+pub struct Position {
+    pub range: Range<usize>,
+}
+
+impl Position {
+    pub fn sum(&self, other: &Self) -> Self {
+        use std::cmp::{max, min};
+        Self { range: (min(self.range.start, other.range.start)..max(self.range.end, other.range.end)) }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Extra {
+    current_pos: Position,
+    last_pos: Position,
+}
+
+
+impl Display for Position {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 
 #[derive(Logos, Debug, PartialEq)]
+#[logos(extras = Extra)]
 pub enum LogosToken {
-    #[token("if")]
+    #[token("if", | lex | record_span(lex))]
     If,
 
-    #[token("el")]
+    #[token("el", | lex | record_span(lex))]
     Else,
 
-    #[token("decl")]
+    #[token("decl", | lex | record_span(lex))]
     Declare,
 
-    #[token("le")]
+    #[token("le", | lex | record_span(lex))]
     FunctionDeclare,
 
-    #[token("struct")]
+    #[token("struct", | lex | record_span(lex))]
     StructureDeclare,
 
-    #[token("for")]
+    #[token("for", | lex | record_span(lex))]
     For,
 
-    #[token("while")]
+    #[token("while", | lex | record_span(lex))]
     While,
 
-    #[token("var")]
+    #[token("var", | lex | record_span(lex))]
     VariableDeclare,
 
-    #[token("ret")]
+    #[token("ret", | lex | record_span(lex))]
     Return,
 
-    #[token("true")]
+    #[token("true", | lex | record_span(lex))]
     True,
 
-    #[token("false")]
+    #[token("false", | lex | record_span(lex))]
     False,
 
-    #[token("->")]
+    #[token("->", | lex | record_span(lex))]
     SingleArrow,
 
-    #[token("=>")]
+    #[token("=>", | lex | record_span(lex))]
     DoubleArrow,
 
-    #[token(":")]
+    #[token(":", | lex | record_span(lex))]
     Colon,
 
-    #[token(".")]
+    #[token(".", | lex | record_span(lex))]
     Dot,
 
-    #[token(";")]
+    #[token(";", | lex | record_span(lex))]
     Semicolon,
 
-    #[token("ref")]
+    #[token("ref", | lex | record_span(lex))]
     Ref,
 
-    #[token("(")]
+    #[token("(", | lex | record_span(lex))]
     LeftPar,
 
-    #[token(")")]
+    #[token(")", | lex | record_span(lex))]
     RightPar,
 
-    #[token("[")]
+    #[token("[", | lex | record_span(lex))]
     LeftBracket,
 
-    #[token("]")]
+    #[token("]", | lex | record_span(lex))]
     RightBracket,
 
-    #[token("}")]
+    #[token("}", | lex | record_span(lex))]
     RightBrace,
 
-    #[token("{")]
+    #[token("{", | lex | record_span(lex))]
     LeftBrace,
 
-    #[token(",")]
+    #[token(",", | lex | record_span(lex))]
     Comma,
 
-
-    #[token("~")]
+    #[token("~", | lex | record_span(lex))]
     Rev,
 
-    #[token("+")]
+    #[token("+", | lex | record_span(lex))]
     Plus,
 
-    #[token("-")]
+    #[token("-", | lex | record_span(lex))]
     Sub,
 
-    #[token("*")]
+    #[token("*", | lex | record_span(lex))]
     Mul,
 
-    #[token("/")]
+    #[token("/", | lex | record_span(lex))]
     Div,
 
-    #[token("%")]
+    #[token("%", | lex | record_span(lex))]
     Mod,
 
-    #[token("=")]
+    #[token("=", | lex | record_span(lex))]
     Assign,
 
-    #[token("==")]
+    #[token("==", | lex | record_span(lex))]
     Equal,
 
-    #[token("!=")]
+    #[token("!=", | lex | record_span(lex))]
     NotEqual,
 
-    #[token(">")]
+    #[token(">", | lex | record_span(lex))]
     GreaterThan,
 
-    #[token("<")]
+    #[token("<", | lex | record_span(lex))]
     LessThan,
 
-    #[token(">=")]
+    #[token(">=", | lex | record_span(lex))]
     GreaterOrEqualThan,
 
-    #[token("<=")]
+    #[token("<=", | lex | record_span(lex))]
     LessOrEqualThan,
 
-    #[token("&&")]
+    #[token("&&", | lex | record_span(lex))]
     And,
 
-    #[token("||")]
+    #[token("||", | lex | record_span(lex))]
     Or,
 
-    #[token("!")]
+    #[token("!", | lex | record_span(lex))]
     Not,
 
-    #[token("^")]
+    #[token("^", | lex | record_span(lex))]
     Xor,
 
-    #[regex(r"[\s]+", | lex | counter_line(lex.slice()))]
-    WhiteCharacter(usize),
+    #[regex(r"[\s]+", logos::skip)]
+    WhiteCharacter,
 
-    #[regex(r"##[^\n]*")]
+    #[regex(r"##[^\n]*", logos::skip)]
     Comment,
 
-    #[regex("[a-zA-Z_]+[a-zA-Z_0-9]*", | lex | lex.slice().to_string())]
+    #[regex("[a-zA-Z_]+[a-zA-Z_0-9]*", | lex | {record_span(lex); lex.slice().to_string()})]
     Identifier(String),
 
-    #[regex(r#""[^\n]*""#, | lex | parse_string_literal_token(lex.slice()))]
+    #[regex(r#""[^\n]*""#, | lex | {record_span(lex); parse_string_literal_token(lex.slice())})]
     StringLiteral(String),
 
-    #[regex(r#"[0-9]*(\.[0-9]+)?"#, | lex | parse_number(lex).ok())]
+    #[regex(r#"[0-9]*(\.[0-9]+)?"#, | lex | {record_span(lex); parse_number(lex).ok()})]
     NumberLiteral(Number),
 
     #[error]
@@ -187,7 +216,7 @@ pub enum KeyWord {
     Ref,
 }
 
-#[derive(Debug, PartialEq, Display, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Operator {
     Plus,
 
@@ -226,6 +255,31 @@ pub enum Operator {
     Mod,
 }
 
+impl Display for Operator {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Operator::Plus => { "+" }
+            Operator::Sub => { "-" }
+            Operator::Mul => { "*" }
+            Operator::Div => { "/" }
+            Operator::Assign => { "=" }
+            Operator::Equal => { "==" }
+            Operator::NotEqual => { "!=" }
+            Operator::GreaterThan => { ">" }
+            Operator::LessThan => { "<=" }
+            Operator::GreaterOrEqualThan => { ">=" }
+            Operator::LessOrEqualThan => { "<=" }
+            Operator::Dot => { "." }
+            Operator::And => { "&&" }
+            Operator::Or => { "||" }
+            Operator::Xor => { "^" }
+            Operator::Not => { "!" }
+            Operator::Rev => { "~" }
+            Operator::Mod => { "%" }
+        };
+        f.write_str(s)
+    }
+}
 
 #[derive(Debug, PartialEq, Display, Clone)]
 #[allow(dead_code)]
@@ -267,10 +321,6 @@ pub enum LEToken {
     SingleArrow,
 
     DoubleArrow,
-
-    EOF,
-
-    Error(String),
 }
 
 
@@ -302,7 +352,6 @@ impl From<LogosToken> for LEToken {
             LogosToken::StringLiteral(literal) => { Self::StringLiteral(literal) }
             LogosToken::NumberLiteral(num) => { Self::NumberLiteral(num) }
             LogosToken::Identifier(identifier) => { Self::Identifier(identifier) }
-            LogosToken::Error => { Self::Error("unknown character".into()) }
             LogosToken::GreaterThan => { Self::Operator(Operator::GreaterThan) }
             LogosToken::LessThan => { Self::Operator(Operator::LessThan) }
             LogosToken::GreaterOrEqualThan => { Self::Operator(Operator::GreaterOrEqualThan) }
@@ -327,6 +376,29 @@ impl From<LogosToken> for LEToken {
     }
 }
 
+impl LEToken {
+    pub fn to_token_str(&self) -> &'static str {
+        match self {
+            LEToken::KeyWord(_) => { "`Keyword`" }
+            LEToken::Operator(_) => { "`Operator`" }
+            LEToken::NumberLiteral(_) => { "`Number`" }
+            LEToken::StringLiteral(_) => { "`String`" }
+            LEToken::Identifier(_) => { "`Identifier`" }
+            LEToken::Colon => { "`:`" }
+            LEToken::Comma => { "`,`" }
+            LEToken::Semicolon => { "`;`" }
+            LEToken::LeftPar => { "`(`" }
+            LEToken::RightPar => { "`)`" }
+            LEToken::LeftBracket => { "`[`" }
+            LEToken::RightBracket => { "`]`" }
+            LEToken::RightBrace => { "`}`" }
+            LEToken::LeftBrace => { "`{`" }
+            LEToken::SingleArrow => { "`->`" }
+            LEToken::DoubleArrow => { "`=>`" }
+        }
+    }
+}
+
 /// 词法分析器
 /// 拆分代码为Token stream，使用迭代器形式返回token
 /// 为支持LL(1)分析，可前向看一个token
@@ -336,7 +408,7 @@ impl From<LogosToken> for LEToken {
 /// use std::fs::File;
 /// use std::io::Read;
 /// use std::io::Read;
-/// use lelang::lexer::LELexer;
+/// use LELexer;
 /// let mut f = File::open("benches/test_case/lexer_test.le").unwrap();
 /// let mut buffer = String::new();
 /// f.read_to_string(&mut buffer).unwrap();
@@ -347,7 +419,6 @@ impl From<LogosToken> for LEToken {
 /// ```
 pub struct LELexer<'s> {
     inner: Lexer<'s, LogosToken>,
-    current_pos: Position,
     current: Option<LEToken>,
 }
 
@@ -356,21 +427,7 @@ impl<'s> Iterator for LELexer<'s> {
     type Item = LEToken;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let inner_iter = self.inner.by_ref().find(|next| {
-            match next {
-                LogosToken::Comment => {
-                    self.current_pos.line += 1;
-                    false
-                }
-                LogosToken::WhiteCharacter(lines) => {
-                    self.current_pos.line += *lines;
-                    false
-                }
-                _ => { true }
-            }
-        });
-
-        match inner_iter {
+        match self.inner.next() {
             None => { self.current.take() }
             Some(x) => { self.current.replace(x.into()) }
         }
@@ -380,297 +437,235 @@ impl<'s> Iterator for LELexer<'s> {
 impl<'s> LELexer<'s> {
     pub fn new(s: &'s str) -> Option<Self> {
         let mut s = Self {
-            inner: LogosToken::lexer(s),
-            current_pos: Position {
-                line: 0,
-            },
+            inner: LogosToken::lexer_with_extras(s, Extra { current_pos: Position { range: (0..0) }, last_pos: Position { range: (0..0) } }),
             current: None,
         };
         s.next();
         Some(s)
     }
-
-
-    /// 获取迭代器当前指向的token，如果不存在则返回EOF错误信息
-    pub fn current_result(&self) -> ParseResult<&LEToken> {
-        self.current.as_ref().ok_or_else(|| SyntaxError::EOF.into())
+    pub fn consume(&mut self) {
+        self.next().unwrap();
     }
-
     /// 获取迭代器当前指向的token，如果不存在则返回None
-    pub fn current(&self) -> Option<&LEToken> {
-        self.current.as_ref()
+    pub fn current(&self) -> Option<LEToken> {
+        self.current.clone()
     }
-
-
-    /// 获取迭代器当前指向的token的副本
-    pub fn own_current(&self) -> ParseResult<LEToken> {
-        Ok(self.current_result()?.clone())
-    }
-
 
     ///获取迭代器当前指向的token的位置
     pub fn pos(&self) -> Position {
-        self.current_pos
+        self.inner.extras.current_pos.clone()
     }
 
-    ///获取迭代器当前指向token的所有权，并将迭代器指向下一个token
-    pub fn next_result(&mut self) -> ParseResult<LEToken> {
-        self.next().ok_or_else(|| SyntaxError::EOF.into())
+    ///获取迭代器当前指向的token的位置
+    pub fn last_pos(&self) -> Position {
+        self.inner.extras.last_pos.clone()
     }
 
-    pub fn consume_keyword(&mut self) -> ParseResult<KeyWord> {
-        let consume = self.next_result()?;
-        if let LEToken::KeyWord(keyword) = consume {
-            Ok(keyword)
+    pub fn consume_keyword(&mut self) -> Result<KeyWord> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::KeyWord(key) = consume {
+                Ok(key)
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::Identifier], consume), current_pos))
+            }
         } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::Identifier, found: consume })
-        }
-    }
-
-    pub fn consume_binary_operator(&mut self) -> ParseResult<Operator> {
-        let consume = self.next_result()?;
-        if let LEToken::Operator(operator) = consume {
-            Ok(operator)
-        } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::Operator, found: consume })
-        }
-    }
-    pub fn consume_unary_operator(&mut self) -> ParseResult<Operator> {
-        let consume = self.next_result()?;
-        if let LEToken::Operator(operator) = consume {
-            Ok(operator)
-        } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::Operator, found: consume }.into())
-        }
-    }
-    pub fn consume_number_literal(&mut self) -> ParseResult<Number> {
-        let consume = self.next_result()?;
-        if let LEToken::NumberLiteral(number) = consume {
-            Ok(number)
-        } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::NumberLiteral, found: consume })
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::Identifier]), current_pos))
         }
     }
 
-    pub fn consume_string_literal(&mut self) -> ParseResult<String> {
-        let consume = self.next_result()?;
-        if let LEToken::StringLiteral(string_literal) = consume {
-            Ok(string_literal)
+    pub fn consume_operator(&mut self) -> Result<Operator> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::Operator(op) = consume {
+                Ok(op)
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::Operator], consume), current_pos))
+            }
         } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::StringLiteral, found: consume })
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::Operator]), current_pos))
         }
     }
 
-    pub fn consume_identifier(&mut self) -> ParseResult<String> {
-        let consume = self.next_result()?;
-        if let LEToken::Identifier(identifier) = consume {
-            Ok(identifier)
+    pub fn consume_number_literal(&mut self) -> Result<Number> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::NumberLiteral(number) = consume {
+                Ok(number)
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::NumberLiteral], consume), current_pos))
+            }
         } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::Identifier, found: consume })
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::NumberLiteral]), current_pos))
         }
     }
 
-    pub fn consume_colon(&mut self) -> ParseResult<()> {
-        let consume = self.next_result()?;
-        if let LEToken::Colon = consume {
-            Ok(())
+    pub fn consume_string_literal(&mut self) -> Result<String> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::StringLiteral(string) = consume {
+                Ok(string)
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::StringLiteral], consume), current_pos))
+            }
         } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::Colon, found: consume })
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::StringLiteral]), current_pos))
         }
     }
 
-    pub fn consume_comma(&mut self) -> ParseResult<()> {
-        let consume = self.next_result()?;
-        if let LEToken::Comma = consume {
-            Ok(())
+    pub fn consume_identifier(&mut self) -> Result<String> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::Identifier(ident) = consume {
+                Ok(ident)
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::Identifier], consume), current_pos))
+            }
         } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::Comma, found: consume })
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::Identifier]), current_pos))
         }
     }
 
-    pub fn consume_semicolon(&mut self) -> ParseResult<()> {
-        let consume = self.next_result()?;
-        if let LEToken::Semicolon = consume {
-            Ok(())
+    pub fn consume_colon(&mut self) -> Result<()> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::Colon = consume {
+                Ok(())
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::Colon], consume), current_pos))
+            }
         } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::Semicolon, found: consume })
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::Colon]), current_pos))
         }
     }
 
-    pub fn consume_left_par(&mut self) -> ParseResult<()> {
-        let consume = self.next_result()?;
-        if let LEToken::LeftPar = consume {
-            Ok(())
+    pub fn consume_comma(&mut self) -> Result<()> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::Comma = consume {
+                Ok(())
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::Comma], consume), current_pos))
+            }
         } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::LeftPar, found: consume })
-        }
-    }
-    pub fn consume_right_par(&mut self) -> ParseResult<()> {
-        let consume = self.next_result()?;
-        if let LEToken::RightPar = consume {
-            Ok(())
-        } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::RightPar, found: consume })
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::Comma]), current_pos))
         }
     }
 
-    pub fn consume_left_bracket(&mut self) -> ParseResult<()> {
-        let consume = self.next_result()?;
-        if let LEToken::LeftBracket = consume {
-            Ok(())
+    pub fn consume_semicolon(&mut self) -> Result<()> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::Semicolon = consume {
+                Ok(())
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::Semicolon], consume), current_pos))
+            }
         } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::LeftBracket, found: consume })
-        }
-    }
-    pub fn consume_right_bracket(&mut self) -> ParseResult<()> {
-        let consume = self.next_result()?;
-        if let LEToken::RightBracket = consume {
-            Ok(())
-        } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::RightBracket, found: consume })
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::Semicolon]), current_pos))
         }
     }
 
-    pub fn consume_left_brace(&mut self) -> ParseResult<()> {
-        let consume = self.next_result()?;
-        if let LEToken::LeftBrace = consume {
-            Ok(())
+    pub fn consume_left_par(&mut self) -> Result<()> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::LeftPar = consume {
+                Ok(())
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::LeftPar], consume), current_pos))
+            }
         } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::LeftBrace, found: consume })
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::LeftPar]), current_pos))
+        }
+    }
+    pub fn consume_right_par(&mut self) -> Result<()> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::RightPar = consume {
+                Ok(())
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::RightPar], consume), current_pos))
+            }
+        } else {
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::RightPar]), current_pos))
         }
     }
 
-    pub fn consume_right_brace(&mut self) -> ParseResult<()> {
-        let consume = self.next_result()?;
-        if let LEToken::RightBrace = consume {
-            Ok(())
+    pub fn consume_left_bracket(&mut self) -> Result<()> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::LeftBracket = consume {
+                Ok(())
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::LeftBracket], consume), current_pos))
+            }
         } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::RightBrace, found: consume })
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::LeftBracket]), current_pos))
+        }
+    }
+    pub fn consume_right_bracket(&mut self) -> Result<()> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::RightBracket = consume {
+                Ok(())
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::RightBracket], consume), current_pos))
+            }
+        } else {
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::RightBracket]), current_pos))
         }
     }
 
-    pub fn consume_return_type_allow(&mut self) -> ParseResult<()> {
-        let consume = self.next_result()?;
-        if let LEToken::SingleArrow = consume {
-            Ok(())
+    pub fn consume_left_brace(&mut self) -> Result<()> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::LeftBrace = consume {
+                Ok(())
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::LeftBrace], consume), current_pos))
+            }
         } else {
-            Err(SyntaxError::UnexpectToken { expect: TokenType::SingleAllow, found: consume })
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::LeftBrace]), current_pos))
         }
     }
 
-    // pub fn check_current_keyword(&mut self) -> ParseResult<&KeyWord> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::KeyWord(keyword) = check_current {
-    //         Ok(keyword)
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::Identifier, check_current.clone()))
-    //     }
-    // }
+    pub fn consume_right_brace(&mut self) -> Result<()> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::RightBrace = consume {
+                Ok(())
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::RightBrace], consume), current_pos))
+            }
+        } else {
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::RightBrace]), current_pos))
+        }
+    }
 
-    // pub fn check_current_operator(&mut self) -> ParseResult<&Operator> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::Operator(operator) = check_current {
-    //         Ok(operator)
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::Operator, check_current.clone()))
-    //     }
-    // }
-    //
-    // pub fn check_current_number_literal(&mut self) -> ParseResult<&Number> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::NumberLiteral(number) = check_current {
-    //         Ok(number)
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::NumberLiteral, check_current.clone()))
-    //     }
-    // }
-    // pub fn check_current_string_literal(&mut self) -> ParseResult<&String> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::StringLiteral(string_literal) = check_current {
-    //         Ok(string_literal)
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::StringLiteral, check_current.clone()))
-    //     }
-    // }
-    // pub fn check_current_identifier(&mut self) -> ParseResult<&String> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::Identifier(Identifier) = check_current {
-    //         Ok(Identifier)
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::Identifier, check_current.clone()))
-    //     }
-    // }
-    //
-    // pub fn check_current_colon(&mut self) -> ParseResult<()> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::Colon = check_current {
-    //         Ok(())
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::Colon, check_current.clone()))
-    //     }
-    // }
-    // pub fn check_current_comma(&mut self) -> ParseResult<()> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::Comma = check_current {
-    //         Ok(())
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::Comma, check_current.clone()))
-    //     }
-    // }
-    // pub fn check_current_semicolon(&mut self) -> ParseResult<()> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::Semicolon = check_current {
-    //         Ok(())
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::Semicolon, check_current.clone()))
-    //     }
-    // }
-    // pub fn check_current_left_little_brace(&mut self) -> ParseResult<()> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::LeftPar = check_current {
-    //         Ok(())
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::LeftPar, check_current.clone()))
-    //     }
-    // }
-    // pub fn check_current_right_little_brace(&mut self) -> ParseResult<()> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::RightPar = check_current {
-    //         Ok(())
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::ReturnTypeAllow, check_current.clone()))
-    //     }
-    // }
-    // pub fn check_current_right_middle_brace(&mut self) -> ParseResult<()> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::RightBracket = check_current {
-    //         Ok(())
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::ReturnTypeAllow, check_current.clone()))
-    //     }
-    // }
-    // pub fn check_current_left_big_brace(&mut self) -> ParseResult<()> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::LeftBrace = check_current {
-    //         Ok(())
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::ReturnTypeAllow, check_current.clone()))
-    //     }
-    // }
-    // pub fn check_current_right_big_brace(&mut self) -> ParseResult<()> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::RightBrace = check_current {
-    //         Ok(())
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::ReturnTypeAllow, check_current.clone()))
-    //     }
-    // }
-    // pub fn check_current_return_type_allow(&mut self) -> ParseResult<()> {
-    //     let check_current = self.current_result()?;
-    //     if let LEToken::ReturnTypeAllow = check_current {
-    //         Ok(())
-    //     } else {
-    //         Err(SyntaxError::unexpect_token(TokenType::ReturnTypeAllow, check_current.clone()))
-    //     }
-    // }
+    pub fn consume_return_type_allow(&mut self) -> Result<()> {
+        let current_pos = self.last_pos();
+        let consume = self.next();
+        if let Some(consume) = consume {
+            if let LEToken::SingleArrow = consume {
+                Ok(())
+            } else {
+                Err(LEError::new_syntax_error(SyntaxError::unexpect_token(vec![TokenType::SingleArrow], consume), current_pos))
+            }
+        } else {
+            Err(LEError::new_syntax_error(SyntaxError::missing_token(vec![TokenType::SingleArrow]), current_pos))
+        }
+    }
 }

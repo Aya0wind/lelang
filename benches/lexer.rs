@@ -6,7 +6,6 @@ use std::io::Read;
 use criterion::{black_box, Criterion, criterion_group, criterion_main};
 use inkwell::context::Context;
 
-use lelang::arg_parser::{Args, OutputFormatEnum};
 use lelang::ast::Ast;
 use lelang::code_generator::generator::CodeGenerator;
 use lelang::lexer::LELexer;

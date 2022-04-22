@@ -7,14 +7,14 @@ use inkwell::types::BasicType;
 use inkwell::values::{BasicMetadataValueEnum, BasicValue, BasicValueEnum, FunctionValue, InstructionValue};
 use nom::error::context;
 
-use crate::ast::nodes::{Position, TypeDeclarator};
+use crate::ast::nodes::TypeDeclarator;
 use crate::code_generator::builder::{LEBasicType, LEBasicTypeEnum, LEBasicValue, LEBasicValueEnum, LEBoolType, LEBoolValue, LEFloatType, LEFloatValue, LEFunctionValue, LEIntegerType, LEIntegerValue, LEPointerType, LEPointerValue, LEType, LEValue};
 use crate::code_generator::builder::binary_operator_builder::{CompareBinaryOperator, GenericBuilder, LogicBinaryOperator, MathOperatorBuilder, MemberAccessOperatorBuilder};
 use crate::code_generator::builder::compile_context::CompilerContext;
 use crate::code_generator::builder::expression::ExpressionValue;
 use crate::error::CompileError;
+use crate::lexer::{Operator, Position};
 use crate::lexer::LEToken::Semicolon;
-use crate::lexer::Operator;
 
 pub type Result<T> = std::result::Result<T, CompileError>;
 
@@ -91,7 +91,7 @@ impl<'ctx> LEGenerator<'ctx> {
     pub fn read_expression_value(&self, expr: ExpressionValue<'ctx>) -> Result<LEBasicValueEnum<'ctx>> {
         match expr {
             ExpressionValue::Left(left_value) => {
-                self.build_load(left_value)
+                Ok(self.build_load(left_value))
             }
             ExpressionValue::Right(right_value) => {
                 Ok(right_value)
@@ -164,20 +164,20 @@ impl<'ctx> LEGenerator<'ctx> {
         Ok(ptr)
     }
 
-    pub fn build_alloca_without_initialize(&self, ty: LEBasicTypeEnum<'ctx>) -> Result<LEPointerValue<'ctx>> {
+    pub fn build_alloca_without_initialize(&self, ty: LEBasicTypeEnum<'ctx>) -> LEPointerValue<'ctx> {
         let llvm_pointer_value = self.context.llvm_builder.build_alloca(ty.get_llvm_type(), "");
         let pointer_type = LEPointerType::new(&self.context, ty);
-        Ok(LEPointerValue { ty: pointer_type, llvm_value: llvm_pointer_value })
+        LEPointerValue { ty: pointer_type, llvm_value: llvm_pointer_value }
     }
 
-    pub fn build_load(&self, ptr: LEPointerValue<'ctx>) -> Result<LEBasicValueEnum<'ctx>> {
+    pub fn build_load(&self, ptr: LEPointerValue<'ctx>) -> LEBasicValueEnum<'ctx> {
         let value_enum = self.context.llvm_builder.build_load(ptr.llvm_value, "");
-        LEBasicValueEnum::from_type_and_llvm_value(ptr.ty.get_point_type(), value_enum)
+        LEBasicValueEnum::from_type_and_llvm_value(ptr.ty.get_point_type(), value_enum).unwrap()
     }
 
     pub fn build_load_variable(&self, name: &str) -> Result<LEBasicValueEnum<'ctx>> {
         let pointer_value = self.get_variable(name)?;
-        self.build_load(pointer_value)
+        Ok(self.build_load(pointer_value))
     }
 
     pub fn build_assign(&self, target: ExpressionValue<'ctx>, value: ExpressionValue<'ctx>) -> Result<LEPointerValue<'ctx>> {
@@ -220,15 +220,19 @@ impl<'ctx> LEGenerator<'ctx> {
     }
 
     pub fn build_mod(&self, lhs: ExpressionValue<'ctx>, rhs: ExpressionValue<'ctx>) -> Result<LEBasicValueEnum<'ctx>> {
-        match (self.read_expression_value(lhs)?, self.read_expression_value(rhs)?) {
+        let left = self.read_expression_value(lhs)?;
+        let right = self.read_expression_value(rhs)?;
+        let left_type = LEBasicValue::get_le_type(&left);
+        let right_type = LEBasicValue::get_le_type(&right);
+        match (left, right) {
             (LEBasicValueEnum::Integer(left_int), LEBasicValueEnum::Integer(right_int)) => {
                 Ok(left_int.build_mod(&self.context, right_int)?.to_le_value_enum())
             }
             _ => {
                 Err(CompileError::NoSuitableBinaryOperator {
                     op: Operator::Mod,
-                    left: "".to_string(),
-                    right: "".to_string(),
+                    left_type: left_type.to_string(),
+                    right_type: right_type.to_string(),
                 })
             }
         }
@@ -245,22 +249,22 @@ impl<'ctx> LEGenerator<'ctx> {
         Ok(())
     }
 
-    pub fn create_local_variable(&mut self, name: String, initial_value: ExpressionValue<'ctx>) -> Result<LEPointerValue<'ctx>> {
+    pub fn create_local_variable(&mut self, name: String, initial_value: ExpressionValue<'ctx>, position: Position) -> Result<LEPointerValue<'ctx>> {
         let variable_pointer = self.build_alloca(initial_value)?;
-        self.context.compiler_context.insert_local_variable(name, variable_pointer.clone())?;
+        self.context.compiler_context.insert_local_variable(name, variable_pointer.clone(), position)?;
         Ok(variable_pointer)
     }
 
-    pub fn create_local_variable_with_exact_type(&mut self, name: String, initial_value: ExpressionValue<'ctx>, ty: &TypeDeclarator) -> Result<LEPointerValue<'ctx>> {
+    pub fn create_local_variable_with_exact_type(&mut self, name: String, initial_value: ExpressionValue<'ctx>, ty: &TypeDeclarator, position: Position) -> Result<LEPointerValue<'ctx>> {
         let variable_type = self.get_generic_type(ty)?;
-        let variable_pointer = self.build_alloca_without_initialize(variable_type)?;
+        let variable_pointer = self.build_alloca_without_initialize(variable_type);
         self.build_store(variable_pointer.clone(), initial_value)?;
-        self.context.compiler_context.insert_local_variable(name, variable_pointer.clone())?;
+        self.context.compiler_context.insert_local_variable(name, variable_pointer.clone(), position)?;
         Ok(variable_pointer)
     }
 
 
-    pub fn create_global_variable(&mut self, name: String, initial_value: ExpressionValue<'ctx>, module: &Module<'ctx>) -> Result<()> {
+    pub fn create_global_variable(&mut self, name: String, initial_value: ExpressionValue<'ctx>, module: &Module<'ctx>, position: Position) -> Result<()> {
         let value = self.read_expression_value(initial_value)?;
         let variable_type = LEBasicValue::get_le_type(&value);
         let variable = match variable_type.clone() {
@@ -273,7 +277,7 @@ impl<'ctx> LEGenerator<'ctx> {
             LEBasicTypeEnum::Vector(t) => { module.add_global(t.get_llvm_type(), Some(AddressSpace::Global), "") }
         };
         let pointer_value = LEPointerValue::from_type_and_llvm_value(variable_type, BasicValueEnum::PointerValue(variable.as_pointer_value()))?;
-        self.context.compiler_context.insert_global_variable(name, pointer_value)?;
+        self.context.compiler_context.insert_global_variable(name, pointer_value, position)?;
         Ok(())
     }
 
@@ -290,33 +294,39 @@ impl<'ctx> LEGenerator<'ctx> {
         LEPointerValue::from_type_and_llvm_value(ty, BasicValueEnum::PointerValue(global_ptr)).unwrap()
     }
 
-    pub fn create_global_variable_with_exact_type(&mut self, name: String, initial_value: ExpressionValue<'ctx>, ty: LEBasicTypeEnum<'ctx>, module: &Module<'ctx>) -> Result<()> {
+    pub fn create_global_variable_with_exact_type(&mut self,
+                                                  name: String,
+                                                  initial_value: ExpressionValue<'ctx>,
+                                                  ty: LEBasicTypeEnum<'ctx>,
+                                                  module: &Module<'ctx>,
+                                                  position: Position,
+    ) -> Result<()> {
         let value = self.build_cast(initial_value, ty)?;
         let variable_type = LEBasicValue::get_le_type(&value);
         let variable = Self::build_alloca_global(variable_type, module);
         self.build_store_with_value(variable.clone(), value)?;
-        self.context.compiler_context.insert_global_variable(name, variable)?;
+        self.context.compiler_context.insert_global_variable(name, variable, position)?;
         Ok(())
     }
 
 
-    pub fn insert_local_function(&mut self, name: String, function: LEFunctionValue<'ctx>) -> Result<LEFunctionValue<'ctx>> {
-        self.context.compiler_context.insert_local_function(name, function.clone())?;
+    pub fn insert_local_function(&mut self, name: String, function: LEFunctionValue<'ctx>, position: Position) -> Result<LEFunctionValue<'ctx>> {
+        self.context.compiler_context.insert_local_function(name, function.clone(), position)?;
         Ok(function)
     }
 
-    pub fn insert_global_function(&mut self, name: String, function: LEFunctionValue<'ctx>) -> Result<LEFunctionValue<'ctx>> {
-        self.context.compiler_context.insert_global_function(name, function.clone())?;
+    pub fn insert_global_function(&mut self, name: String, function: LEFunctionValue<'ctx>, position: Position) -> Result<LEFunctionValue<'ctx>> {
+        self.context.compiler_context.insert_global_function(name, function.clone(), position)?;
         Ok(function)
     }
 
-    pub fn insert_local_type(&mut self, name: String, ty: LEBasicTypeEnum<'ctx>) -> Result<LEBasicTypeEnum<'ctx>> {
-        self.context.compiler_context.insert_local_type(name, ty.clone())?;
+    pub fn insert_local_type(&mut self, name: String, ty: LEBasicTypeEnum<'ctx>, position: Position) -> Result<LEBasicTypeEnum<'ctx>> {
+        self.context.compiler_context.insert_local_type(name, ty.clone(), position)?;
         Ok(ty)
     }
 
-    pub fn insert_global_type(&mut self, name: String, ty: LEBasicTypeEnum<'ctx>) -> Result<LEBasicTypeEnum<'ctx>> {
-        self.context.compiler_context.insert_global_type(name, ty.clone())?;
+    pub fn insert_global_type(&mut self, name: String, ty: LEBasicTypeEnum<'ctx>, position: Position) -> Result<LEBasicTypeEnum<'ctx>> {
+        self.context.compiler_context.insert_global_type(name, ty.clone(), position)?;
         Ok(ty)
     }
 }

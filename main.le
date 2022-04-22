@@ -1,24 +1,27 @@
-decl le print_int(i64); ## 外部函数声明
+##                 !!!!!!! Attention !!!!!!
+## !!!!!! LELANG NOT SUPPORT UNICODE IDENTIFIER OR COMMENT NOW !!!!!!
+
+decl le print_int(i64); ## external function declare
 decl le print_float(f64);
-## 无返回值的函数
+## function with not return value
 le no_ret(){
-    for(var i:i32 = 1;i<10;i=i+1;){ ## for 循环
+    for(var i:i32 = 1;i<10;i=i+1;){ ## for loop
         print_int(i);
     }
 }
-## 结构体声明
+## structure declare
 struct MyStruct{
     member1:i32,
     member2:f64,
     member3:[i32;2]
 }
 
-##带返回值的函数，结构体参数，成员访问
+## function with return value, structure parameter,member access
 le ret_i32(number:MyStruct)->i32{
     ret number.member1;
 }
 
-## 带返回值的递归函数，计算斐波那契数
+## recursive function, calculate fibonacci number
 le fibonacci(step:u32)->u32{
     if(step<3){
         ret 1;
@@ -29,49 +32,44 @@ le fibonacci(step:u32)->u32{
 
 
 le ret_i32_1(number:i32)->i32{
-    while(number>0){ ## while循环，if else分支
+    while(number>0){ ## while loop and if else branch
         if (number==5){
             ret number;
         }el{
-         number=number-1;
+            number=number-1;
         }
     }
     ret number;
 }
 
-## leetcode题解示例，判断一个数是否是回文数
+## leetcode test
 le is_palindrome(x:i32)->bool {
-        ## 特殊情况：
-        ## 如上所述，当 x < 0 时，x 不是回文数。
-        ## 同样地，如果数字的最后一位是 0，为了使该数字为回文，
-        ## 则其第一位数字也应该是 0
-        ## 只有 0 满足这一属性
+
         if (x < 0 || (x % 10 == 0 && x != 0)) {
             ret false;
         }
 
-        var revertedNumber = 0;
+        var revertedNumber = 10.333%10;
         while (x > revertedNumber) {
             revertedNumber = revertedNumber * 10 + x % 10;
             x = x / 10;
         }
 
-        ## 当数字长度为奇数时，我们可以通过 revertedNumber/10 去除处于中位的数字。
-        ## 例如，当输入为 12321 时，在 while 循环的末尾我们可以得到 x = 12，revertedNumber = 123，
-        ## 由于处于中位的数字不影响回文（它总是与自己相等），所以我们可以简单地将其去除。
         ret x == revertedNumber || x == revertedNumber / 10;
 }
 
-## main函数，调用外部函数
+
+## main function and function all
 le main()->i32{
     no_ret();
     var my_struct_object = MyStruct{
         member1:999,
         member2:1.234,
-        member3:[1,2]
+        member3:[1,2],
     };
+    my_struct_object.member2=10;
     var return_i32_value = ret_i32(my_struct_object);
-    print_int(return_i32_value);
+    print_int(my_struct_object.member2);
     print_int(fibonacci(20));
     print_int(ret_i32_1(6));
     for(var i =0;i<20;i=i+1;){

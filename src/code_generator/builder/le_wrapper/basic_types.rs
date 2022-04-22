@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter, Pointer, write};
+use std::fmt::{Display, Formatter, Pointer, write, Write};
 use std::rc::Rc;
 
 use enum_dispatch::enum_dispatch;
@@ -9,7 +9,6 @@ use inkwell::context::Context;
 use inkwell::types::{AnyType, ArrayType, BasicType, BasicTypeEnum, FloatType, FunctionType, IntType, PointerType, StructType, VectorType};
 use inkwell::values::{AggregateValue, AnyValue, AnyValueEnum, ArrayValue, BasicValueEnum, FloatValue, FunctionValue, IntValue, PointerValue, StructValue, VectorValue};
 
-use crate::ast::nodes::Position;
 use crate::code_generator::builder::{LEArrayValue, LEBoolValue, LEContext, LEFloatValue, LEIntegerValue, LEPointerValue, LEStructValue, LEType, LEVectorValue};
 use crate::code_generator::builder::le_wrapper::LEBasicType;
 use crate::error::CompileError;
@@ -86,7 +85,7 @@ impl<'ctx> LEIntegerType<'ctx> {
 
 impl<'ctx> Display for LEIntegerType<'ctx> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{}{}", if self.signed() { "i" } else { "u" }, self.inner.llvm_type.get_bit_width())
     }
 }
 
@@ -159,7 +158,7 @@ impl<'ctx> LEFloatType<'ctx> {
 
 impl<'ctx> Display for LEFloatType<'ctx> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "f{}", if self.is_double() { "64" } else { "32" })
     }
 }
 
@@ -235,7 +234,7 @@ impl<'ctx> LEBoolType<'ctx> {
 
 impl<'ctx> Display for LEBoolType<'ctx> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "bool")
     }
 }
 
@@ -327,7 +326,14 @@ impl<'ctx> LEPointerType<'ctx> {
 
 impl<'ctx> Display for LEPointerType<'ctx> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        let mut pointed_type = self.get_point_type();
+        let mut point_counter = 1;
+        while let LEBasicTypeEnum::Pointer(pointer) = pointed_type {
+            pointed_type = pointer.get_point_type();
+            point_counter += 1;
+        }
+        (0..point_counter).for_each(|_| f.write_char('*').unwrap());
+        write!(f, "{}", pointed_type)
     }
 }
 
@@ -405,7 +411,7 @@ impl<'ctx> LEArrayType<'ctx> {
 
 impl<'ctx> Display for LEArrayType<'ctx> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "[{};{}]", self.inner.element_type, self.inner.llvm_type.len())
     }
 }
 
@@ -464,7 +470,7 @@ impl<'ctx> LEBasicType<'ctx> for LEStructType<'ctx> {
 
 impl<'ctx> Display for LEStructType<'ctx> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{:?}", self.name())
     }
 }
 

@@ -7,7 +7,7 @@ impl<'ctx> MemberAccessOperatorBuilder<'ctx> for LEPointerValue<'ctx> {
         let pointed_type = self.ty.get_point_type();
         if let LEBasicTypeEnum::Struct(struct_type) = pointed_type {
             let (offset, member_type) = struct_type.get_member_offset_and_type(member_name)
-                .ok_or_else(|| CompileError::NoMember { member_name: member_name.into() })?;
+                .ok_or_else(|| CompileError::NoSuchMember { member_name: member_name.into() })?;
 
             let member_pointer_type = LEBasicType::get_pointer_type(&member_type);
 
