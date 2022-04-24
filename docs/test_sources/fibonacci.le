@@ -1,0 +1,14 @@
+decl le print_int32(i32);
+
+le fibonacci(step:i32)->i32{
+    if(step3){
+        ret 1;
+    }el{
+        ret fibonacci(step-1)+fibonacci(step-2);
+    }
+}
+
+le main()->i32{
+    print_int32(fibonacci(20));
+    ret 0;
+}

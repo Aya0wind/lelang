@@ -1,0 +1,9 @@
+[E0014] Error: expect a type `i64`, but got `i32`
+   ╭─[docs/src/test_sources/invalid_conversion.le:6:16]
+   │
+ 6 │     print_int64(width_64);
+   ·                ─────┬─────
+   ·                     ╰─────── expect type `i64`, but found type `i32`
+   ·
+   · Help: maybe you need a type cast to type `i64` ?`
+───╯

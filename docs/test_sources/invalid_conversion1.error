@@ -1,0 +1,9 @@
+[E0012] Error: no suitable binary operator `+` for type: `i32` and `f64`
+   ╭─[docs/src/test_sources/invalid_conversion1.le:5:14]
+   │
+ 5 │     width_32=width_32+width_64_float;
+   ·              ───────────┬───────────
+   ·                         ╰───────────── operator `+` not suitable for type `i32` and type `f64` here
+   ·
+   · Help: maybe you need a `as` type cast here？
+───╯
