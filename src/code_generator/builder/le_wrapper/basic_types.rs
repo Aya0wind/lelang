@@ -1,19 +1,14 @@
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter, Pointer, write, Write};
+use std::fmt::{Display, Formatter, Write};
 use std::rc::Rc;
 
 use enum_dispatch::enum_dispatch;
 use inkwell::AddressSpace;
-use inkwell::builder::Builder;
-use inkwell::context::Context;
-use inkwell::types::{AnyType, ArrayType, BasicType, BasicTypeEnum, FloatType, FunctionType, IntType, PointerType, StructType, VectorType};
-use inkwell::values::{AggregateValue, AnyValue, AnyValueEnum, ArrayValue, BasicValueEnum, FloatValue, FunctionValue, IntValue, PointerValue, StructValue, VectorValue};
+use inkwell::types::{ArrayType, BasicTypeEnum, FloatType, IntType, PointerType, StructType, VectorType};
 
-use crate::code_generator::builder::{LEArrayValue, LEBoolValue, LEContext, LEFloatValue, LEIntegerValue, LEPointerValue, LEStructValue, LEType, LEVectorValue};
+use crate::code_generator::builder::{LEArrayValue, LEBoolValue, LEFloatValue, LEIntegerValue, LEPointerValue, LEStructValue, LEType, LEVectorValue};
 use crate::code_generator::builder::le_wrapper::LEBasicType;
-use crate::error::CompileError;
-
-use super::super::Result;
+use crate::code_generator::context::LEContext;
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 struct LEIntegerTypeInner<'ctx> {
@@ -737,16 +732,14 @@ impl<'ctx> LEBasicTypeEnum<'ctx> {
 
 impl<'ctx> Display for LEBasicTypeEnum<'ctx> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        unsafe {
-            match self {
-                LEBasicTypeEnum::Array(t) => { t.fmt(f) }
-                LEBasicTypeEnum::Integer(t) => { t.fmt(f) }
-                LEBasicTypeEnum::Bool(t) => { t.fmt(f) }
-                LEBasicTypeEnum::Float(t) => { t.fmt(f) }
-                LEBasicTypeEnum::Pointer(t) => { t.fmt(f) }
-                LEBasicTypeEnum::Struct(t) => { t.fmt(f) }
-                LEBasicTypeEnum::Vector(t) => { t.fmt(f) }
-            }
+        match self {
+            LEBasicTypeEnum::Array(t) => { t.fmt(f) }
+            LEBasicTypeEnum::Integer(t) => { t.fmt(f) }
+            LEBasicTypeEnum::Bool(t) => { t.fmt(f) }
+            LEBasicTypeEnum::Float(t) => { t.fmt(f) }
+            LEBasicTypeEnum::Pointer(t) => { t.fmt(f) }
+            LEBasicTypeEnum::Struct(t) => { t.fmt(f) }
+            LEBasicTypeEnum::Vector(t) => { t.fmt(f) }
         }
     }
 }

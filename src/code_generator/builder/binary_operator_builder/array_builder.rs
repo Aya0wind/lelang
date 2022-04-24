@@ -1,31 +1,28 @@
 use inkwell::builder::Builder;
-use inkwell::context::Context;
-use inkwell::values::{ArrayValue, StructValue};
 
-use crate::code_generator::builder::{LEArrayValue, LEBoolValue, LEContext, LEIntegerValue, LEPointerValue};
-use crate::code_generator::builder::binary_operator_builder::LogicBinaryOperator;
-use crate::code_generator::builder::binary_operator_builder::traits::{ArithmeticOperatorBuilder, CompareBinaryOperator};
+use crate::code_generator::builder::{LEArrayValue, LEBoolValue, LEPointerValue};
+use crate::code_generator::builder::binary_operator_builder::traits::{BasicMathOperateValue, CompareBinaryOperator};
+use crate::code_generator::context::LEContext;
+use crate::code_generator::Result;
 
-use super::super::Result;
-
-impl<'ctx> ArithmeticOperatorBuilder<'ctx> for LEArrayValue<'ctx> {
-    fn build_add(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
+impl<'ctx> BasicMathOperateValue<'ctx> for LEArrayValue<'ctx> {
+    fn build_add_unchecked(self, le_context: &LEContext<'ctx>, llvm_builder: &Builder<'ctx>, rhs: Self) -> Self {
         todo!()
     }
 
-    fn build_sub(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
+    fn build_sub_unchecked(self, le_context: &LEContext<'ctx>, llvm_builder: &Builder<'ctx>, rhs: Self) -> Self {
         todo!()
     }
 
-    fn build_mul(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
+    fn build_mul_unchecked(self, le_context: &LEContext<'ctx>, llvm_builder: &Builder<'ctx>, rhs: Self) -> Self {
         todo!()
     }
 
-    fn build_div(self, le_context: &LEContext<'ctx>, rhs: Self) -> Result<Self> {
+    fn build_div_unchecked(self, le_context: &LEContext<'ctx>, llvm_builder: &Builder<'ctx>, rhs: Self) -> Self {
         todo!()
     }
 
-    fn build_cmp(self, le_context: &LEContext<'ctx>, rhs: Self, op: CompareBinaryOperator) -> Result<LEBoolValue<'ctx>> {
+    fn build_cmp_unchecked(self, le_context: &LEContext<'ctx>, llvm_builder: &Builder<'ctx>, op: CompareBinaryOperator, rhs: Self) -> LEBoolValue<'ctx> {
         todo!()
     }
 }

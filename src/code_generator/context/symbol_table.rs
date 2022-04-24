@@ -1,15 +1,12 @@
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use inkwell::context::Context;
-use inkwell::values::FunctionValue;
 
 use crate::ast::nodes::TypeDeclarator;
-use crate::code_generator::builder::{LEBasicType, LEBasicTypeEnum, LEBasicValueEnum, LEBoolType, LEBoolValue, LEFloatType, LEFunctionValue, LEIntegerType, LEPointerValue};
-use crate::error::{CompileError, LEError};
+use crate::code_generator::builder::{LEBasicType, LEBasicTypeEnum, LEBoolType, LEBoolValue, LEFloatType, LEFunctionValue, LEIntegerType, LEPointerValue};
+use crate::code_generator::Result;
+use crate::error::CompileError;
 use crate::lexer::Position;
-
-use super::Result;
 
 #[derive(Clone, Debug)]
 pub struct MetaData {
@@ -251,7 +248,7 @@ impl<'ctx> SymbolTable<'ctx> {
                 Err(CompileError::IdentifierAlreadyDefined { identifier: name, defined_position })
             } else {
                 Err(CompileError::CanNotRedefineBuiltinTypes { identifier: name })
-            }
+            };
         } else {
             global_table.entry(name).or_insert(symbol);
         }
@@ -269,7 +266,7 @@ impl<'ctx> SymbolTable<'ctx> {
                 Err(CompileError::IdentifierAlreadyDefined { identifier: name, defined_position })
             } else {
                 Err(CompileError::CanNotRedefineBuiltinTypes { identifier: name })
-            }
+            };
         } else {
             let local_table = self.table.last_mut().unwrap();
             local_table.entry(name).or_insert(symbol);

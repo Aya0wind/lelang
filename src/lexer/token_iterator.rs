@@ -1,11 +1,10 @@
 #![allow(unused)]
 
-use std::fmt::{Display, Formatter, write};
+use std::fmt::{Debug, Display, Formatter, write};
 use std::ops::Range;
 use std::rc::Rc;
 
 use logos::{Lexer, Logos};
-use strum_macros::Display;
 
 use crate::error::{LEError, Result, SyntaxError, TokenType};
 use crate::lexer::LEToken::Semicolon;
@@ -144,6 +143,9 @@ pub enum LogosToken {
     #[token("=", | lex | record_span(lex))]
     Assign,
 
+    #[token("as", | lex | record_span(lex))]
+    Cast,
+
     #[token("==", | lex | record_span(lex))]
     Equal,
 
@@ -186,14 +188,14 @@ pub enum LogosToken {
     #[regex(r#""[^\n]*""#, | lex | {record_span(lex); parse_string_literal_token(lex.slice())})]
     StringLiteral(String),
 
-    #[regex(r#"[0-9]*(\.[0-9]+)?"#, | lex | {record_span(lex); parse_number(lex).ok()})]
+    #[regex(r#"[0-9]*(\.[0-9]+)?"#, | lex | {record_span(lex); parse_number(lex)})]
     NumberLiteral(Number),
 
     #[error]
     Error,
 }
 
-#[derive(Debug, PartialEq, Display, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum KeyWord {
     If,
 
@@ -215,6 +217,25 @@ pub enum KeyWord {
 
     Ref,
 }
+
+impl Display for KeyWord {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            KeyWord::If => { "if" }
+            KeyWord::Else => { "el" }
+            KeyWord::Declare => { "decl" }
+            KeyWord::FunctionDefine => { "le" }
+            KeyWord::VariableDeclare => { "var" }
+            KeyWord::Return => { "ret" }
+            KeyWord::For => { "for" }
+            KeyWord::While => { "while" }
+            KeyWord::StructureDeclare => { "struct" }
+            KeyWord::Ref => { "ref" }
+        };
+        f.write_str(str)
+    }
+}
+
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Operator {
@@ -253,6 +274,8 @@ pub enum Operator {
     Rev,
 
     Mod,
+
+    Cast,
 }
 
 impl Display for Operator {
@@ -276,19 +299,30 @@ impl Display for Operator {
             Operator::Not => { "!" }
             Operator::Rev => { "~" }
             Operator::Mod => { "%" }
+            Operator::Cast => { "as" }
         };
         f.write_str(s)
     }
 }
 
-#[derive(Debug, PartialEq, Display, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 #[allow(dead_code)]
 pub enum Number {
     Integer(u64),
     Float(f64),
 }
 
-#[derive(Debug, PartialEq, Display, Clone)]
+impl Display for Number {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Number::Integer(i) => { f.write_fmt(format_args!("{}", i)) }
+            Number::Float(float) => { f.write_fmt(format_args!("{}", float)) }
+        }
+    }
+}
+
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum LEToken {
     KeyWord(KeyWord),
 
@@ -321,6 +355,29 @@ pub enum LEToken {
     SingleArrow,
 
     DoubleArrow,
+}
+
+impl Display for LEToken {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LEToken::KeyWord(k) => { Display::fmt(k, f) }
+            LEToken::Operator(o) => { Display::fmt(o, f) }
+            LEToken::NumberLiteral(n) => { Display::fmt(n, f) }
+            LEToken::StringLiteral(s) => { Display::fmt(s, f) }
+            LEToken::Identifier(i) => { Display::fmt(i, f) }
+            LEToken::Colon => { f.write_str(":") }
+            LEToken::Comma => { f.write_str(":") }
+            LEToken::Semicolon => { f.write_str(";") }
+            LEToken::LeftPar => { f.write_str("(") }
+            LEToken::RightPar => { f.write_str(")") }
+            LEToken::LeftBracket => { f.write_str("[") }
+            LEToken::RightBracket => { f.write_str("]") }
+            LEToken::RightBrace => { f.write_str("{") }
+            LEToken::LeftBrace => { f.write_str("}") }
+            LEToken::SingleArrow => { f.write_str("->") }
+            LEToken::DoubleArrow => { f.write_str("=>") }
+        }
+    }
 }
 
 
@@ -371,30 +428,8 @@ impl From<LogosToken> for LEToken {
             LogosToken::Mod => { Self::Operator(Operator::Mod) }
             LogosToken::NotEqual => { Self::Operator(Operator::NotEqual) }
             LogosToken::DoubleArrow => { Self::DoubleArrow }
+            LogosToken::Cast => { Self::Operator(Operator::Cast) }
             _ => { unreachable!("unknown character handling not implement yet") }
-        }
-    }
-}
-
-impl LEToken {
-    pub fn to_token_str(&self) -> &'static str {
-        match self {
-            LEToken::KeyWord(_) => { "`Keyword`" }
-            LEToken::Operator(_) => { "`Operator`" }
-            LEToken::NumberLiteral(_) => { "`Number`" }
-            LEToken::StringLiteral(_) => { "`String`" }
-            LEToken::Identifier(_) => { "`Identifier`" }
-            LEToken::Colon => { "`:`" }
-            LEToken::Comma => { "`,`" }
-            LEToken::Semicolon => { "`;`" }
-            LEToken::LeftPar => { "`(`" }
-            LEToken::RightPar => { "`)`" }
-            LEToken::LeftBracket => { "`[`" }
-            LEToken::RightBracket => { "`]`" }
-            LEToken::RightBrace => { "`}`" }
-            LEToken::LeftBrace => { "`{`" }
-            LEToken::SingleArrow => { "`->`" }
-            LEToken::DoubleArrow => { "`=>`" }
         }
     }
 }
@@ -408,6 +443,7 @@ impl LEToken {
 /// use std::fs::File;
 /// use std::io::Read;
 /// use std::io::Read;
+/// use lelang::lexer::LELexer;
 /// use LELexer;
 /// let mut f = File::open("benches/test_case/lexer_test.le").unwrap();
 /// let mut buffer = String::new();

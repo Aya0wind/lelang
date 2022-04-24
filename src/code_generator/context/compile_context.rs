@@ -1,17 +1,14 @@
-use inkwell::AddressSpace;
 use inkwell::basic_block::BasicBlock;
 use inkwell::context::Context;
-use inkwell::module::Module;
 use inkwell::values::FunctionValue;
-
-use builder::Result;
 
 use crate::ast::nodes::TypeDeclarator;
 use crate::code_generator::builder;
-use crate::code_generator::builder::{LEBasicType, LEBasicTypeEnum, LEFunctionValue, LEPointerValue};
-use crate::code_generator::builder::symbol_table::{Symbol, SymbolTable};
-use crate::error::CompileError;
+use crate::code_generator::builder::{LEBasicTypeEnum, LEFunctionValue, LEPointerValue};
+use crate::code_generator::context::symbol_table::{Symbol, SymbolTable};
 use crate::lexer::Position;
+
+use super::super::Result;
 
 #[derive(Debug)]
 pub struct CompilerContext<'ctx> {

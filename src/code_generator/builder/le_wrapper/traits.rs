@@ -5,9 +5,8 @@ use inkwell::values::{AnyValueEnum, BasicValue, BasicValueEnum};
 
 use crate::code_generator::builder::le_wrapper::*;
 use crate::code_generator::builder::LEArrayType;
+use crate::code_generator::Result;
 use crate::error::CompileError;
-
-use super::super::Result;
 
 pub trait LEType<'ctx>: Sized {
     #[allow(non_camel_case_types)]

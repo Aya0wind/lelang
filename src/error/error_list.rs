@@ -1,0 +1,16 @@
+pub const UNEXPECT_TOKEN: &str = "E0001";
+pub const MISSING_TOKEN: &str = "E0002";
+pub const ARRAY_SIZE_MUST_BE_INTEGER: &str = "E0003";
+pub const UNKNOWN_IDENTIFIER: &str = "E0004";
+pub const IDENTIFIER_IS_NOT_TYPE: &str = "E0005";
+pub const EXPRESSION_IS_NOT_TYPE: &str = "E0006";
+pub const IDENTIFIER_IS_NOT_CALLABLE: &str = "E0007";
+pub const EXPRESSION_IS_NOT_LEFT_VALUE_EXPRESSION: &str = "E0008";
+pub const EXPRESSION_IS_NOT_RIGHT_VALUE_EXPRESSION: &str = "E0009";
+pub const IDENTIFIER_ALREADY_DEFINED: &str = "E0010";
+pub const CAN_NOT_REDEFINE_BUILTIN_TYPES: &str = "E0011";
+pub const NO_SUITABLE_BINARY_OPERATOR: &str = "E0012";
+pub const NO_SUITABLE_UNARY_OPERATOR: &str = "E0013";
+pub const TYPE_MISMATCHED: &str = "E0014";
+pub const NO_SUCH_MEMBER: &str = "E0015";
+pub const NOT_ALLOW_ZERO_LENGTH_ARRAY: &str = "E0016";

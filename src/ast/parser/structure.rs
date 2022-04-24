@@ -1,4 +1,4 @@
-use crate::ast::nodes::{Expr, Structure, StructureInitializer};
+use crate::ast::nodes::{Expr, Identifier, Structure, StructureInitializer};
 use crate::ast::parser::{parse_annotation, parse_expression, parse_function_params, parse_type_declarator};
 use crate::error::{LEError, Result};
 use crate::error::{SyntaxError, TokenType};
@@ -7,6 +7,7 @@ use crate::lexer::{LELexer, LEToken, Position};
 pub fn parse_structure(lexer: &mut LELexer) -> Result<Structure> {
     let start_pos = lexer.pos();
     lexer.consume_keyword()?;
+    let structure_pos = lexer.pos();
     let structure_name = lexer.consume_identifier()?;
     lexer.consume_left_brace()?;
     let mut members = vec![];
@@ -33,7 +34,7 @@ pub fn parse_structure(lexer: &mut LELexer) -> Result<Structure> {
             }
         }
     }
-    Ok(Structure { name: structure_name, members, pos: start_pos.sum(&lexer.pos()) })
+    Ok(Structure { identifier: Identifier { name: structure_name, pos: structure_pos }, members, pos: start_pos.sum(&lexer.pos()) })
 }
 
 

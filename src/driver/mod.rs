@@ -26,7 +26,7 @@ mod target;
 
 pub fn compile_with_config(config: &Args, source: &str) -> Result<()> {
     //词法分析
-    let mut lexer = lexer::LELexer::new(source);
+    let lexer = lexer::LELexer::new(source);
     if let Some(lexer) = lexer {
         //语法分析
         let ast = Ast::from_lexer(lexer)?;

@@ -6,9 +6,8 @@ use inkwell::values::{AnyValueEnum, ArrayValue, BasicValueEnum, FloatValue, Func
 
 use crate::code_generator::builder::{LEArrayType, LEBoolType, LEStructType, LEValue, LEVectorType};
 use crate::code_generator::builder::le_wrapper::{LEBasicType, LEBasicTypeEnum, LEBasicValue, LEFloatType, LEIntegerType, LEPointerType};
+use crate::code_generator::Result;
 use crate::error::CompileError;
-
-use super::super::Result;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LEIntegerValue<'ctx> {

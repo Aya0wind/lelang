@@ -10,6 +10,8 @@ use thiserror::Error;
 use crate::error::TokenType::Colon;
 use crate::lexer::{LELexer, LEToken, Operator, Position};
 
+use super::error_list;
+
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
     If,
@@ -17,6 +19,7 @@ pub enum TokenType {
     While,
     Else,
     FunctionDeclare,
+    FunctionDefine,
     VariableDeclare,
     Return,
     Colon,
@@ -42,6 +45,7 @@ impl TokenType {
             TokenType::For => { "for" }
             TokenType::While => { "while" }
             TokenType::Else => { "el" }
+            TokenType::FunctionDefine => { "le" }
             TokenType::FunctionDeclare => { "decl" }
             TokenType::VariableDeclare => { "var" }
             TokenType::Return => { "ret" }
@@ -79,10 +83,10 @@ impl Display for TokenTypes {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut types = self.collection.iter();
         if let Some(ty) = types.next() {
-            f.write_fmt(format_args!("`{}`", ty.to_token_str()))?;
+            f.write_fmt(format_args!("{}", ty.to_token_str()))?;
             for ty in types {
                 f.write_str(" or ")?;
-                f.write_fmt(format_args!("`{}`", ty.to_token_str()))?;
+                f.write_fmt(format_args!("{}", ty.to_token_str()))?;
             }
         }
         Ok(())
@@ -129,7 +133,7 @@ impl SyntaxError {
 #[allow(unused)]
 #[derive(Debug, Error)]
 pub enum CompileError {
-    #[error("can not find symbol `{identifier}`")]
+    #[error("can not find identifier `{identifier}` in this scope")]
     UnknownIdentifier {
         identifier: String,
     },
@@ -137,6 +141,11 @@ pub enum CompileError {
     #[error("expect a type name, but identifier `{identifier}` is not a type")]
     IdentifierIsNotType {
         identifier: String,
+    },
+
+    #[error("expect a type identifier, but found a expression")]
+    ExpressionIsNotType {
+        pos: Position,
     },
 
     #[error("expect a call able expression, but expression `{identifier}` is not a function")]
@@ -195,15 +204,14 @@ impl CompileError {
     }
 }
 
-#[allow(unused)]
 #[derive(Debug, Error)]
 pub enum LEError {
-    #[error("[pos:{position}]SyntaxError:{syntax_error}")]
+    #[error("[{position}] SyntaxError:{syntax_error}")]
     SyntaxError {
         syntax_error: SyntaxError,
         position: Position,
     },
-    #[error("[pos:{position}]CompileError:{compile_error}")]
+    #[error("[{position}] CompileError:{compile_error}")]
     CompileError {
         compile_error: CompileError,
         position: Position,
@@ -221,38 +229,52 @@ impl LEError {
 
     pub fn to_error_report_colored<'s>(&self, src: &'s str) -> Report<(&'s str, Range<usize>)> {
         let code_color = Color::White;
+        let label_color = Color::Green;
         let help_color = Color::Green;
+        let mut loop_rainbow_color = [
+            Color::Red,
+            Color::Blue,
+            Color::Yellow,
+            Color::Green,
+            Color::Cyan,
+            Color::Magenta,
+        ].into_iter().cycle();
         match self {
             LEError::SyntaxError { syntax_error, position } => {
                 match syntax_error {
                     SyntaxError::UnexpectToken { expect, found } => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0)
+                            .with_code(error_list::UNEXPECT_TOKEN)
                             .with_message(syntax_error.to_string().fg(code_color))
                             .with_label(
                                 Label::new((src, position.range.clone()))
-                                    .with_message(format!("Got a {} here, but expect {}.", found.to_token_str().fg(Color::Red), expect.to_string().fg(Color::Red)))
+                                    .with_message(format!("Got a token `{}` here, but expect `{}`.", found.fg(loop_rainbow_color.next().unwrap()), expect.to_string().fg(loop_rainbow_color.next().unwrap())))
+                                    .with_color(label_color)
                             )
-                            .with_help(format!("Considering change it or add a {}", format!("{expect}").fg(help_color)))
+                            .with_help(format!("Considering add `{}`", expect.fg(help_color)))
                             .finish()
                     }
                     SyntaxError::MissingToken { expect } => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(1)
+                            .with_code(error_list::MISSING_TOKEN)
                             .with_message(syntax_error.to_string().fg(code_color))
                             .with_label(
                                 Label::new((src, position.range.clone()))
-                                    .with_message(format!("Missing a {} here", expect.to_string().fg(Color::Red)))
+                                    .with_message(format!("Missing a `{}` here", expect.to_string().fg(loop_rainbow_color.next().unwrap())))
+                                    .with_color(label_color)
                             )
-                            .with_help("Considering finish that".to_string())
+                            .with_help("Considering finish that")
                             .finish()
                     }
                     SyntaxError::ArraySizeMustBeInteger {} => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0000)
+                            .with_code(error_list::ARRAY_SIZE_MUST_BE_INTEGER)
                             .with_message("Can only use signed integer as a array length".to_string())
-                            .with_label(Label::new((src, position.range.clone())))
-                            .with_help(format!("Considering change it to a {}", "sign integer".to_string().fg(Color::Red)))
+                            .with_label(
+                                Label::new((src, position.range.clone()))
+                                    .with_color(label_color)
+                            )
+                            .with_help(format!("Considering change it to a `{}`", "sign integer".fg(Color::Green)))
                             .finish()
                     }
                 }
@@ -261,133 +283,155 @@ impl LEError {
                 match compile_error {
                     CompileError::UnknownIdentifier { identifier } => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0000)
+                            .with_code(error_list::UNKNOWN_IDENTIFIER)
                             .with_message(compile_error.to_string())
                             .with_label(
                                 Label::new((src, position.range.clone()))
-                                    .with_message(format!("can not find a symbol named: `{}` ", identifier.fg(Color::Red)))
+                                    .with_message(format!("can not find this identifier `{}`", identifier.fg(loop_rainbow_color.next().unwrap())))
+                                    .with_color(label_color)
                             )
                             .finish()
                     }
                     CompileError::IdentifierIsNotType { identifier } => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0000)
+                            .with_code(error_list::IDENTIFIER_IS_NOT_TYPE)
                             .with_message(compile_error.to_string())
                             .with_label(
                                 Label::new((src, position.range.clone()))
-                                    .with_message(format!("identifier `{}` is not a type", identifier.fg(Color::Red)))
+                                    .with_message(format!("identifier `{}` is not a type", identifier.fg(loop_rainbow_color.next().unwrap())))
+                                    .with_color(label_color)
                             )
                             .finish()
                     }
                     CompileError::IdentifierIsNotCallable { identifier } => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0000)
+                            .with_code(error_list::IDENTIFIER_IS_NOT_CALLABLE)
                             .with_message(compile_error.to_string())
                             .with_label(
                                 Label::new((src, position.range.clone()))
-                                    .with_message(format!("identifier `{}` is not a function or any callable object", identifier.fg(Color::Red)))
+                                    .with_message(format!("identifier `{}` is not a function or any callable object", identifier.fg(loop_rainbow_color.next().unwrap())))
+                                    .with_color(label_color)
                             )
                             .finish()
                     }
                     CompileError::ExpressionIsNotLeftValueExpression => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0000)
+                            .with_code(error_list::EXPRESSION_IS_NOT_LEFT_VALUE_EXPRESSION)
                             .with_message(compile_error.to_string())
                             .with_label(
                                 Label::new((src, position.range.clone()))
                                     .with_message("expression is not assignable".to_string())
+                                    .with_color(label_color)
                             )
                             .finish()
                     }
                     CompileError::ExpressionIsNotRightValueExpression => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0000)
+                            .with_code(error_list::EXPRESSION_IS_NOT_RIGHT_VALUE_EXPRESSION)
                             .with_message(compile_error.to_string())
                             .with_label(
                                 Label::new((src, position.range.clone()))
                                     .with_message("expression have a void type, but access it".to_string())
+                                    .with_color(label_color)
                             )
                             .finish()
                     }
                     CompileError::IdentifierAlreadyDefined { identifier, defined_position } => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0000)
+                            .with_code(error_list::IDENTIFIER_ALREADY_DEFINED)
                             .with_message(compile_error.to_string())
                             .with_label(
                                 Label::new((src, position.range.clone()))
                                     .with_message("identifier defined here".fg(Color::Blue))
-                                    .with_color(Color::Green)
+                                    .with_color(label_color)
                             )
                             .with_label(
                                 Label::new((src, defined_position.range.clone()))
-                                    .with_message(format!("but identifier `{}` already defined here", identifier.fg(Color::Red)))
-                                    .with_color(Color::Green)
+                                    .with_message(format!("but identifier `{}` already defined here", identifier.fg(loop_rainbow_color.next().unwrap())))
+                                    .with_color(label_color)
                             )
                             .with_help("considering change the identifier")
                             .finish()
                     }
                     CompileError::NoSuitableBinaryOperator { op, left_type, right_type } => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0000)
+                            .with_code(error_list::NO_SUITABLE_BINARY_OPERATOR)
                             .with_message(compile_error.to_string())
                             .with_label(
                                 Label::new((src, position.range.clone()))
-                                    .with_message(format!("operator `{op}` not suitable for type `{}` and type `{}` here", left_type.fg(Color::Blue), right_type.fg(Color::Red)))
+                                    .with_message(format!("operator `{}` not suitable for type `{}` and type `{}` here", op.fg(loop_rainbow_color.next().unwrap()), left_type.fg(loop_rainbow_color.next().unwrap()), right_type.fg(loop_rainbow_color.next().unwrap())))
+                                    .with_color(label_color)
                             )
-                            .with_note(format!("no such operator between type `{}` and type `{}`", left_type.fg(Color::Blue), right_type.fg(Color::Red)))
+                            .with_help(format!("maybe you need a `{}` type cast here？", "as".fg(Color::Green)))
                             .finish()
                     }
                     CompileError::NoSuitableUnaryOperator { op, target_type } => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0000)
+                            .with_code(error_list::NO_SUITABLE_UNARY_OPERATOR)
                             .with_message(compile_error.to_string())
                             .with_label(
                                 Label::new((src, position.range.clone()))
-                                    .with_message(format!("operator `{op}` not suitable for type `{}` here", target_type.fg(Color::Red)))
+                                    .with_message(format!("operator `{}` not suitable for type `{}` here", op.fg(loop_rainbow_color.next().unwrap()), target_type.fg(loop_rainbow_color.next().unwrap())))
+                                    .with_color(label_color)
                             )
-                            .with_note(format!("no such operator for type `{}`", target_type.fg(Color::Red)))
                             .finish()
                     }
                     CompileError::TypeMismatched { expect, found } => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0000)
+                            .with_code(error_list::TYPE_MISMATCHED)
                             .with_message(compile_error.to_string())
                             .with_label(
                                 Label::new((src, position.range.clone()))
-                                    .with_message(format!("expect type `{expect}`, but found type `{found}`"))
+                                    .with_message(format!("expect type `{}`, but found type `{}`", expect.fg(loop_rainbow_color.next().unwrap()), found.fg(loop_rainbow_color.next().unwrap())))
+                                    .with_color(label_color)
                             )
                             .with_help(format!("maybe you need a type cast to type `{}` ?`", expect.fg(Color::Green)))
                             .finish()
                     }
                     CompileError::NoSuchMember { member_name } => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0000)
+                            .with_code(error_list::NO_SUCH_MEMBER)
                             .with_message(compile_error.to_string())
                             .with_label(
                                 Label::new((src, position.range.clone()))
-                                    .with_message(format!("member `{}` access at here", member_name.fg(Color::Red)))
+                                    .with_message(format!("member `{}` access at here", member_name.fg(loop_rainbow_color.next().unwrap())))
+                                    .with_color(label_color)
                             )
                             .with_help(format!("maybe you want to create a member named `{}` ?`", member_name.fg(Color::Green)))
                             .finish()
                     }
                     CompileError::NotAllowZeroLengthArray => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0000)
+                            .with_code(error_list::NOT_ALLOW_ZERO_LENGTH_ARRAY)
                             .with_message(compile_error.to_string())
                             .with_label(
                                 Label::new((src, position.range.clone()))
                                     .with_message("length defined here".to_string())
+                                    .with_color(label_color)
                             )
                             .with_help("change the array length to integer")
                             .finish()
                     }
                     CompileError::CanNotRedefineBuiltinTypes { identifier } => {
                         Report::build(ReportKind::Error, src, position.range.start())
-                            .with_code(0000)
+                            .with_code(error_list::CAN_NOT_REDEFINE_BUILTIN_TYPES)
                             .with_message(compile_error.to_string())
                             .with_label(
                                 Label::new((src, position.range.clone()))
                                     .with_message(format!("identifier `{}` defined here", identifier.fg(Color::Green)))
+                                    .with_color(label_color)
+                            )
+                            .with_help("maybe you can change the identifier to another, which is not keyword or builtin identifier")
+                            .finish()
+                    }
+                    CompileError::ExpressionIsNotType { pos } => {
+                        Report::build(ReportKind::Error, src, position.range.start())
+                            .with_code(error_list::EXPRESSION_IS_NOT_TYPE)
+                            .with_message(compile_error.to_string())
+                            .with_label(
+                                Label::new((src, pos.range.clone()))
+                                    .with_message(format!("expression here is not a `{}`", "type".fg(Color::Blue)))
+                                    .with_color(label_color)
                             )
                             .with_help("maybe you can change the identifier to no keyword or builtin identifier")
                             .finish()

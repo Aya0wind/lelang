@@ -1,4 +1,4 @@
-pub use generic_builder::GenericBuilder;
+pub use generic_builder::MathOperateBuilder;
 pub use traits::*;
 
 mod number_builder;

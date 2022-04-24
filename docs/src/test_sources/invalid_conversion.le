@@ -1,0 +1,8 @@
+decl le print_int64(i64);
+
+
+le main()->i32{
+    var width_64:i32 = 100;
+    print_int64(width_64);
+    ret 0;
+}

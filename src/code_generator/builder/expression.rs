@@ -1,15 +1,15 @@
 use crate::code_generator::builder::{LEBasicValueEnum, LEPointerValue};
-use crate::code_generator::builder::Result;
+use crate::code_generator::Result;
 use crate::error::CompileError;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum ExpressionValue<'ctx> {
+pub enum Expression<'ctx> {
     Left(LEPointerValue<'ctx>),
     Right(LEBasicValueEnum<'ctx>),
     Unit,
 }
 
-impl<'ctx> ExpressionValue<'ctx> {
+impl<'ctx> Expression<'ctx> {
     pub fn is_left_value(&self) -> bool {
         matches!(self, Self::Left(_))
     }

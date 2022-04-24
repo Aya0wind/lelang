@@ -38,6 +38,7 @@ impl ASTNode for FunctionCall {
         self.pos.clone()
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct ForLoop {
     pub init_statement: Box<Statement>,
@@ -52,6 +53,7 @@ impl ASTNode for ForLoop {
         self.pos.clone()
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct WhileLoop {
     pub condition: Option<Box<Expr>>,
@@ -64,6 +66,7 @@ impl ASTNode for WhileLoop {
         self.pos.clone()
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct FunctionPrototype {
     pub identifier: Identifier,
@@ -91,6 +94,7 @@ impl ASTNode for FunctionDefinition {
         self.pos.clone()
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct CodeBlock {
     pub statements: Vec<Statement>,
@@ -116,6 +120,7 @@ impl ASTNode for IfStatement {
         self.pos.clone()
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct NumberLiteral {
     pub number: Number,
@@ -127,6 +132,7 @@ impl ASTNode for NumberLiteral {
         self.pos.clone()
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct UnaryOpExpression {
     pub op: Operator,
@@ -139,6 +145,7 @@ impl ASTNode for UnaryOpExpression {
         self.pos.clone()
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct Variable {
     pub prototype: VariablePrototype,
@@ -151,6 +158,7 @@ impl ASTNode for Variable {
         self.pos.clone()
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct VariablePrototype {
     pub type_declarator: Option<TypeDeclarator>,
@@ -175,6 +183,7 @@ impl ASTNode for Identifier {
         self.pos.clone()
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct ArrayInitializer {
     pub elements: Vec<Expr>,
@@ -186,6 +195,7 @@ impl ASTNode for ArrayInitializer {
         self.pos.clone()
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct ArrayDeclarator {
     pub element_type: TypeDeclarator,
@@ -198,9 +208,10 @@ impl ASTNode for ArrayDeclarator {
         self.pos.clone()
     }
 }
+
 #[derive(Debug, Clone)]
 pub struct Structure {
-    pub name: String,
+    pub identifier: Identifier,
     pub members: Vec<(String, TypeDeclarator)>,
     pub pos: Position,
 }
@@ -235,6 +246,7 @@ impl ASTNode for StringLiteral {
         self.pos.clone()
     }
 }
+
 #[derive(Debug, Clone)]
 pub enum TypeDeclarator {
     TypeIdentifier(Identifier),
@@ -349,14 +361,12 @@ impl Ast {
                             }
                             _ => {
                                 return Err(LEError::new_syntax_error(
-                                    SyntaxError::unexpect_token(vec![TokenType::FunctionDeclare], LEToken::KeyWord(keyword.clone())),
+                                    SyntaxError::unexpect_token(vec![TokenType::FunctionDefine, TokenType::FunctionDeclare], LEToken::KeyWord(keyword)),
                                     lexer.pos()));
                             }
                         }
                     } else {
-                        return Err(LEError::new_syntax_error(
-                            SyntaxError::unexpect_token(vec![TokenType::FunctionDeclare], token.clone()),
-                            lexer.pos()));
+                        return Err(SyntaxError::unexpect_token(vec![TokenType::FunctionDefine, TokenType::FunctionDeclare], token.clone()).to_leerror(lexer.pos()));
                     }
                 }
             }

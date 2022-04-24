@@ -1,4 +1,3 @@
-use anyhow::Result;
 use inkwell::OptimizationLevel;
 use inkwell::targets::{CodeModel, InitializationConfig, RelocMode, TargetMachine};
 

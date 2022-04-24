@@ -27,6 +27,7 @@ fn get_operator_precedence(op: &Operator) -> usize {
         Operator::Xor => { 5 }
         Operator::Not => { 5 }
         Operator::Rev => { 5 }
+        Operator::Cast => { 50 }
     }
 }
 

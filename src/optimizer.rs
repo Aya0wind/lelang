@@ -1,4 +1,3 @@
-use anyhow::Result;
 use inkwell::module::Module;
 use inkwell::OptimizationLevel;
 use inkwell::passes::{PassManager, PassManagerBuilder};

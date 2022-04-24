@@ -1,6 +1,5 @@
 extern crate nom;
 
-use anyhow::Result;
 use logos::Lexer;
 use nom::{Err, IResult, Needed};
 use nom::character::is_digit;
@@ -22,18 +21,18 @@ fn integer(input: &str) -> IResult<&str, u64> {
     Ok((&input[counter..], input[..counter].parse::<u64>().unwrap()))
 }
 
-fn parse(input: &str) -> Result<(Number, usize)> {
+fn parse(input: &str) -> (Number, usize) {
     if let Ok((remain, number)) = integer(input) {
-        Ok((Number::Integer(number), remain.len()))
+        (Number::Integer(number), remain.len())
     } else {
         let (remain, number) = double::<_, nom::error::Error<&str>>(input).unwrap();
-        Ok((Number::Float(number), remain.len()))
+        (Number::Float(number), remain.len())
     }
 }
 
-pub fn parse_number(input: &mut Lexer<LogosToken>) -> Result<Number> {
-    let result = parse(input.slice())?;
-    Ok(result.0)
+pub fn parse_number(input: &mut Lexer<LogosToken>) -> Number {
+    let result = parse(input.slice());
+    result.0
 }
 
 #[allow(unused)]
