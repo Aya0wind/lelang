@@ -1,6 +1,6 @@
 use inkwell::builder::Builder;
 
-use crate::code_generator::builder::{LEBasicType, LEBasicTypeEnum, LEBasicValue, LEBasicValueEnum, LEBoolValue, LEFloatType, LEFloatValue, LEIntegerType, LEIntegerValue, LEType, LEValue};
+use crate::code_generator::builder::{LEBasicType, LEBasicTypeEnum, LEBasicValue, LEBasicValueEnum, LEBoolValue, LEFloatType, LEFloatValue, LEIntegerType, LEIntegerValue, LEType};
 use crate::code_generator::builder::binary_operator_builder::{LogicBinaryOperator, ModOperateValue};
 use crate::code_generator::builder::binary_operator_builder::traits::{BasicMathOperateValue, CompareBinaryOperator};
 use crate::code_generator::context::LEContext;
@@ -40,17 +40,6 @@ impl<'a, 'ctx> MathOperateBuilder<'a, 'ctx> {
     }
     pub fn build_bool_to_integer(&self, le_context: &LEContext<'ctx>, lhs: LEBoolValue<'ctx>, rhs: LEIntegerType<'ctx>) -> Result<LEIntegerValue<'ctx>> {
         Ok(LEIntegerValue { ty: rhs.clone(), llvm_value: self.llvm_builder.build_int_cast(lhs.llvm_value, rhs.get_llvm_type(), "") })
-    }
-
-    pub fn build_integer_to_bool(&self, le_context: &LEContext<'ctx>, lhs: LEIntegerValue<'ctx>) -> Result<LEBoolValue<'ctx>> {
-        let le_bool_type = le_context.bool_type();
-        Ok(LEBoolValue { ty: le_bool_type.clone(), llvm_value: self.llvm_builder.build_int_cast(lhs.llvm_value, le_bool_type.get_llvm_type(), "") })
-    }
-
-    pub fn build_float_to_bool(&self, le_context: &LEContext<'ctx>, lhs: LEFloatValue<'ctx>) -> Result<LEBoolValue<'ctx>> {
-        //todo! 浮点转换全1布尔量算法
-        let le_bool_type = le_context.bool_type();
-        Ok(LEBoolValue { ty: le_bool_type.clone(), llvm_value: self.llvm_builder.build_bitcast(lhs.get_llvm_value(), le_bool_type.get_llvm_type(), "").into_int_value() })
     }
 
     pub fn build_float_to_float(&self, le_context: &LEContext<'ctx>, lhs: LEFloatValue<'ctx>, rhs: LEFloatType<'ctx>) -> Result<LEFloatValue<'ctx>> {
@@ -215,13 +204,7 @@ impl<'a, 'ctx> MathOperateBuilder<'a, 'ctx> {
                 (LEBasicValueEnum::Bool(left), LEBasicTypeEnum::Integer(right)) => {
                     Ok(self.build_bool_to_integer(le_context, left, right)?.to_le_value_enum())
                 }
-                (LEBasicValueEnum::Integer(left), LEBasicTypeEnum::Bool(_)) => {
-                    Ok(self.build_integer_to_bool(le_context, left)?.to_le_value_enum())
-                }
-                (LEBasicValueEnum::Float(left), LEBasicTypeEnum::Bool(_)) => {
-                    Ok(self.build_float_to_bool(le_context, left)?.to_le_value_enum())
-                }
-                _ => { Err(CompileError::InvalidTypeCast { from: left_type.to_string(), to: rhs.to_string() }) }
+                _ => { Err(CompileError::TypeMismatched { expect: rhs.to_string(), found: rhs.to_string() }) }
             }
         }
     }

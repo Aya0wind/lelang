@@ -5,9 +5,9 @@ use inkwell::module::{Linkage, Module};
 use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::BasicValueEnum;
 
-use crate::ast::nodes::{ArrayInitializer, Ast, ASTNode, BinaryOpExpression, CodeBlock, Expr, ForLoop, FunctionCall, FunctionDefinition, FunctionPrototype, Identifier, IfStatement, NumberLiteral, Statement, StructureInitializer, TypeDeclarator, UnaryOpExpression, Variable, WhileLoop};
+use crate::ast::nodes::*;
 use crate::code_generator;
-use crate::code_generator::builder::{LEArrayValue, LEBasicType, LEBasicTypeEnum, LEBasicValue, LEBasicValueEnum, LEBoolValue, LEBuilder, LEFloatValue, LEFunctionType, LEFunctionValue, LEIntegerValue, LEPointerValue, LEStructType, LEStructValue, LEType, LEValue, LEVectorValue};
+use crate::code_generator::builder::*;
 use crate::code_generator::builder::binary_operator_builder::{CompareBinaryOperator, LogicBinaryOperator};
 use crate::code_generator::builder::expression::Expression;
 use crate::code_generator::context::LEContext;
@@ -48,7 +48,7 @@ impl<'ctx> CodeGenerator<'ctx> {
         if let LEBasicTypeEnum::Struct(struct_type) = struct_type {
             let initializer_member_num = expr.member_initial_values.len();
             if struct_type.get_llvm_type().get_field_types().len() != initializer_member_num {
-                return Err(LEError::new_compile_error(CompileError::TypeMismatched { expect: struct_type.to_string(), found: expr.structure_name.name.clone() }, expr.pos.clone()));
+                return Err(CompileError::TypeMismatched { expect: struct_type.to_string(), found: expr.structure_name.name.clone() }.to_leerror(expr.pos()));
             }
             let mut value_array = vec![];
             for (name, initial_value) in expr.member_initial_values.iter() {
@@ -137,10 +137,6 @@ impl<'ctx> CodeGenerator<'ctx> {
             }
         }
     }
-
-    // fn build_string_literal(&mut self, value: &StringLiteral) -> Result<LEBasicValueEnum<'ctx>> {
-    //     self.generator.context.llvm_context.const_string()
-    // }
 
     fn build_binary_operator_expression(&mut self, value: &BinaryOpExpression) -> Result<Expression<'ctx>> {
         match value.op {
@@ -269,7 +265,7 @@ impl<'ctx> CodeGenerator<'ctx> {
     }
 
     fn build_call_expression(&mut self, value: &FunctionCall) -> Result<Expression<'ctx>> {
-        let function = self.context.compiler_context.get_function(&value.function_name.name).map_err(|e| e.to_leerror(value.function_name.pos()))?;
+        let function = le_error!(self.context.compiler_context.get_function(&value.function_name.name),value.function_name.pos())?;
         let mut params = vec![];
         for param in value.params.iter() {
             params.push(self.build_expression(param)?)
@@ -303,7 +299,11 @@ impl<'ctx> CodeGenerator<'ctx> {
         };
         self.builder.llvm_builder.position_at_end(current_insert_block);
         le_error!(self.builder.build_store(&self.context, pointer.clone(),initial_value),variable.pos())?;
-        le_error!(self.context.insert_local_variable(variable.prototype.identifier.name.clone(),pointer,variable.prototype.identifier.pos()),variable.prototype.identifier.pos())?;
+        le_error!(self.context.insert_local_variable(
+            variable.prototype.identifier.name.clone(),
+            pointer,variable.prototype.identifier.pos()),
+            variable.prototype.identifier.pos()
+        )?;
         Ok(Expression::Unit)
     }
 
@@ -365,7 +365,10 @@ impl<'ctx> CodeGenerator<'ctx> {
             if let LEBasicValueEnum::Bool(bool_cond) = cond_value {
                 self.builder.llvm_builder.build_conditional_branch(bool_cond.get_llvm_value(), body_block, after_block);
             } else {
-                return Err(CompileError::TypeMismatched { expect: "bool".into(), found: LEBasicValue::get_le_type(&cond_value).to_string() }.to_leerror(cond_expr.pos()));
+                return Err(CompileError::TypeMismatched {
+                    expect: "bool".into(),
+                    found: LEBasicValue::get_le_type(&cond_value).to_string(),
+                }.to_leerror(cond_expr.pos()));
             }
             self.builder.llvm_builder.position_at_end(body_block);
             self.build_code_block(&for_loop.code_block)?;
@@ -387,16 +390,15 @@ impl<'ctx> CodeGenerator<'ctx> {
         self.builder.llvm_builder.build_unconditional_branch(cond_block);
         self.builder.llvm_builder.position_at_end(cond_block);
         self.context.compiler_context.push_block_table();
-        if let Some(cond_expr) = &while_loop.condition {
-            let cond = self.build_expression(cond_expr.as_ref())?;
-            let cond_value = le_error!(self.builder.read_expression(&self.context, cond),cond_expr.pos())?;
-            if let LEBasicValueEnum::Bool(bool_cond) = cond_value {
-                self.builder.llvm_builder.build_conditional_branch(bool_cond.get_llvm_value(), body_block, after_block);
-            } else {
-                return Err(CompileError::TypeMismatched { expect: "bool".into(), found: LEBasicValue::get_le_type(&cond_value).to_string() }.to_leerror(cond_expr.pos()));
-            }
+        let cond = self.build_expression(while_loop.condition.as_ref())?;
+        let cond_value = le_error!(self.builder.read_expression(&self.context, cond),while_loop.condition.pos())?;
+        if let LEBasicValueEnum::Bool(bool_cond) = cond_value {
+            self.builder.llvm_builder.build_conditional_branch(bool_cond.get_llvm_value(), body_block, after_block);
         } else {
-            self.builder.llvm_builder.build_unconditional_branch(body_block);
+            return Err(CompileError::TypeMismatched {
+                expect: "bool".into(),
+                found: LEBasicValue::get_le_type(&cond_value).to_string(),
+            }.to_leerror(while_loop.condition.pos()));
         }
         self.builder.llvm_builder.position_at_end(body_block);
         self.build_code_block(&while_loop.code_block)?;
@@ -415,7 +417,10 @@ impl<'ctx> CodeGenerator<'ctx> {
         if let LEBasicValueEnum::Bool(bool_cond) = cond_value {
             self.builder.llvm_builder.build_conditional_branch(bool_cond.get_llvm_value(), then_block, else_block);
         } else {
-            return Err(CompileError::TypeMismatched { expect: "bool".into(), found: LEBasicValue::get_le_type(&cond_value).to_string() }.to_leerror(statement.cond.pos()));
+            return Err(CompileError::TypeMismatched {
+                expect: "bool".into(),
+                found: LEBasicValue::get_le_type(&cond_value).to_string(),
+            }.to_leerror(statement.cond.pos()));
         }
         self.builder.llvm_builder.position_at_end(then_block);
         self.context.compiler_context.push_block_table();

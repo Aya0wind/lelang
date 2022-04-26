@@ -1,11 +1,11 @@
 use crate::ast::nodes::{ASTNode, BinaryOpExpression, CodeBlock, Expr, FunctionCall, FunctionDefinition, Identifier, NumberLiteral, Structure, StructureInitializer, TypeDeclarator, UnaryOpExpression};
+use crate::ast::parser::{parse_anonymous_function, parse_structure_initializer};
 use crate::ast::parser::array::parse_array_initializer;
-use crate::ast::parser::parse_structure_initializer;
 use crate::ast::parser::statement::parse_statement;
 use crate::ast::parser::type_declarator::parse_type_declarator;
 use crate::error::{LEError, SyntaxError, TokenType};
 use crate::error::Result;
-use crate::lexer::{LELexer, LEToken, Operator, Position};
+use crate::lexer::{KeyWord, LELexer, LEToken, Operator, Position};
 
 fn get_operator_precedence(op: &Operator) -> usize {
     match op {
@@ -158,6 +158,7 @@ pub fn parse_primary_expression(lexer: &mut LELexer) -> Result<Box<Expr>> {
             parse_array_initializer(lexer)
         }
         LEToken::LeftPar => { parse_little_par_expression(lexer) }
+        // LEToken::KeyWord(KeyWord::FunctionDefine)=>{ parse_anonymous_function(lexer) }
         _ => {
             Err(LEError::new_syntax_error(SyntaxError::unexpect_token(
                 vec![TokenType::Operator, TokenType::NumberLiteral, TokenType::Identifier, TokenType::LeftBracket, TokenType::LeftPar],

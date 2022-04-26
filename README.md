@@ -19,52 +19,19 @@ leang是一门使用Rust编写，基于LLVM(inkwell llvm safe binding library)�
 + ✅优化性能，减少过程中不必要的重复判断与复制
 + ✅支持分支嵌套，循环嵌套，减少过程中不必要的重复判断与复制
 + ❌提供命令行交互式解释执行环境
-+ ❌支持内置的数组类型和结构类型
++ ✅支持内置的数组类型和结构类型
 + ❌支持引用类型
 + ❌支持匿名函数
-+ ❌计划引入GC
++ ❌引入GC
 
-### Build
+### 文档
 
-1. 安装LLVM 12
-
-+ homebrew
-
-> brew install llvm@12
-
-+ binary  
-  https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.0
-### 由于windows下的LLVM pre-build 包没有提供llvm-config，所以需要自己编译，可以使用LLVM官方教程进行编译，或使用llvmenv工具进行编译。
-
-2. 安装rust
-
-+ unix-like  
-  ```curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh```
-+ windows  
-  下载[rust-init](https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe)
-
-3. 将llvm bin文件夹加入环境变量
-4. 编译
-   ```cargo build --release```
-5. 编译lelang源文件，帮助可运行```lelang --help```查看（示例见main.le)
-
-```
-lelang programming language compiler, based on LLVM compiler infrastructure
-
-USAGE:
-    lelang [OPTIONS] -i <SOURCE_FILE_PATH>
-
-OPTIONS:
-    -h, --help                   Print help information
-    -i <SOURCE_FILE_PATH>        Set compiler source file path
-    -o <OUTPUT_FILE_PATH>        Set compiler output path [default: ./a.out]
-    -O <OPTIMIZE_LEVEL>          Set compiler optimize level [default: 0]
-    -S <OUTPUT_FORMAT>           Set compiler output format [default: obj] [possible values: ir,
-                                 asm, obj]
-```
+移步👉🏻 [lelang book](https://aya0wind.github.io/lelang)
 
 Tips：
 
-##### 目前没有做libc的绑定，需要先编译目录下的print.c，然后才能调用print_xxx函数进行打印。
+##### 目前没独立的运行时和后端工具链，所以需要依赖clang工具链，先编译目录下的print.c，然后才能调用示例中的print_xxx函数进行打印。
+
+无需依赖clang的运行时**正在开发中**。
 
 ##### 也可以自己编译出object文件并手动链接为可执行文件或函数库，如需调用自定义c函数，可以在源文件中声明函数，然后手动链接

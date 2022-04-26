@@ -26,9 +26,13 @@ clap = { version = "3.1.7", features = ["derive"] }
 enum_dispatch = "0.3.8"
 ariadne = "0.1.5"
 atty = "0.2"
+ptree = "0.4.0"
+[build-dependencies]
+cmake = "0.1.48"
+
 [profile.release]
 opt-level = 3
-debug=false
+debug = false
 lto = true
 overflow-checks = false
 rpath = false

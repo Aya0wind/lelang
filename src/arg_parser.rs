@@ -25,6 +25,8 @@ pub struct Args {
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum, Debug)]
 pub enum OutputFormatEnum {
+    TOKENS,
+    AST,
     IR,
     ASM,
     OBJ,

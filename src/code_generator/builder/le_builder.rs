@@ -138,15 +138,6 @@ impl<'ctx> LEBuilder<'ctx> {
         }
     }
 
-    // pub fn build_alloca(&self, le_context: &LEContext<'ctx>, initial_value: ExpressionValue<'ctx>) -> Result<LEPointerValue<'ctx>> {
-    //     let value_type = self.read_expression_value(le_context, initial_value.clone())?.get_le_type();
-    //     let llvm_pointer_value = self.llvm_builder.build_alloca(value_type.get_llvm_type(), "");
-    //     let pointer_type = LEPointerType::new(le_context, value_type.clone());
-    //     let ptr = LEPointerValue { ty: pointer_type, llvm_value: llvm_pointer_value };
-    //     self.build_store(le_context, ptr.clone(), initial_value)?;
-    //     Ok(ptr)
-    // }
-
     pub fn build_alloca(&self, le_context: &LEContext<'ctx>, ty: LEBasicTypeEnum<'ctx>) -> LEPointerValue<'ctx> {
         let llvm_pointer_value = self.llvm_builder.build_alloca(ty.get_llvm_type(), "");
         let pointer_type = LEPointerType::new(le_context, ty);

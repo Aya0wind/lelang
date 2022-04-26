@@ -11,12 +11,10 @@ pub fn parse_array_initializer(lexer: &mut LELexer) -> Result<Box<Expr>> {
     lexer.consume_left_bracket()?;
     let mut elements = vec![];
     loop {
-        let current_token = lexer.current().ok_or(
-            LEError::new_syntax_error(
-                SyntaxError::missing_token(vec![TokenType::RightBracket]),
-                lexer.pos(),
-            )
-        )?;
+        let current_token = lexer.current().ok_or_else(|| LEError::new_syntax_error(
+            SyntaxError::missing_token(vec![TokenType::RightBracket]),
+            lexer.pos(),
+        ))?;
         match current_token {
             LEToken::RightBracket => {
                 lexer.consume();
@@ -25,6 +23,21 @@ pub fn parse_array_initializer(lexer: &mut LELexer) -> Result<Box<Expr>> {
             LEToken::Comma => {
                 lexer.consume();
             }
+            // LEToken::Semicolon=>{
+            //     lexer.consume();
+            //     let number = lexer.consume_number_literal()?;
+            //     lexer.consume_right_bracket()?;
+            //     let elements =  match number {
+            //         Number::Integer(i) => {vec![elements[0]; i as usize]}
+            //         Number::Float(f) => {
+            //            return Err(LEError::new_syntax_error(
+            //                SyntaxError::ArraySizeMustBeInteger,
+            //                lexer.pos(),
+            //            ));
+            //         }
+            //     };
+            //     return Ok(Box::new(Expr::ArrayInitializer(ArrayInitializer { elements, pos: start_pos.sum(&lexer.pos()) })))
+            // }
             _ => {
                 elements.push(*parse_expression(lexer)?);
             }

@@ -7,11 +7,7 @@ pub fn parse_while_loop(lexer: &mut LELexer) -> Result<WhileLoop> {
     let start_pos = lexer.pos();
     lexer.consume_keyword()?;
     lexer.consume_left_par()?;
-    let cond = if let Ok(expr) = parse_expression(lexer) {
-        Some(expr)
-    } else {
-        None
-    };
+    let cond = parse_expression(lexer)?;
     lexer.consume_right_par()?;
     let code_block = parse_code_block(lexer)?;
     Ok(WhileLoop {

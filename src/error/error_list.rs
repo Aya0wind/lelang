@@ -14,3 +14,4 @@ pub const NO_SUITABLE_UNARY_OPERATOR: &str = "E0013";
 pub const TYPE_MISMATCHED: &str = "E0014";
 pub const NO_SUCH_MEMBER: &str = "E0015";
 pub const NOT_ALLOW_ZERO_LENGTH_ARRAY: &str = "E0016";
+pub const INVALID_TYPE_CAST: &str = "E0017";

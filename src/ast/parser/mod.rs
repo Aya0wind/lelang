@@ -1,3 +1,4 @@
+pub use anonymous_function::*;
 pub use array::*;
 pub use common::*;
 pub use for_loop::*;
@@ -19,3 +20,4 @@ mod while_loop;
 mod structure;
 mod array;
 mod type_declarator;
+mod anonymous_function;

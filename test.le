@@ -2,11 +2,11 @@
 ## !!!!!! LELANG NOT SUPPORT UNICODE IDENTIFIER OR COMMENT NOW !!!!!!
 
 ## external function declare
-decl le print_bool(bool);
-decl le print_int32(i32);
-decl le print_int64(i64);
-decl le print_float32(f32);
-decl le print_float64(f64);
+decl le print_bool(bool)->i32;
+decl le print_int32(i32)->i32;
+decl le print_int64(i64)->i32;
+decl le print_float32(f32)->i32;
+decl le print_float64(f64)->i32;
 
 ## function with not return value
 le no_ret(){
@@ -22,7 +22,7 @@ struct MyStruct{
 }
 
 ## function with return value, structure parameter,member access
-le ret_i32(number:MyStruct)->i32{
+le ret_i32(number: ref MyStruct)->i32{
     ret number.member1;
 }
 
@@ -77,7 +77,7 @@ le main()->i32{
     print_int64(my_struct_object.member2 as i64);
     print_int32(fibonacci(20));
     print_int32(ret_i32_1(6));
-    for(var i =0;i<20;i=i+1;)
+    for(var i =0;i<20;i=i+1;){
         print_bool(is_palindrome(i));
     }
     ret 11111;
