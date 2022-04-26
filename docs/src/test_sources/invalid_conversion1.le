@@ -1,7 +1,0 @@
-
-le main()->i32{
-    var width_32:i32 = 100;
-    var width_64_float:f64 = 10.33;
-    width_32=width_32+width_64_float;
-    ret 0;
-}

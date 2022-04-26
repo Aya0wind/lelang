@@ -1,9 +1,0 @@
-[book]
-authors = ["li"]
-language = "zh-cn"
-multilingual = false
-src = "src"
-title = "lelang programming language"
-
-#[preprocessor.random]
-#command = "python random.py"

@@ -1,0 +1,641 @@
+<!DOCTYPE HTML>
+<html lang="zh-cn" class="sidebar-visible no-js light">
+<head>
+    <!-- Book generated using mdBook -->
+    <meta charset="UTF-8">
+    <title>lelang programming language</title>
+    <meta name="robots" content="noindex"/>
+
+
+    <!-- Custom HTML head -->
+
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff"/>
+
+    <link rel="icon" href="favicon.svg">
+    <link rel="shortcut icon" href="favicon.png">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/general.css">
+    <link rel="stylesheet" href="css/chrome.css">
+    <link rel="stylesheet" href="css/print.css" media="print">
+
+    <!-- Fonts -->
+    <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+    <link rel="stylesheet" href="fonts/fonts.css">
+
+    <!-- Highlight.js Stylesheets -->
+    <link rel="stylesheet" href="highlight.css">
+    <link rel="stylesheet" href="tomorrow-night.css">
+    <link rel="stylesheet" href="ayu-highlight.css">
+
+    <!-- Custom theme stylesheets -->
+
+</head>
+<body>
+<!-- Provide site root to javascript -->
+<script type="text/javascript">
+    var path_to_root = "";
+    var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+</script>
+
+<!-- Work around some values being stored in localStorage wrapped in quotes -->
+<script type="text/javascript">
+    try {
+        var theme = localStorage.getItem('mdbook-theme');
+        var sidebar = localStorage.getItem('mdbook-sidebar');
+
+        if (theme.startsWith('"') && theme.endsWith('"')) {
+            localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+        }
+
+        if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+            localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+        }
+    } catch (e) {
+    }
+</script>
+
+<!-- Set the theme before any content is loaded, prevents flash -->
+<script type="text/javascript">
+    var theme;
+    try {
+        theme = localStorage.getItem('mdbook-theme');
+    } catch (e) {
+    }
+    if (theme === null || theme === undefined) {
+        theme = default_theme;
+    }
+    var html = document.querySelector('html');
+    html.classList.remove('no-js')
+    html.classList.remove('light')
+    html.classList.add(theme);
+    html.classList.add('js');
+</script>
+
+<!-- Hide / unhide sidebar before it is displayed -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    var sidebar = 'hidden';
+    if (document.body.clientWidth >= 1080) {
+        try {
+            sidebar = localStorage.getItem('mdbook-sidebar');
+        } catch (e) {
+        }
+        sidebar = sidebar || 'visible';
+    }
+    html.classList.remove('sidebar-visible');
+    html.classList.add("sidebar-" + sidebar);
+</script>
+
+<nav id="sidebar" class="sidebar" aria-label="Table of contents">
+    <div class="sidebar-scrollbox">
+        <ol class="chapter">
+            <li class="chapter-item expanded "><a href="head.html"><strong aria-hidden="true">1.</strong> lelang编程语言</a>
+            </li>
+            <li class="chapter-item expanded "><a href="motivation.html"><strong aria-hidden="true">2.</strong>
+                为什么要设计这门语言</a></li>
+            <li class="chapter-item expanded "><a href="compiler/compiler.html"><strong aria-hidden="true">3.</strong>
+                lelang编译器</a></li>
+            <li>
+                <ol class="section">
+                    <li class="chapter-item expanded "><a href="compiler/install.html"><strong
+                            aria-hidden="true">3.1.</strong> 安装与使用</a></li>
+                    <li class="chapter-item expanded "><a href="compiler/fibonacci.html"><strong
+                            aria-hidden="true">3.2.</strong> 打印斐波那契数</a></li>
+                </ol>
+            </li>
+            <li class="chapter-item expanded "><a href="type/type.html"><strong aria-hidden="true">4.</strong> 类型</a>
+            </li>
+            <li>
+                <ol class="section">
+                    <li class="chapter-item expanded "><a href="type/int_and_float.html"><strong
+                            aria-hidden="true">4.1.</strong> 整数与浮点数</a></li>
+                    <li class="chapter-item expanded "><a href="type/struct.html"><strong
+                            aria-hidden="true">4.2.</strong> 结构体</a></li>
+                    <li class="chapter-item expanded "><a href="type/array.html"><strong
+                            aria-hidden="true">4.3.</strong> 数组</a></li>
+                </ol>
+            </li>
+            <li class="chapter-item expanded "><a href="function/function.html"><strong aria-hidden="true">5.</strong>
+                函数</a></li>
+            <li>
+                <ol class="section">
+                    <li class="chapter-item expanded "><a href="function/def_and_call.html"><strong aria-hidden="true">5.1.</strong>
+                        函数定义与调用</a></li>
+                    <li class="chapter-item expanded "><a href="function/extern.html"><strong
+                            aria-hidden="true">5.2.</strong> 外部函数声明</a></li>
+                    <li class="chapter-item expanded ">
+                        <div><strong aria-hidden="true">5.3.</strong> 成员函数</div>
+                    </li>
+                    <li class="chapter-item expanded ">
+                        <div><strong aria-hidden="true">5.4.</strong> 匿名函数</div>
+                    </li>
+                </ol>
+            </li>
+            <li class="chapter-item expanded "><a href="branch/branch.html"><strong aria-hidden="true">6.</strong>
+                分支</a></li>
+            <li>
+                <ol class="section">
+                    <li class="chapter-item expanded "><a href="branch/if.html"><strong aria-hidden="true">6.1.</strong>
+                        if语句</a></li>
+                </ol>
+            </li>
+            <li class="chapter-item expanded "><a href="loop/loop.html"><strong aria-hidden="true">7.</strong> 循环</a>
+            </li>
+            <li>
+                <ol class="section">
+                    <li class="chapter-item expanded "><a href="loop/for.html"><strong aria-hidden="true">7.1.</strong>
+                        for循环</a></li>
+                    <li class="chapter-item expanded "><a href="loop/while.html"><strong
+                            aria-hidden="true">7.2.</strong> while循环</a></li>
+                </ol>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">8.</strong> 引用类型</div>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">9.</strong> 垃圾收集</div>
+            </li>
+            <li>
+                <ol class="section">
+                    <li class="chapter-item expanded ">
+                        <div><strong aria-hidden="true">9.1.</strong> Boehm垃圾收集器</div>
+                    </li>
+                </ol>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">10.</strong> 代数数据类型</div>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">11.</strong> 模式匹配</div>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">12.</strong> 接口</div>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">13.</strong> 模块</div>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">14.</strong> 包</div>
+            </li>
+        </ol>
+    </div>
+    <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+</nav>
+
+<div id="page-wrapper" class="page-wrapper">
+
+    <div class="page">
+        <div id="menu-bar-hover-placeholder"></div>
+        <div id="menu-bar" class="menu-bar sticky bordered">
+            <div class="left-buttons">
+                <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents"
+                        aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                    <i class="fa fa-bars"></i>
+                </button>
+                <button id="theme-toggle" class="icon-button" type="button" title="Change theme"
+                        aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                    <i class="fa fa-paint-brush"></i>
+                </button>
+                <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                    <li role="none">
+                        <button role="menuitem" class="theme" id="light">Light (default)</button>
+                    </li>
+                    <li role="none">
+                        <button role="menuitem" class="theme" id="rust">Rust</button>
+                    </li>
+                    <li role="none">
+                        <button role="menuitem" class="theme" id="coal">Coal</button>
+                    </li>
+                    <li role="none">
+                        <button role="menuitem" class="theme" id="navy">Navy</button>
+                    </li>
+                    <li role="none">
+                        <button role="menuitem" class="theme" id="ayu">Ayu</button>
+                    </li>
+                </ul>
+                <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)"
+                        aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S"
+                        aria-controls="searchbar">
+                    <i class="fa fa-search"></i>
+                </button>
+            </div>
+
+            <h1 class="menu-title">lelang programming language</h1>
+
+            <div class="right-buttons">
+                <a href="print.html" title="Print this book" aria-label="Print this book">
+                    <i id="print-button" class="fa fa-print"></i>
+                </a>
+
+            </div>
+        </div>
+
+        <div id="search-wrapper" class="hidden">
+            <form id="searchbar-outer" class="searchbar-outer">
+                <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..."
+                       aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+            </form>
+            <div id="searchresults-outer" class="searchresults-outer hidden">
+                <div id="searchresults-header" class="searchresults-header"></div>
+                <ul id="searchresults">
+                </ul>
+            </div>
+        </div>
+
+        <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+        <script type="text/javascript">
+            document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+            document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+            Array.from(document.querySelectorAll('#sidebar a')).forEach(function (link) {
+                link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+            });
+        </script>
+
+        <div id="content" class="content">
+            <main>
+                <h1 id="lelang编程语言"><a class="header" href="#lelang编程语言">lelang编程语言</a></h1>
+                <p><strong>版本0.1</strong><br/>
+                    lelang编程语言是一门静态类型检查，基于LLVM的系统级编程语言，可借助LLVM工具编译到任何被LLVM支持的目标机器上。<br/>
+                    lelang的编译器使用Rust语言编写。<br/>
+                    更新于 2022.4.24</p>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="编写该语言的动机"><a class="header" href="#编写该语言的动机">编写该语言的动机</a></h1>
+                <h2 id="为什么要设计该语言"><a class="header" href="#为什么要设计该语言">为什么要设计该语言</a></h2>
+                <ul>
+                    <li>因为一直都对编译技术比较感兴趣，在学习了一些编译技术后，就想动手实现一个较为完整的编程语言，并考虑作为长期维护项目。</li>
+                    <li>首先考虑实现一个脚本语言，在参考了Lua语言、Python语言、JavaScript语言后，觉得脚本语言虽然在后端实现上较为灵活，但是都会需要运行时环境，例如虚拟机。</li>
+                    <li>刚好可以作为一个课程实验进行</li>
+                </ul>
+                <h2 id="为什么设计成静态检查基于llvm的语言"><a class="header" href="#为什么设计成静态检查基于llvm的语言">为什么设计成静态检查，基于LLVM的语言？</a>
+                </h2>
+                <ul>
+                    <li>由于是学习性质的项目，使用LLVM可以接触到更多的底层知识和优化手段，并且可以方便的直接编译到独立运行的可执行文件，并可使用LLVM工具链辅助完成调试，优化等工作，并且如果后续
+                        需要支持解释执行，借用LLVM的JIT，或者在现有的基础上重写一个解释器作为后端也是十分方便的，所以lelang最终定位为了一个偏向进行更多的静态检查，支持直接编译到机器码，并使用可使用
+                        标准C ABI和系统进行交互的语言。
+                    </li>
+                    <li>
+                        而现有的编程语言中，比较流行的类似的分别是C、C++、Go、Rust，lelang的设计对这几个语言均有参考。C语言虽然经典好用，但是语言提供的抽象能力太差，也没有提供任何的安全检查机制和垃圾收集机制，开发难度较大。
+                        C++语言特性很多，功能强大，但是上手难度较高，历史包袱较重，使用难度也较高。Rust语言上手难度同样较高，继承和改进了很多C++的问题，但是编译检查十分严格，并且内容也非常多，且牵涉到许多C系语言中很少使用的概念，并且也需要手动管理内存。
+                        最后Go语言虽然满足易用，静态检查，上手简单，自动垃圾回收等需求，但是Go语言某些部分的语法设计过于粗略，例如any类型，使用积类型而不是和类型进行错误处理，不支持任何可变性约束等等。
+                    </li>
+                    <li>
+                        所以lelang基于Go语言的优点，预计在其基础上增加例如代数数据类型，模式匹配，泛型等语法，基于LLVM的后端可方便支持跨各种操作系统和硬件平台的编译，引入自动垃圾收集器，摆脱手动管理内存的麻烦。
+                    </li>
+                </ul>
+                <h2 id="为什么使用rust语言编写前端"><a class="header" href="#为什么使用rust语言编写前端">为什么使用Rust语言编写前端？</a></h2>
+                <ul>
+                    <li>Rust语言是我个人比较喜欢的一门语言。但是平时C++，Java，Python等语言使用的更多，一直没有一个使用Rust实践一个完整项目的机会，于是考虑使用Rust</li>
+                    <li></li>
+                </ul>
+                <p>
+                    Rust语言支持多种函数式编程语言的语法和概念，但是又不像某些纯函数式语言（例如Haskell，Lisp语言）那样完全放弃命令式的语法，并且不需要任何解释器环境就可运行，其中的代数数据类型，模式匹配，和基于和类型的错误处理等特性都十分适合用来编写一个新语言的编译器。</p>
+                <ul>
+                    <li>Rust的工程化和易用性做的很好，不管是开发还是部署，均比C++要容易，并且严格的编译检查和方便的日志功能能很好的减少Debug的时间。</li>
+                </ul>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="lelang编译器"><a class="header" href="#lelang编译器">lelang编译器</a></h1>
+                <p>本章将介绍如何安装lelang编译器，以及如何调用编译器，编译源代码文件为llvm ir，汇编代码，目标文件以及可执行文件，你将读到：</p>
+                <ul>
+                    <li>在windows、linux、macos上如何安装lelang编译器</li>
+                    <li>将含有一个计算斐波那契数某一项的函数的源代码文件调用lelang编译器编译</li>
+                </ul>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="安装与使用"><a class="header" href="#安装与使用">安装与使用</a></h1>
+                <h3 id="1-编译lelang编译器"><a class="header" href="#1-编译lelang编译器">1. 编译lelang编译器</a></h3>
+                <ul>
+                    <li>Linux
+                        <ol>
+                            <li>Linux下编译lelang compiler需要安装llvm-12和libclang<br/>
+                                可使用 debian系可使用 apt 进行安装（目前仅在ubuntu下测试），运行即可:
+                            </li>
+                        </ol>
+                        <pre><code class="language-shell">  apt install llvm-12 libclang
+</code></pre>
+                        <ol start="2">
+                            <li>安装Rust</li>
+                        </ol>
+                        <pre><code class="language-shell">  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+</code></pre>
+                        <ol start="3">
+                            <li>编译项目</li>
+                        </ol>
+                        <pre><code class="language-shell"> cargo build --release
+</code></pre>
+                        <ol start="4">
+                            <li>运行项目</li>
+                        </ol>
+                        <pre><code class="language-shell">cargo run --release
+</code></pre>
+                    </li>
+                    <li>macos
+                        <ol>
+                            <li>使用homebrew安装<code>llvm12</code>：</li>
+                        </ol>
+                        <pre><code class="language-shell">   llvm@12
+</code></pre>
+                        <ol start="2">
+                            <li>安装Rust</li>
+                        </ol>
+                        <pre><code class="language-shell">  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+</code></pre>
+                        <ol start="3">
+                            <li>homebrew默认不会把llvm加入环境变量，需要设置<code>LLVM_SYS_PREFIX120</code>环境变量为llvm目录。</li>
+                            <li>编译项目</li>
+                        </ol>
+                        <pre><code class="language-shell"> cargo build --release
+</code></pre>
+                        <ol start="5">
+                            <li>运行项目</li>
+                        </ol>
+                        <pre><code class="language-shell">cargo run --release
+</code></pre>
+                    </li>
+                    <li>windows
+                        <ol>
+                            <li>编译<code>llvm12</code><br/>
+                                由于llvm官方在windows下发布的预编译二进制包不含某些需要的静态库，以及llvm-config工具，所以需要自己编译（后续本项目会发布windows下的预编译编译器）
+                            </li>
+                            <li>安装Rust<br/>
+                                使用<a href="https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe">rust-init</a>安装
+                            </li>
+                            <li>设置<code>LLVM_SYS_PREFIX120</code>环境变量为llvm目录</li>
+                            <li>编译项目</li>
+                        </ol>
+                        <pre><code class="language-shell"> cargo build --release
+</code></pre>
+                        5运行项目
+                        <pre><code class="language-shell">cargo run --release
+</code></pre>
+                    </li>
+                </ul>
+                <h3 id="使用"><a class="header" href="#使用">使用</a></h3>
+                <p>运行 <code>cargo build --release</code>后，可在<code>target/release/</code>下找到lelang可执行文件，运行<code>./lelang
+                    --help</code>可打印以下帮助信息</p>
+                <pre><code class="language-shell">lelang
+lelang programming language compiler, based on LLVM compiler infrastructure
+
+USAGE:
+    lelang [OPTIONS] -i &lt;SOURCE_FILE_PATH&gt;
+
+OPTIONS:
+    -h, --help                   Print help information
+    -i &lt;SOURCE_FILE_PATH&gt;        Set compiler source file path
+    -o &lt;OUTPUT_FILE_PATH&gt;        Set compiler output path [default: ./a.out]
+    -O &lt;OPTIMIZE_LEVEL&gt;          Set compiler optimize level [default: 0]
+    -S &lt;OUTPUT_FORMAT&gt;           Set compiler output format [default: obj] [possible values: ir,
+                                 asm, obj, exe]
+</code></pre>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="打印斐波那契数"><a class="header" href="#打印斐波那契数">打印斐波那契数</a></h1>
+                <ol>
+                    <li>新建文件main.le</li>
+                </ol>
+                <pre><code>decl le print_int32(i32);
+
+le fibonacci(step:i32)-&gt;i32{
+    if(step3){
+        ret 1;
+    }el{
+        ret fibonacci(step-1)+fibonacci(step-2);
+    }
+}
+
+le main()-&gt;i32{
+    print_int32(fibonacci(20));
+    ret 0;
+}
+</code></pre>
+                <ol start="2">
+                    <li>执行<code>lelang -i main.le -S ir -o out.ll</code>得到</li>
+                </ol>
+                <pre><code class="language-lldb">; ModuleID = 'main'
+source_filename = &quot;main&quot;
+target triple = &quot;arm64-apple-darwin21.4.0&quot;
+
+declare void @print_int32(i32)
+
+define i32 @fibonacci(i32 %0) {
+  %2 = alloca i32, align 4
+  %3 = alloca i32, align 4
+  store i32 %0, i32* %3, align 4
+  %4 = load i32, i32* %3, align 4
+  %5 = icmp slt i32 %4, 3
+  br i1 %5, label %6, label %7
+
+6:                                                ; preds = %1
+  store i32 1, i32* %2, align 4
+  br label %16
+
+7:                                                ; preds = %1
+  %8 = load i32, i32* %3, align 4
+  %9 = sub i32 %8, 1
+  %10 = call i32 @fibonacci(i32 %9)
+  %11 = load i32, i32* %3, align 4
+  %12 = sub i32 %11, 2
+  %13 = call i32 @fibonacci(i32 %12)
+  %14 = add i32 %10, %13
+  store i32 %14, i32* %2, align 4
+  br label %16
+
+15:                                               ; No predecessors!
+  br label %16
+
+16:                                               ; preds = %15, %7, %6
+  %17 = load i32, i32* %2, align 4
+  ret i32 %17
+}
+
+define i32 @main() {
+  %1 = alloca i32, align 4
+  %2 = call i32 @fibonacci(i32 20)
+  call void @print_int32(i32 %2)
+  store i32 0, i32* %1, align 4
+  br label %3
+
+3:                                                ; preds = %0
+  %4 = load i32, i32* %1, align 4
+  ret i32 %4
+}
+</code></pre>
+                <ol start="3">
+                    <li>执行<code>lelang -i main.le -S exe -o out</code>，并运行out，程序打印</li>
+                </ol>
+                <pre><code class="language-lldb">6765
+</code></pre>
+                <pre><code class="language-editable">decl le print_int32(i32);
+
+le fibonacci(step:i32)-&gt;i32{
+    if(step3){
+        ret 1;
+    }el{
+        ret fibonacci(step-1)+fibonacci(step-2);
+    }
+}
+
+le main()-&gt;i32{
+    print_int32(fibonacci(20));
+    ret 0;
+}
+</code></pre>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="基本类型"><a class="header" href="#基本类型">基本类型</a></h1>
+                <p>本章你将了解lelang支持所有基本数据类型，它们包括:</p>
+                <ul>
+                    <li>无符号与有符号整数类型各4种</li>
+                    <li>2种长度的浮点数</li>
+                    <li>结构体类型</li>
+                    <li>数组类型</li>
+                </ul>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="整数与浮点数"><a class="header" href="#整数与浮点数">整数与浮点数</a></h1>
+                <p>与C或C++不同，lelang要求显示指定整数与浮点数的长度，lelang保证在任何实现lelang编译器的平台上均为同样的长度。</p>
+                <h4 id="整数共有8种类型"><a class="header" href="#整数共有8种类型">整数共有8种类型</a></h4>
+                <ul>
+                    <li>i8~i32</li>
+                    <li>u8~u32</li>
+                </ul>
+                <h4 id="浮点数共有2种类型"><a class="header" href="#浮点数共有2种类型">浮点数共有2种类型</a></h4>
+                <ul>
+                    <li>f32</li>
+                    <li>f64</li>
+                </ul>
+                <p>Tips:
+                    lelang禁止不同类型的整数或浮点数发生隐式转换，例如下面的代码无法通过编译</p>
+                <pre><code class="language-lldb">decl le print_int64(i64);
+
+
+le main()-&gt;i32{
+    var width_64:i32 = 100;
+    print_int64(width_64);
+    ret 0;
+}
+</code></pre>
+                <p>编译它，我们得到👉🏻</p>
+                <pre><code class="language-lldb">[E0014] Error: expect a type `i64`, but got `i32`
+   ╭─[docs/src/test_sources/invalid_conversion.le:6:16]
+   │
+ 6 │     print_int64(width_64);
+   ·                ─────┬─────
+   ·                     ╰─────── expect type `i64`, but found type `i32`
+   ·
+   · Help: maybe you need a type cast to type `i64` ?`
+───╯
+</code></pre>
+                <p><strong>同样</strong>，不同类型的整数或浮点数也不能直接相加</p>
+                <pre><code class="language-lldb">
+le main()-&gt;i32{
+    var width_32:i32 = 100;
+    var width_64_float:f64 = 10.33;
+    width_32=width_32+width_64_float;
+    ret 0;
+}
+</code></pre>
+                <p>编译它，我们得到👉🏻</p>
+                <pre><code class="language-lldb">[E0012] Error: no suitable binary operator `+` for type: `i32` and `f64`
+   ╭─[docs/src/test_sources/invalid_conversion1.le:5:14]
+   │
+ 5 │     width_32=width_32+width_64_float;
+   ·              ───────────┬───────────
+   ·                         ╰───────────── operator `+` not suitable for type `i32` and type `f64` here
+   ·
+   · Help: maybe you need a `as` type cast here？
+───╯
+</code></pre>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="结构体"><a class="header" href="#结构体">结构体</a></h1>
+                <p>lelang的结构体与C语言类似，结构体成员可以是任意非本结构体类型。</p>
+                <pre><code class="language-lldb">## structure declare
+struct MyStruct{
+    member1:i32, ## i32 type member
+    member2:f64, ## f64 type member
+    member3:[i32;2] ## length 2 i32 array member
+}
+</code></pre>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="数组"><a class="header" href="#数组">数组</a></h1>
+                <p>lelang的数组为基本类型，不像C或C++中的数组通常需要退化为指针才可进行操作，并且会丢失长度信息。<br/>
+                    lelang中同类型的数组可以直接进行比较或赋值，也可以直接作为函数的参数或者返回值，甚至，数组类型也可以有成员函数。
+                    数组必须在定义时初始化其所有成员，例如：</p>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="函数"><a class="header" href="#函数">函数</a></h1>
+                <p>和许多其他系统级编程语言一样，函数是lelang运行程序的基本单位，一个lelang函数由四部分组成。</p>
+                <ul>
+                    <li>函数声明关键字</li>
+                    <li>函数名字</li>
+                    <li>参数列表</li>
+                    <li>返回值</li>
+                </ul>
+                <pre><code class="language-lldb">
+## le --&gt;function define
+## fibonacci --&gt;function name 
+## step --&gt;parameter name
+## i32 --&gt;parameter type
+## --&gt;i32 --&gt;return type
+## {...} --&gt;function body
+le fibonacci(step:i32)-&gt;i32{   
+    if(step&lt;3){                
+        ret 1;
+    }el{
+        ret fibonacci(step-1)+fibonacci(step-2);
+    }
+}
+</code></pre>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="函数定义与调用"><a class="header" href="#函数定义与调用">函数定义与调用</a></h1>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="外部函数声明"><a class="header" href="#外部函数声明">外部函数声明</a></h1>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="分支"><a class="header" href="#分支">分支</a></h1>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="if语句"><a class="header" href="#if语句">if语句</a></h1>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="循环"><a class="header" href="#循环">循环</a></h1>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="for循环"><a class="header" href="#for循环">for循环</a></h1>
+                <div style="break-before: page; page-break-before: always;"></div>
+                <h1 id="while循环"><a class="header" href="#while循环">while循环</a></h1>
+
+            </main>
+
+            <nav class="nav-wrapper" aria-label="Page navigation">
+                <!-- Mobile navigation buttons -->
+
+
+                <div style="clear: both"></div>
+            </nav>
+        </div>
+    </div>
+
+    <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+    </nav>
+
+</div>
+
+
+<script type="text/javascript">
+    window.playground_copyable = true;
+</script>
+
+
+<script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+<script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+<!-- Custom JS scripts -->
+
+<script type="text/javascript">
+    window.addEventListener('load', function () {
+        window.setTimeout(window.print, 100);
+    });
+</script>
+
+</body>
+</html>

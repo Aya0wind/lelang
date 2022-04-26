@@ -1,0 +1,343 @@
+<!DOCTYPE HTML>
+<html lang="zh-cn" class="sidebar-visible no-js light">
+<head>
+    <!-- Book generated using mdBook -->
+    <meta charset="UTF-8">
+    <title>为什么要设计这门语言 - lelang programming language</title>
+
+
+    <!-- Custom HTML head -->
+
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff"/>
+
+    <link rel="icon" href="favicon.svg">
+    <link rel="shortcut icon" href="favicon.png">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/general.css">
+    <link rel="stylesheet" href="css/chrome.css">
+    <link rel="stylesheet" href="css/print.css" media="print">
+
+    <!-- Fonts -->
+    <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+    <link rel="stylesheet" href="fonts/fonts.css">
+
+    <!-- Highlight.js Stylesheets -->
+    <link rel="stylesheet" href="highlight.css">
+    <link rel="stylesheet" href="tomorrow-night.css">
+    <link rel="stylesheet" href="ayu-highlight.css">
+
+    <!-- Custom theme stylesheets -->
+
+</head>
+<body>
+<!-- Provide site root to javascript -->
+<script type="text/javascript">
+    var path_to_root = "";
+    var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+</script>
+
+<!-- Work around some values being stored in localStorage wrapped in quotes -->
+<script type="text/javascript">
+    try {
+        var theme = localStorage.getItem('mdbook-theme');
+        var sidebar = localStorage.getItem('mdbook-sidebar');
+
+        if (theme.startsWith('"') && theme.endsWith('"')) {
+            localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+        }
+
+        if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+            localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+        }
+    } catch (e) {
+    }
+</script>
+
+<!-- Set the theme before any content is loaded, prevents flash -->
+<script type="text/javascript">
+    var theme;
+    try {
+        theme = localStorage.getItem('mdbook-theme');
+    } catch (e) {
+    }
+    if (theme === null || theme === undefined) {
+        theme = default_theme;
+    }
+    var html = document.querySelector('html');
+    html.classList.remove('no-js')
+    html.classList.remove('light')
+    html.classList.add(theme);
+    html.classList.add('js');
+</script>
+
+<!-- Hide / unhide sidebar before it is displayed -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    var sidebar = 'hidden';
+    if (document.body.clientWidth >= 1080) {
+        try {
+            sidebar = localStorage.getItem('mdbook-sidebar');
+        } catch (e) {
+        }
+        sidebar = sidebar || 'visible';
+    }
+    html.classList.remove('sidebar-visible');
+    html.classList.add("sidebar-" + sidebar);
+</script>
+
+<nav id="sidebar" class="sidebar" aria-label="Table of contents">
+    <div class="sidebar-scrollbox">
+        <ol class="chapter">
+            <li class="chapter-item expanded "><a href="head.html"><strong aria-hidden="true">1.</strong> lelang编程语言</a>
+            </li>
+            <li class="chapter-item expanded "><a href="motivation.html" class="active"><strong
+                    aria-hidden="true">2.</strong> 为什么要设计这门语言</a></li>
+            <li class="chapter-item expanded "><a href="compiler/compiler.html"><strong aria-hidden="true">3.</strong>
+                lelang编译器</a></li>
+            <li>
+                <ol class="section">
+                    <li class="chapter-item expanded "><a href="compiler/install.html"><strong
+                            aria-hidden="true">3.1.</strong> 安装与使用</a></li>
+                    <li class="chapter-item expanded "><a href="compiler/fibonacci.html"><strong
+                            aria-hidden="true">3.2.</strong> 打印斐波那契数</a></li>
+                </ol>
+            </li>
+            <li class="chapter-item expanded "><a href="type/type.html"><strong aria-hidden="true">4.</strong> 类型</a>
+            </li>
+            <li>
+                <ol class="section">
+                    <li class="chapter-item expanded "><a href="type/int_and_float.html"><strong
+                            aria-hidden="true">4.1.</strong> 整数与浮点数</a></li>
+                    <li class="chapter-item expanded "><a href="type/struct.html"><strong
+                            aria-hidden="true">4.2.</strong> 结构体</a></li>
+                    <li class="chapter-item expanded "><a href="type/array.html"><strong
+                            aria-hidden="true">4.3.</strong> 数组</a></li>
+                </ol>
+            </li>
+            <li class="chapter-item expanded "><a href="function/function.html"><strong aria-hidden="true">5.</strong>
+                函数</a></li>
+            <li>
+                <ol class="section">
+                    <li class="chapter-item expanded "><a href="function/def_and_call.html"><strong aria-hidden="true">5.1.</strong>
+                        函数定义与调用</a></li>
+                    <li class="chapter-item expanded "><a href="function/extern.html"><strong
+                            aria-hidden="true">5.2.</strong> 外部函数声明</a></li>
+                    <li class="chapter-item expanded ">
+                        <div><strong aria-hidden="true">5.3.</strong> 成员函数</div>
+                    </li>
+                    <li class="chapter-item expanded ">
+                        <div><strong aria-hidden="true">5.4.</strong> 匿名函数</div>
+                    </li>
+                </ol>
+            </li>
+            <li class="chapter-item expanded "><a href="branch/branch.html"><strong aria-hidden="true">6.</strong>
+                分支</a></li>
+            <li>
+                <ol class="section">
+                    <li class="chapter-item expanded "><a href="branch/if.html"><strong aria-hidden="true">6.1.</strong>
+                        if语句</a></li>
+                </ol>
+            </li>
+            <li class="chapter-item expanded "><a href="loop/loop.html"><strong aria-hidden="true">7.</strong> 循环</a>
+            </li>
+            <li>
+                <ol class="section">
+                    <li class="chapter-item expanded "><a href="loop/for.html"><strong aria-hidden="true">7.1.</strong>
+                        for循环</a></li>
+                    <li class="chapter-item expanded "><a href="loop/while.html"><strong
+                            aria-hidden="true">7.2.</strong> while循环</a></li>
+                </ol>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">8.</strong> 引用类型</div>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">9.</strong> 垃圾收集</div>
+            </li>
+            <li>
+                <ol class="section">
+                    <li class="chapter-item expanded ">
+                        <div><strong aria-hidden="true">9.1.</strong> Boehm垃圾收集器</div>
+                    </li>
+                </ol>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">10.</strong> 代数数据类型</div>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">11.</strong> 模式匹配</div>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">12.</strong> 接口</div>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">13.</strong> 模块</div>
+            </li>
+            <li class="chapter-item expanded ">
+                <div><strong aria-hidden="true">14.</strong> 包</div>
+            </li>
+        </ol>
+    </div>
+    <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+</nav>
+
+<div id="page-wrapper" class="page-wrapper">
+
+    <div class="page">
+        <div id="menu-bar-hover-placeholder"></div>
+        <div id="menu-bar" class="menu-bar sticky bordered">
+            <div class="left-buttons">
+                <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents"
+                        aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                    <i class="fa fa-bars"></i>
+                </button>
+                <button id="theme-toggle" class="icon-button" type="button" title="Change theme"
+                        aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                    <i class="fa fa-paint-brush"></i>
+                </button>
+                <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                    <li role="none">
+                        <button role="menuitem" class="theme" id="light">Light (default)</button>
+                    </li>
+                    <li role="none">
+                        <button role="menuitem" class="theme" id="rust">Rust</button>
+                    </li>
+                    <li role="none">
+                        <button role="menuitem" class="theme" id="coal">Coal</button>
+                    </li>
+                    <li role="none">
+                        <button role="menuitem" class="theme" id="navy">Navy</button>
+                    </li>
+                    <li role="none">
+                        <button role="menuitem" class="theme" id="ayu">Ayu</button>
+                    </li>
+                </ul>
+                <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)"
+                        aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S"
+                        aria-controls="searchbar">
+                    <i class="fa fa-search"></i>
+                </button>
+            </div>
+
+            <h1 class="menu-title">lelang programming language</h1>
+
+            <div class="right-buttons">
+                <a href="print.html" title="Print this book" aria-label="Print this book">
+                    <i id="print-button" class="fa fa-print"></i>
+                </a>
+
+            </div>
+        </div>
+
+        <div id="search-wrapper" class="hidden">
+            <form id="searchbar-outer" class="searchbar-outer">
+                <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..."
+                       aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+            </form>
+            <div id="searchresults-outer" class="searchresults-outer hidden">
+                <div id="searchresults-header" class="searchresults-header"></div>
+                <ul id="searchresults">
+                </ul>
+            </div>
+        </div>
+
+        <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+        <script type="text/javascript">
+            document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+            document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+            Array.from(document.querySelectorAll('#sidebar a')).forEach(function (link) {
+                link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+            });
+        </script>
+
+        <div id="content" class="content">
+            <main>
+                <h1 id="编写该语言的动机"><a class="header" href="#编写该语言的动机">编写该语言的动机</a></h1>
+                <h2 id="为什么要设计该语言"><a class="header" href="#为什么要设计该语言">为什么要设计该语言</a></h2>
+                <ul>
+                    <li>因为一直都对编译技术比较感兴趣，在学习了一些编译技术后，就想动手实现一个较为完整的编程语言，并考虑作为长期维护项目。</li>
+                    <li>首先考虑实现一个脚本语言，在参考了Lua语言、Python语言、JavaScript语言后，觉得脚本语言虽然在后端实现上较为灵活，但是都会需要运行时环境，例如虚拟机。</li>
+                    <li>刚好可以作为一个课程实验进行</li>
+                </ul>
+                <h2 id="为什么设计成静态检查基于llvm的语言"><a class="header" href="#为什么设计成静态检查基于llvm的语言">为什么设计成静态检查，基于LLVM的语言？</a>
+                </h2>
+                <ul>
+                    <li>由于是学习性质的项目，使用LLVM可以接触到更多的底层知识和优化手段，并且可以方便的直接编译到独立运行的可执行文件，并可使用LLVM工具链辅助完成调试，优化等工作，并且如果后续
+                        需要支持解释执行，借用LLVM的JIT，或者在现有的基础上重写一个解释器作为后端也是十分方便的，所以lelang最终定位为了一个偏向进行更多的静态检查，支持直接编译到机器码，并使用可使用
+                        标准C ABI和系统进行交互的语言。
+                    </li>
+                    <li>
+                        而现有的编程语言中，比较流行的类似的分别是C、C++、Go、Rust，lelang的设计对这几个语言均有参考。C语言虽然经典好用，但是语言提供的抽象能力太差，也没有提供任何的安全检查机制和垃圾收集机制，开发难度较大。
+                        C++语言特性很多，功能强大，但是上手难度较高，历史包袱较重，使用难度也较高。Rust语言上手难度同样较高，继承和改进了很多C++的问题，但是编译检查十分严格，并且内容也非常多，且牵涉到许多C系语言中很少使用的概念，并且也需要手动管理内存。
+                        最后Go语言虽然满足易用，静态检查，上手简单，自动垃圾回收等需求，但是Go语言某些部分的语法设计过于粗略，例如any类型，使用积类型而不是和类型进行错误处理，不支持任何可变性约束等等。
+                    </li>
+                    <li>
+                        所以lelang基于Go语言的优点，预计在其基础上增加例如代数数据类型，模式匹配，泛型等语法，基于LLVM的后端可方便支持跨各种操作系统和硬件平台的编译，引入自动垃圾收集器，摆脱手动管理内存的麻烦。
+                    </li>
+                </ul>
+                <h2 id="为什么使用rust语言编写前端"><a class="header" href="#为什么使用rust语言编写前端">为什么使用Rust语言编写前端？</a></h2>
+                <ul>
+                    <li>Rust语言是我个人比较喜欢的一门语言。但是平时C++，Java，Python等语言使用的更多，一直没有一个使用Rust实践一个完整项目的机会，于是考虑使用Rust</li>
+                    <li></li>
+                </ul>
+                <p>
+                    Rust语言支持多种函数式编程语言的语法和概念，但是又不像某些纯函数式语言（例如Haskell，Lisp语言）那样完全放弃命令式的语法，并且不需要任何解释器环境就可运行，其中的代数数据类型，模式匹配，和基于和类型的错误处理等特性都十分适合用来编写一个新语言的编译器。</p>
+                <ul>
+                    <li>Rust的工程化和易用性做的很好，不管是开发还是部署，均比C++要容易，并且严格的编译检查和方便的日志功能能很好的减少Debug的时间。</li>
+                </ul>
+
+            </main>
+
+            <nav class="nav-wrapper" aria-label="Page navigation">
+                <!-- Mobile navigation buttons -->
+                <a rel="prev" href="head.html" class="mobile-nav-chapters previous" title="Previous chapter"
+                   aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+
+                <a rel="next" href="compiler/compiler.html" class="mobile-nav-chapters next" title="Next chapter"
+                   aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+
+                <div style="clear: both"></div>
+            </nav>
+        </div>
+    </div>
+
+    <nav class="nav-wide-wrapper" aria-label="Page navigation">
+        <a rel="prev" href="head.html" class="nav-chapters previous" title="Previous chapter"
+           aria-label="Previous chapter" aria-keyshortcuts="Left">
+            <i class="fa fa-angle-left"></i>
+        </a>
+
+        <a rel="next" href="compiler/compiler.html" class="nav-chapters next" title="Next chapter"
+           aria-label="Next chapter" aria-keyshortcuts="Right">
+            <i class="fa fa-angle-right"></i>
+        </a>
+    </nav>
+
+</div>
+
+
+<script type="text/javascript">
+    window.playground_copyable = true;
+</script>
+
+
+<script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+<script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+<!-- Custom JS scripts -->
+
+
+</body>
+</html>
