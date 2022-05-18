@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use std::error::Error;
 use std::fmt::{Display, format, Formatter, Write};
 use std::ops::Range;
 
@@ -222,6 +223,10 @@ pub enum LEError {
         compile_error: CompileError,
         position: Position,
     },
+    #[error("error:{other}")]
+    IOError {
+        other: Box<dyn Error>
+    }
 }
 
 
@@ -440,6 +445,10 @@ impl LEError {
                             )
                     }
                 }
+            }
+            LEError::IOError { other } => {
+                Report::build(ReportKind::Error, src, 0)
+                    .with_message(other.to_string())
             }
         }
     }

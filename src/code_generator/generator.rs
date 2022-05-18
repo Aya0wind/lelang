@@ -28,6 +28,7 @@ pub struct CodeGenerator<'ctx> {
 
 impl<'ctx> CodeGenerator<'ctx> {
     fn build_expression(&mut self, value: &Expr) -> Result<Expression<'ctx>> {
+        //针对不同类型的表达式调用不同的生成函数
         match value {
             Expr::UnaryOperator(n) => { self.build_unary_operator_expression(n) }
             Expr::BinaryOperator(n) => { self.build_binary_operator_expression(n) }
@@ -43,8 +44,10 @@ impl<'ctx> CodeGenerator<'ctx> {
 
 
     fn build_structure_initializer(&mut self, expr: &StructureInitializer) -> Result<Expression<'ctx>> {
+        //获取结构体类型
         let struct_type = self.context.get_generic_type(&TypeDeclarator::TypeIdentifier(expr.structure_name.clone()))
             .map_err(|e| LEError::new_compile_error(e, expr.structure_name.pos.clone()))?;
+        //检查类型是否一致
         if let LEBasicTypeEnum::Struct(struct_type) = struct_type {
             let initializer_member_num = expr.member_initial_values.len();
             if struct_type.get_llvm_type().get_field_types().len() != initializer_member_num {
@@ -59,6 +62,7 @@ impl<'ctx> CodeGenerator<'ctx> {
             let struct_llvm_value = &value_array
                 .into_iter()
                 .map(|x| self.builder.read_expression(&self.context, x.1).unwrap().to_llvm_basic_value_enum()).collect::<Vec<_>>();
+            //创建结构体value
             let struct_value = struct_type.get_llvm_type().const_named_struct(struct_llvm_value);
             Ok(Expression::Right(LEStructValue { ty: struct_type, llvm_value: struct_value }.to_le_value_enum()))
         } else {
@@ -85,10 +89,12 @@ impl<'ctx> CodeGenerator<'ctx> {
 
 
     fn build_array_initializer(&mut self, value: &ArrayInitializer) -> Result<Expression<'ctx>> {
+        //禁止0长度的数组
         if value.elements.is_empty() {
             Err(CompileError::NotAllowZeroLengthArray.to_leerror(value.pos.clone()))
         } else {
             let mut array_values = vec![];
+            //对每个数组元素初始化的表达式做类型检查
             for v in value.elements.iter() {
                 let expr = self.build_expression(v)?;
                 array_values.push(self.builder.read_expression(&self.context, expr).map_err(|e| e.to_leerror(v.pos()))?);
@@ -96,6 +102,7 @@ impl<'ctx> CodeGenerator<'ctx> {
             let first_value = array_values.first().unwrap();
             let element_type = LEBasicValue::get_le_type(first_value);
             let array_type = LEBasicType::get_array_type(&element_type, value.elements.len() as u32);
+            //对每个数组元素初始化的表达式做求值
             for (index, others) in array_values.iter().enumerate() {
                 if others.get_le_type() != element_type {
                     return Err(CompileError::TypeMismatched {
@@ -104,7 +111,7 @@ impl<'ctx> CodeGenerator<'ctx> {
                     }.to_leerror(value.elements[index].pos()));
                 }
             }
-
+            //生成数组value
             match element_type {
                 LEBasicTypeEnum::Integer(t) => {
                     let array_initial_values = array_values.into_iter().map(|v| v.try_into().unwrap()).collect::<Vec<LEIntegerValue>>();
@@ -139,6 +146,7 @@ impl<'ctx> CodeGenerator<'ctx> {
     }
 
     fn build_binary_operator_expression(&mut self, value: &BinaryOpExpression) -> Result<Expression<'ctx>> {
+        //针对不同运算符调用不同的生成函数
         match value.op {
             Operator::Plus => {
                 let left = self.build_expression(value.left.as_ref())?;
@@ -265,19 +273,24 @@ impl<'ctx> CodeGenerator<'ctx> {
     }
 
     fn build_call_expression(&mut self, value: &FunctionCall) -> Result<Expression<'ctx>> {
+        //从符号表查找函数
         let function = le_error!(self.context.compiler_context.get_function(&value.function_name.name),value.function_name.pos())?;
         let mut params = vec![];
+        //对所有实参求值
         for param in value.params.iter() {
             params.push(self.build_expression(param)?)
         }
+        //生成函数调用
         self.builder.build_call(&self.context, function, &params).map_err(|e| e.to_leerror(value.pos.clone()))
     }
 
     fn build_local_variable_definition(&mut self, variable: &Variable) -> Result<Expression<'ctx>> {
+        //获取变量的类型，初始值
         let initial_value_expr = self.build_expression(variable.value.as_ref())?;
         let initial_value = le_error!(self.builder.read_expression(&self.context, initial_value_expr),variable.value.pos())?;
         let initial_type = LEBasicValue::get_le_type(&initial_value);
 
+        //保存指令插入点为入口块开头
         let current_insert_block = self.builder.llvm_builder.get_insert_block().unwrap();
         let parent_function = self.context.compiler_context.current_function.unwrap();
         let entry_block = parent_function.get_first_basic_block().unwrap();
@@ -286,7 +299,7 @@ impl<'ctx> CodeGenerator<'ctx> {
         } else {
             self.builder.llvm_builder.position_at_end(entry_block);
         }
-
+        //生成内存申请的代码
         let pointer = if let Some(variable_type) = &variable.prototype.type_declarator {
             let target_type = le_error!(self.context.get_generic_type(variable_type),variable_type.pos())?;
             if target_type == initial_type {
@@ -298,6 +311,7 @@ impl<'ctx> CodeGenerator<'ctx> {
             self.builder.build_alloca(&self.context, initial_type)
         };
         self.builder.llvm_builder.position_at_end(current_insert_block);
+        //初始化申请的内存
         le_error!(self.builder.build_store(&self.context, pointer.clone(),initial_value),variable.pos())?;
         le_error!(self.context.insert_local_variable(
             variable.prototype.identifier.name.clone(),
@@ -308,6 +322,7 @@ impl<'ctx> CodeGenerator<'ctx> {
     }
 
     fn build_code_block(&mut self, code_block: &CodeBlock) -> Result<bool> {
+        //对每一条语句调用生成函数
         for statement in code_block.statements.iter() {
             match statement {
                 Statement::Expressions(expr) => {
@@ -337,6 +352,7 @@ impl<'ctx> CodeGenerator<'ctx> {
     }
 
     fn build_return(&mut self, expr: Expression, position: Position) -> Result<()> {
+        //拿到返回的basic block，将返回值存入返回变量
         let return_variable = &self.context.compiler_context.return_variable;
         let return_block = self.context.compiler_context.return_block.unwrap();
         let return_value = le_error!(self.builder.read_expression(&self.context, expr),position.clone())?;
@@ -351,13 +367,16 @@ impl<'ctx> CodeGenerator<'ctx> {
         let loop_variable = for_loop.init_statement.as_ref();
 
         if let Statement::Expressions(cond_expr) = for_loop.condition.as_ref() {
+            //创建cond块,body块和after三个basic block
             let cond_block = self.context.llvm_context.insert_basic_block_after(self.builder.llvm_builder.get_insert_block().unwrap(), "");
             let body_block = self.context.llvm_context.insert_basic_block_after(cond_block, "");
             let after_block = self.context.llvm_context.insert_basic_block_after(body_block, "");
             self.context.compiler_context.push_block_table();
+            //如果有循环变量，则创建循环变量
             if let Statement::VariableDefinition(v) = loop_variable {
                 self.build_local_variable_definition(v)?;
             }
+            //创建body块的跳转
             self.builder.llvm_builder.build_unconditional_branch(cond_block);
             self.builder.llvm_builder.position_at_end(cond_block);
             let cond = self.build_expression(cond_expr.as_ref())?;
@@ -371,6 +390,7 @@ impl<'ctx> CodeGenerator<'ctx> {
                 }.to_leerror(cond_expr.pos()));
             }
             self.builder.llvm_builder.position_at_end(body_block);
+            //生成循环体的代码
             self.build_code_block(&for_loop.code_block)?;
 
             if let Statement::Expressions(step_expr) = for_loop.iterate.as_ref() {
@@ -445,12 +465,14 @@ impl<'ctx> CodeGenerator<'ctx> {
     fn build_function_prototype(&mut self, module: &Module<'ctx>, prototype: &FunctionPrototype) -> Result<LEFunctionValue<'ctx>> {
         let mut param_llvm_metadata_types = vec![];
         let mut param_types = vec![];
+
         for param_type in prototype.param_types.iter() {
             let ty = self.context.get_generic_type(param_type).map_err(|e| e.to_leerror(param_type.pos()))?;
             param_types.push(ty.clone());
             param_llvm_metadata_types.push(BasicMetadataTypeEnum::from(ty.get_llvm_basic_type()))
         }
         let return_type;
+        //检查参数是否合法
         let external_function = match &prototype.return_type {
             None => {
                 return_type = None;
@@ -470,6 +492,7 @@ impl<'ctx> CodeGenerator<'ctx> {
                 }
             }
         };
+        //构造一个LLVM函数
         let external_function_value = module.add_function(&prototype.identifier.name, external_function, Some(Linkage::External));
         let function_type = LEFunctionType::new(external_function, return_type, param_types);
         let le_function = LEFunctionValue { ty: function_type, llvm_value: external_function_value };
@@ -480,6 +503,15 @@ impl<'ctx> CodeGenerator<'ctx> {
         Ok(le_function)
     }
 
+
+    /// 生成函数返回块的代码
+    /// ```
+    ///  %return = alloca i32 align 4
+    ///  ...
+    ///  br
+    ///
+    ///  ret %return
+    /// ```
     fn build_return_block(&mut self, return_block: BasicBlock, return_variable: Option<LEPointerValue>) -> Result<()> {
         self.builder.llvm_builder.position_at_end(return_block);
         if let Some(value) = return_variable {
@@ -497,6 +529,7 @@ impl<'ctx> CodeGenerator<'ctx> {
         let entry = self.context.llvm_context.append_basic_block(function_value.llvm_value, "");
         let return_block = self.context.llvm_context.append_basic_block(function_value.llvm_value, "");
         let return_type = function_value.ty.return_type();
+        //对返回值为空类型或其他类型做特殊处理
         if let Some(none_void_type) = return_type {
             self.builder.llvm_builder.position_at_end(entry);
             let return_variable = self.builder.build_alloca(&self.context, none_void_type);
@@ -508,11 +541,13 @@ impl<'ctx> CodeGenerator<'ctx> {
             self.build_return_block(return_block, None)?;
         }
         self.builder.llvm_builder.position_at_end(entry);
+        //添加一个块级符号表的起始
         self.context.compiler_context.push_block_table();
         let function = &function_value;
         let names = &function_node.param_names;
         let param_value_iter = function.llvm_value.get_param_iter();
         let param_type_iter = function.ty.param_types();
+        //生成保存参数的变量
         for (index, ((param, name), param_type)) in param_value_iter.zip(names).zip(param_type_iter).enumerate() {
             let param_pos = function_node.prototype.param_types[index].pos();
             let param_value = le_error!(LEBasicValueEnum::from_type_and_llvm_value(param_type.clone(), param),param_pos.clone())?;
@@ -524,6 +559,7 @@ impl<'ctx> CodeGenerator<'ctx> {
         if !is_return_block {
             self.builder.llvm_builder.build_unconditional_branch(return_block);
         }
+        //删除一个块级符号表
         self.context.compiler_context.pop_block_table();
         Ok(function_value)
     }
@@ -537,10 +573,12 @@ impl<'ctx> CodeGenerator<'ctx> {
     fn generate_all_functions(&mut self, module: &Module<'ctx>, ast: &Ast) -> Result<()> {
         for function_prototype in ast.extern_functions.iter() {
             let name = function_prototype.identifier.clone();
+            //生成所有的函数原型
             self.build_function_prototype(module, function_prototype)?;
         }
         for function_node in ast.function_definitions.iter() {
             let name = function_node.prototype.identifier.clone();
+            //生成所有的函数实现
             self.build_function(module, function_node)?;
         }
         Ok(())
@@ -601,8 +639,11 @@ impl<'ctx> CodeGenerator<'ctx> {
 
 
     pub fn compile(&mut self, module: &Module<'ctx>, ast: &Ast) -> Result<()> {
+        //生成所有全局变量相关的代码
         self.generate_all_global_variables(module, ast)?;
+        //生成所有全局结构体类型的代码
         self.generate_all_global_structures(module, ast)?;
+        //生成所有全局函数的代码
         self.generate_all_functions(module, ast)?;
         Ok(())
     }

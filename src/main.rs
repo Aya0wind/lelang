@@ -29,6 +29,7 @@ fn read_args_and_compile() -> std::io::Result<()> {
     input.read_to_string(&mut buffer)?;
     let config = ariadne::Config::default()
         .with_color(atty::is(Stream::Stderr));
+
     match driver::compile_with_config(&args, &buffer) {
         Ok(_) => {}
         Err(err) => {

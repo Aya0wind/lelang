@@ -697,7 +697,7 @@ impl Ast {
         Ok(())
     }
 
-    pub fn print_to_with_root_name<W: io::Write>(&self, w: W, root: String) -> std::io::Result<()> {
+    pub fn print_with_root_name<W: io::Write>(&self, w: W, root: String) -> std::io::Result<()> {
         let mut builder = TreeBuilder::new(root);
         let builder_ref = &mut builder;
 
