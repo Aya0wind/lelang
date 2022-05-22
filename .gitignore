@@ -5,3 +5,5 @@ Cargo.lock
 *.out
 *.ll
 /mdbook
+.DS_Store
+.idea/

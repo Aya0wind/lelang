@@ -17,7 +17,6 @@ mod jit;
 mod error;
 mod ast;
 mod optimizer;
-// mod analyzer;
 mod driver;
 mod arg_parser;
 

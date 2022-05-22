@@ -1,5 +1,5 @@
-##                 !!!!!!! Attention !!!!!!
-## !!!!!! LELANG NOT SUPPORT UNICODE IDENTIFIER OR COMMENT NOW !!!!!!
+##           !!!!!!! Attention !!!!!!
+## !!!!!! LELANG NOT SUPPORT UNICODE CHARACTER NOW !!!!!!
 
 ## external function declare
 decl le print_bool(bool)->i32;
@@ -22,7 +22,7 @@ struct MyStruct{
 }
 
 ## function with return value, structure parameter,member access
-le ret_i32(number: ref MyStruct)->i32{
+le ret_i32(number:MyStruct)->i32{
     ret number.member1;
 }
 
