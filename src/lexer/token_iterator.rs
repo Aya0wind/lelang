@@ -525,6 +525,7 @@ impl<'s> LELexer<'s> {
         }
     }
 
+
     pub fn consume_number_literal(&mut self) -> Result<Number> {
         let current_pos = self.last_pos();
         let consume = self.next();

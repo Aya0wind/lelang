@@ -14,6 +14,7 @@ le no_ret(){
         print_int32(i);
     }
 }
+
 ## structure declare
 struct MyStruct{
     member1:i32,
@@ -72,7 +73,7 @@ le main()->i32{
         member2:1.234,
         member3:[1,2],
     };
-    my_struct_object.member2=10;
+    my_struct_object.member1=10;
     var return_i32_value = ret_i32(my_struct_object);
     print_int64(my_struct_object.member2 as i64);
     print_int32(fibonacci(20));
@@ -82,5 +83,4 @@ le main()->i32{
     }
     ret 11111;
 }
-
 

@@ -6,7 +6,9 @@ use std::io::Write;
 
 use ptree::{Style, TreeBuilder, TreeItem};
 
-use crate::ast::parser::{parse_extern_function_prototype, parse_function, parse_structure, parse_variable_declaration};
+use crate::ast::parser::{
+    parse_extern_function_prototype, parse_function, parse_structure, parse_variable_declaration,
+};
 use crate::error::{LEError, Result, SyntaxError, TokenType};
 use crate::lexer::{KeyWord, LELexer, LEToken, Position};
 use crate::lexer::{Number, Operator};
@@ -23,7 +25,6 @@ pub struct AnonymousFunction {
     pub code_block: CodeBlock,
     pub pos: Position,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct BinaryOpExpression {
@@ -212,12 +213,14 @@ impl ASTNode for NumberLiteral {
     }
 
     fn build_tree_format(&self, builder: &mut TreeBuilder) {
-        builder.add_empty_child(
-            match self.number {
-                Number::Integer(v) => { format!("`{}`", v) }
-                Number::Float(v) => { format!("`{}`", v) }
+        builder.add_empty_child(match self.number {
+            Number::Integer(v) => {
+                format!("`{}`", v)
             }
-        );
+            Number::Float(v) => {
+                format!("`{}`", v)
+            }
+        });
     }
 }
 
@@ -500,9 +503,9 @@ impl ASTNode for WhileLoop {
 impl ASTNode for TypeDeclarator {
     fn pos(&self) -> Position {
         match self {
-            TypeDeclarator::TypeIdentifier(e) => { e.pos() }
-            TypeDeclarator::Array(e) => { e.pos() }
-            TypeDeclarator::Reference(e) => { e.pos() }
+            TypeDeclarator::TypeIdentifier(e) => e.pos(),
+            TypeDeclarator::Array(e) => e.pos(),
+            TypeDeclarator::Reference(e) => e.pos(),
         }
     }
 
@@ -530,14 +533,14 @@ impl ASTNode for TypeDeclarator {
 impl ASTNode for Expr {
     fn pos(&self) -> Position {
         match self {
-            Expr::BinaryOperator(e) => { e.pos() }
-            Expr::UnaryOperator(e) => { e.pos() }
-            Expr::NumberLiteral(e) => { e.pos() }
-            Expr::ArrayInitializer(e) => { e.pos() }
-            Expr::StructureInitializer(e) => { e.pos() }
-            Expr::StringLiteral(e) => { e.pos() }
-            Expr::Identifier(e) => { e.pos() }
-            Expr::CallExpression(e) => { e.pos() }
+            Expr::BinaryOperator(e) => e.pos(),
+            Expr::UnaryOperator(e) => e.pos(),
+            Expr::NumberLiteral(e) => e.pos(),
+            Expr::ArrayInitializer(e) => e.pos(),
+            Expr::StructureInitializer(e) => e.pos(),
+            Expr::StringLiteral(e) => e.pos(),
+            Expr::Identifier(e) => e.pos(),
+            Expr::CallExpression(e) => e.pos(),
         }
     }
 
@@ -590,13 +593,13 @@ impl ASTNode for Expr {
 impl ASTNode for Statement {
     fn pos(&self) -> Position {
         match self {
-            Statement::Expressions(e) => { e.pos() }
-            Statement::VariableDefinition(e) => { e.pos() }
-            Statement::Return(e) => { e.pos() }
-            Statement::If(e) => { e.pos() }
-            Statement::ForLoop(e) => { e.pos() }
-            Statement::WhileLoop(e) => { e.pos() }
-            Statement::Void(p) => { p.clone() }
+            Statement::Expressions(e) => e.pos(),
+            Statement::VariableDefinition(e) => e.pos(),
+            Statement::Return(e) => e.pos(),
+            Statement::If(e) => e.pos(),
+            Statement::ForLoop(e) => e.pos(),
+            Statement::WhileLoop(e) => e.pos(),
+            Statement::Void(p) => p.clone(),
         }
     }
 
@@ -639,7 +642,6 @@ impl ASTNode for Statement {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct Ast {
     pub globals_variables: Vec<Variable>,
@@ -648,10 +650,14 @@ pub struct Ast {
     pub extern_functions: Vec<FunctionPrototype>,
 }
 
-
 impl Ast {
     pub fn from_lexer(tokens: LELexer) -> Result<Self> {
-        let mut ast = Self { globals_variables: vec![], globals_structures: vec![], function_definitions: vec![], extern_functions: vec![] };
+        let mut ast = Self {
+            globals_variables: vec![],
+            globals_structures: vec![],
+            function_definitions: vec![],
+            extern_functions: vec![],
+        };
         ast.parse(tokens)?;
         Ok(ast)
     }
@@ -660,13 +666,16 @@ impl Ast {
         loop {
             let next_token = lexer.current();
             match next_token {
-                None => { break; }
+                None => {
+                    break;
+                }
                 Some(token) => {
                     if let LEToken::KeyWord(keyword) = token {
                         match keyword {
                             KeyWord::Declare => {
                                 lexer.consume_keyword()?;
-                                let function_prototype = parse_extern_function_prototype(&mut lexer)?;
+                                let function_prototype =
+                                    parse_extern_function_prototype(&mut lexer)?;
                                 lexer.consume_semicolon()?;
                                 self.extern_functions.push(function_prototype);
                             }
@@ -676,6 +685,7 @@ impl Ast {
                             }
                             KeyWord::VariableDeclare => {
                                 let variable = parse_variable_declaration(&mut lexer)?;
+                                lexer.consume_semicolon()?;
                                 self.globals_variables.push(variable);
                             }
                             KeyWord::StructureDeclare => {
@@ -684,12 +694,20 @@ impl Ast {
                             }
                             _ => {
                                 return Err(LEError::new_syntax_error(
-                                    SyntaxError::unexpect_token(vec![TokenType::FunctionDefine, TokenType::FunctionDeclare], LEToken::KeyWord(keyword)),
-                                    lexer.pos()));
+                                    SyntaxError::unexpect_token(
+                                        vec![TokenType::FunctionDefine, TokenType::FunctionDeclare],
+                                        LEToken::KeyWord(keyword),
+                                    ),
+                                    lexer.pos(),
+                                ));
                             }
                         }
                     } else {
-                        return Err(SyntaxError::unexpect_token(vec![TokenType::FunctionDefine, TokenType::FunctionDeclare], token.clone()).to_leerror(lexer.pos()));
+                        return Err(SyntaxError::unexpect_token(
+                            vec![TokenType::FunctionDefine, TokenType::FunctionDeclare],
+                            token.clone(),
+                        )
+                            .to_leerror(lexer.pos()));
                     }
                 }
             }
@@ -709,7 +727,6 @@ impl Ast {
         }
         builder_ref.end_child();
 
-
         builder_ref.begin_child("function_definitions".to_string());
         for (index, f) in self.function_definitions.iter().enumerate() {
             builder_ref.begin_child(index.to_string());
@@ -718,7 +735,6 @@ impl Ast {
         }
         builder_ref.end_child();
 
-
         builder_ref.begin_child("globals_structures".to_string());
         for (index, f) in self.globals_structures.iter().enumerate() {
             builder_ref.begin_child(index.to_string());
@@ -726,7 +742,6 @@ impl Ast {
             builder_ref.end_child();
         }
         builder_ref.end_child();
-
 
         builder_ref.begin_child("globals_variables".to_string());
         for (index, f) in self.globals_variables.iter().enumerate() {

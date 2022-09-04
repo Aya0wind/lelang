@@ -12,10 +12,14 @@ pub fn parse_variable_declaration(lexer: &mut LELexer) -> Result<Variable> {
     let start_pos = lexer.pos();
     lexer.consume_keyword()?;
     let prototype_start_pos = lexer.pos();
-    let identifier = Identifier { name: lexer.consume_identifier()?, pos: prototype_start_pos.clone() };
+    let identifier = Identifier {
+        name: lexer.consume_identifier()?,
+        pos: prototype_start_pos.clone(),
+    };
     let expect_colon = lexer.current().ok_or(LEError::new_syntax_error(
         SyntaxError::missing_token(vec![TokenType::Colon]),
-        lexer.pos()))?;
+        lexer.pos(),
+    ))?;
     let type_declarator = if let LEToken::Colon = expect_colon {
         lexer.consume_colon()?;
         Some(parse_type_declarator(lexer)?)
@@ -38,6 +42,7 @@ pub fn parse_variable_declaration(lexer: &mut LELexer) -> Result<Variable> {
     } else {
         Err(LEError::new_syntax_error(
             SyntaxError::unexpect_token(vec![TokenType::Operator], LEToken::Operator(equal_op)),
-            lexer.pos()))
+            lexer.pos(),
+        ))
     }
 }
