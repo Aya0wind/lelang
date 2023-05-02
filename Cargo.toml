@@ -14,11 +14,9 @@ criterion = "0.3.5"
 [[bench]]
 name="lexer"
 harness=false
-[lib]
-name = "lelang"
 
 [dependencies]
-inkwell = { version = "0.1.0-beta.4", features = ["llvm12-0"] }
+inkwell = { version = "0.1.0-beta.3", features = ["llvm13-0"] }
 logos = "0.12.0"
 thiserror = "1.0.30"
 nom = "7.1.0"

@@ -614,7 +614,7 @@ impl<'ctx> CodeGenerator<'ctx> {
     }
 
     pub fn create_global_variable(&mut self, name: String, initial_value: LEBasicValueEnum<'ctx>, module: &Module<'ctx>, position: Position) -> Result<LEPointerValue<'ctx>> {
-        let pointer = self.builder.build_global_alloca_with_initial_value(initial_value, module, Some(AddressSpace::Global));
+        let pointer = self.builder.build_global_alloca_with_initial_value(initial_value, module, Some(1.into()));
         le_error!(self.context.insert_global_variable(name, pointer.clone(), position.clone()),position)?;
         Ok(pointer)
     }

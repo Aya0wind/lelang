@@ -52,7 +52,7 @@ impl<'ctx> LEBasicType<'ctx> for LEIntegerType<'ctx> {
 
     fn get_pointer_type(&self) -> LEPointerType<'ctx> {
         let llvm_type = self.get_llvm_type();
-        let pointer_type = llvm_type.ptr_type(AddressSpace::Generic);
+        let pointer_type = llvm_type.ptr_type(0.into());
         LEPointerType {
             inner: Rc::new(LEPointerTypeInner {
                 point_type: self.to_le_type_enum(),
@@ -125,7 +125,7 @@ impl<'ctx> LEBasicType<'ctx> for LEFloatType<'ctx> {
 
     fn get_pointer_type(&self) -> LEPointerType<'ctx> {
         let llvm_type = self.get_llvm_type();
-        let pointer_type = llvm_type.ptr_type(AddressSpace::Generic);
+        let pointer_type = llvm_type.ptr_type(0.into());
         LEPointerType {
             inner: Rc::new(LEPointerTypeInner {
                 point_type: self.to_le_type_enum(),
@@ -197,7 +197,7 @@ impl<'ctx> LEBasicType<'ctx> for LEBoolType<'ctx> {
 
     fn get_pointer_type(&self) -> LEPointerType<'ctx> {
         let llvm_type = self.get_llvm_type();
-        let pointer_type = llvm_type.ptr_type(AddressSpace::Generic);
+        let pointer_type = llvm_type.ptr_type(0.into());
         LEPointerType {
             inner: Rc::new(LEPointerTypeInner {
                 point_type: self.to_le_type_enum(),
@@ -277,7 +277,7 @@ impl<'ctx> LEBasicType<'ctx> for LEPointerType<'ctx> {
 
     fn get_pointer_type(&self) -> LEPointerType<'ctx> {
         let llvm_type = self.get_llvm_type();
-        let pointer_type = llvm_type.ptr_type(AddressSpace::Generic);
+        let pointer_type = llvm_type.ptr_type(0.into());
         LEPointerType {
             inner: Rc::new(LEPointerTypeInner {
                 point_type: self.to_le_type_enum(),
@@ -294,12 +294,12 @@ impl<'ctx> LEPointerType<'ctx> {
 
     pub fn new(le_context: &LEContext<'ctx>, point_type: LEBasicTypeEnum<'ctx>) -> Self {
         let llvm_type = match point_type.get_llvm_type() {
-            BasicTypeEnum::ArrayType(t) => { t.ptr_type(AddressSpace::Generic) }
-            BasicTypeEnum::FloatType(t) => { t.ptr_type(AddressSpace::Generic) }
-            BasicTypeEnum::IntType(t) => { t.ptr_type(AddressSpace::Generic) }
-            BasicTypeEnum::PointerType(t) => { t.ptr_type(AddressSpace::Generic) }
-            BasicTypeEnum::StructType(t) => { t.ptr_type(AddressSpace::Generic) }
-            BasicTypeEnum::VectorType(t) => { t.ptr_type(AddressSpace::Generic) }
+            BasicTypeEnum::ArrayType(t) => { t.ptr_type(0.into()) }
+            BasicTypeEnum::FloatType(t) => { t.ptr_type(0.into()) }
+            BasicTypeEnum::IntType(t) => { t.ptr_type(0.into()) }
+            BasicTypeEnum::PointerType(t) => { t.ptr_type(0.into()) }
+            BasicTypeEnum::StructType(t) => { t.ptr_type(0.into()) }
+            BasicTypeEnum::VectorType(t) => { t.ptr_type(0.into()) }
         };
         Self {
             inner: Rc::new(LEPointerTypeInner {
@@ -376,7 +376,7 @@ impl<'ctx> LEBasicType<'ctx> for LEArrayType<'ctx> {
 
     fn get_pointer_type(&self) -> LEPointerType<'ctx> {
         let llvm_type = self.get_llvm_type();
-        let pointer_type = llvm_type.ptr_type(AddressSpace::Generic);
+        let pointer_type = llvm_type.ptr_type(0.into());
         LEPointerType {
             inner: Rc::new(LEPointerTypeInner {
                 point_type: self.to_le_type_enum(),
@@ -453,7 +453,7 @@ impl<'ctx> LEBasicType<'ctx> for LEStructType<'ctx> {
 
     fn get_pointer_type(&self) -> LEPointerType<'ctx> {
         let llvm_type = self.get_llvm_type();
-        let pointer_type = llvm_type.ptr_type(AddressSpace::Generic);
+        let pointer_type = llvm_type.ptr_type(0.into());
         LEPointerType {
             inner: Rc::new(LEPointerTypeInner {
                 point_type: self.to_le_type_enum(),
@@ -556,7 +556,7 @@ impl<'ctx> LEBasicType<'ctx> for LEVectorType<'ctx> {
 
     fn get_pointer_type(&self) -> LEPointerType<'ctx> {
         let llvm_type = self.get_llvm_type();
-        let pointer_type = llvm_type.ptr_type(AddressSpace::Generic);
+        let pointer_type = llvm_type.ptr_type(0.into());
         LEPointerType {
             inner: Rc::new(LEPointerTypeInner {
                 point_type: self.to_le_type_enum(),
